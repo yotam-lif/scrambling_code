@@ -35,22 +35,61 @@ CMR_COLORS = sns.color_palette("CMRmap", 5)
 PERCENTS = [0, 25, 50, 75, 100]
 
 
+def _two_sided_kde(data, bw_method, num_points=400, min_fraction=0.02):
+    """Boundary-corrected KDE on each side of 0, weighted by empirical fraction.
+
+    A side is only plotted if it contains at least min_fraction of the data,
+    preventing artefact bumps from a handful of near-zero outliers.
+    """
+    neg = data[data <= 0]
+    pos = data[data > 0]
+    n = len(data)
+    parts_x, parts_y = [], []
+
+    if neg.size / n >= min_fraction and neg.size >= 2 and not np.allclose(neg.min(), neg.max()):
+        kde = gaussian_kde(np.concatenate([neg, -neg]), bw_method=bw_method)
+        x = np.linspace(neg.min(), 0.0, num_points // 2)
+        parts_x.append(x)
+        parts_y.append(2.0 * kde.evaluate(x) * (neg.size / n))
+
+    if pos.size / n >= min_fraction and pos.size >= 2 and not np.allclose(pos.min(), pos.max()):
+        kde = gaussian_kde(np.concatenate([pos, -pos]), bw_method=bw_method)
+        x = np.linspace(0.0, pos.max(), num_points // 2)
+        skip = 1 if parts_x else 0
+        parts_x.append(x[skip:])
+        parts_y.append(2.0 * kde.evaluate(x)[skip:] * (pos.size / n))
+
+    if not parts_x:
+        return None
+    return np.concatenate(parts_x), np.concatenate(parts_y)
+
+
 def ridge_plot_panel(ax, time_datasets, colors, labels, bw_method=0.4,
-                     xlabel=None, title=None, overlap=0.6):
+                     xlabel=None, title=None, overlap=0.6, xmax=None):
     """Draw a joy/ridge plot in a single matplotlib axes."""
     kdes = []
     xmin_g, xmax_g = np.inf, -np.inf
     max_y = 0.0
 
-    for data in time_datasets:
+    last_idx = len(time_datasets) - 1
+    for i, data in enumerate(time_datasets):
         data = np.asarray(data, dtype=float)
         data = data[np.isfinite(data)]
         if data.size < 2 or np.allclose(data.min(), data.max()):
             kdes.append(None)
             continue
-        kde = gaussian_kde(data, bw_method=bw_method)
-        x_pts = np.linspace(data.min(), data.max(), 400)
-        y_pts = kde(x_pts)
+        if i == last_idx:
+            data = data[data <= 0]
+            if data.size < 2 or np.allclose(data.min(), data.max()):
+                kdes.append(None)
+                continue
+            kde = gaussian_kde(data, bw_method=bw_method)
+            x_pts = np.linspace(data.min(), 0.0, 400)
+            y_pts = kde.evaluate(x_pts)
+        else:
+            kde = gaussian_kde(data, bw_method=bw_method)
+            x_pts = np.linspace(data.min(), data.max(), 400)
+            y_pts = kde.evaluate(x_pts)
         kdes.append((x_pts, y_pts))
         xmin_g = min(xmin_g, x_pts.min())
         xmax_g = max(xmax_g, x_pts.max())
@@ -59,34 +98,40 @@ def ridge_plot_panel(ax, time_datasets, colors, labels, bw_method=0.4,
     if max_y == 0.0 or not np.isfinite(xmin_g):
         return
 
+    n = len(kdes)
     step = max_y * (1.0 - overlap)
     x_full = np.linspace(xmin_g, xmax_g, 600)
     trans = blended_transform_factory(ax.transAxes, ax.transData)
 
-    for i, (kde_result, color, label) in enumerate(zip(kdes, colors, labels)):
-        offset = i * step
+    # t=0% (i=0) → top row (highest offset); t=100% (i=n-1) → bottom (offset=0)
+    offsets = [(n - 1 - i) * step for i in range(n)]
+
+    # Draw t=0% first (back) through t=100% last (front).
+    # Within each curve: fill → outline → baseline, so the baseline is in front
+    # of that curve's fill but behind the next curve's fill.
+    for i, (kde_result, color) in enumerate(zip(kdes, colors)):
+        offset = offsets[i]
         base_z = 10 * i
-
-        ax.axhline(offset, color="black", lw=0.4, alpha=0.4, zorder=base_z - 1)
-
         if kde_result is None:
-            ax.text(0.02, offset + step * 0.5, label, transform=trans,
-                    ha="left", va="center", fontsize=13, color=color, fontweight="bold")
+            ax.axhline(offset, color="black", lw=0.8, zorder=base_z + 3)
             continue
-
         x_k, y_k = kde_result
         y_full = np.interp(x_full, x_k, y_k, left=0.0, right=0.0)
-
         ax.fill_between(x_full, offset, y_full + offset,
                         color="white", zorder=base_z, lw=0)
         ax.fill_between(x_full, offset, y_full + offset,
                         color=color, alpha=0.75, zorder=base_z + 1, lw=0)
         ax.plot(x_full, y_full + offset, color="black", lw=0.8, zorder=base_z + 2)
+        ax.axhline(offset, color="black", lw=0.8, zorder=base_z + 3)
 
-        ax.text(0.02, offset + step * 0.5, label, transform=trans,
-                ha="left", va="center", fontsize=13, color=color, fontweight="bold")
+    # Labels on top of everything
+    label_z = 10 * n + 5
+    for i, (color, label) in enumerate(zip(colors, labels)):
+        ax.text(0.02, offsets[i] + step * 0.45, label, transform=trans,
+                ha="left", va="center", fontsize=13, color=color,
+                fontweight="bold", zorder=label_z)
 
-    ax.set_xlim(xmin_g, xmax_g)
+    ax.set_xlim(xmin_g, xmax_g if xmax is None else xmax)
     ax.set_yticks([])
     for spine in ["left", "right", "top"]:
         ax.spines[spine].set_visible(False)
@@ -185,12 +230,12 @@ def main():
     nk_datasets = extract_nk_ridge_data(nk_data)
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    fig.subplots_adjust(wspace=0.3)
+    fig.subplots_adjust(wspace=0.1)
 
     ridge_plot_panel(axes[0], fgm_datasets, CMR_COLORS, labels,
                      bw_method=0.5, xlabel=r"Fitness effect $(\Delta)$", title="FGM")
     ridge_plot_panel(axes[1], pspin_datasets, CMR_COLORS, labels,
-                     bw_method=0.4, xlabel=r"Fitness effect $(\Delta)$", title="SK")
+                     bw_method=0.4, xlabel=r"Fitness effect $(\Delta)$", title="p-spin")
     ridge_plot_panel(axes[2], nk_datasets, CMR_COLORS, labels,
                      bw_method=0.5, xlabel=r"Fitness effect $(\Delta)$", title="NK")
 
