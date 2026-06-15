@@ -316,23 +316,36 @@ def run_experiment(n_values, r0_tilde_values, epsilon,
                 std_subset = np.nanstd(subset, axis=0)
 
             finite_t = np.where(np.isfinite(mean_subset))[0]
+            last = int(finite_t[-1]) if len(finite_t) else 0
             if len(finite_t):
-                max_reached = max(max_reached, int(time_points[finite_t[-1]]))
+                max_reached = max(max_reached, int(time_points[last]))
 
             color = n_colors[k]
             # Mean EMD trace plus error bars (std across replicates).
             ax.plot(time_points, mean_subset, color=color, lw=2.0)
-            step = max(1, len(time_points) // 12)
+            # Subsample markers across the *populated* range, not the full horizon,
+            # so the error bars span the visible curve rather than collapsing to a
+            # few points near t=0.
+            step = max(1, (last + 1) // 10)
+            marker_idx = np.arange(0, last + 1, step)
             ax.errorbar(
-                time_points[::step],
-                mean_subset[::step],
-                yerr=std_subset[::step],
+                time_points[marker_idx],
+                mean_subset[marker_idx],
+                yerr=std_subset[marker_idx],
                 fmt="o",
                 color=color,
                 markersize=4,
                 capsize=3,
                 label=fr"$n = {int(n)}$",
             )
+
+        # Far-field theory: the radial descent is linear at the SSWM speed
+        # d<R~>/dt = -sqrt(pi/2), and the normalized scrambling tracks the
+        # normalized radius, EMD(t) ~ R~(t)/R~0 = 1 - sqrt(pi/2) * t / R~0.
+        tp_panel = spans[(p, 0)][2]
+        theory = np.clip(1.0 - (np.sqrt(np.pi / 2) / R0_tilde) * tp_panel, 0.0, None)
+        ax.plot(tp_panel, theory, color="black", lw=2.0, ls="--",
+                label=r"$1-\sqrt{\pi/2}\,t/\tilde{R}_0$")
 
         ax.set_xlim(0, max_reached)
         ax.set_ylim(-0.05, 1.05)

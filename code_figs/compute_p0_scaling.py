@@ -21,6 +21,7 @@ Run this once to (re)generate data/p0_scaling.json, which code_figs/fig4 reads.
 The p-spin p=3 datasets are multi-GB, so they are loaded here and discarded,
 keeping the figure script light.
 """
+import glob
 import json
 import os
 import pickle
@@ -41,6 +42,8 @@ OUT_PATH = os.path.join(DATA_DIR, "p0_scaling.json")
 
 REPS = 10
 N_VALUES = [100, 200, 300, 400, 500]
+# NK has a longer N-sweep (the N=2000 files have 100 repeats, not 10).
+NK_N_VALUES = [100, 200, 300, 400, 500, 1000, 2000]
 K_EDGE = 10                # order-statistic depth of the floor probe
 N_BOOT = 400               # bootstrap resamples (over repeats) for exponent error
 RNG = np.random.default_rng(0)
@@ -63,8 +66,12 @@ def fgm_rep_effects(n, N):
 
 
 def nk_rep_effects(K, N):
-    path = os.path.join(DATA_DIR, "NK", f"N_{N}_K_{K}_repeats_{REPS}.pkl")
-    with open(path, "rb") as f:
+    # the repeat count varies with N (e.g. N=2000 files have 100 repeats), so
+    # match on the (N, K) prefix rather than a fixed repeat count.
+    matches = glob.glob(os.path.join(DATA_DIR, "NK", f"N_{N}_K_{K}_repeats_*.pkl"))
+    if not matches:
+        return None
+    with open(matches[0], "rb") as f:
         d = pickle.load(f)
     out = []
     for r in d:
@@ -114,11 +121,11 @@ def powerlaw_fit(Ns, P0):
     return a, np.exp(b), r2
 
 
-def build_series(loader, params, param_name):
+def build_series(loader, params, param_name, n_values=N_VALUES):
     series = {}
     for prm in params:
         Ns, P0, per_rep = [], [], {}
-        for N in N_VALUES:
+        for N in n_values:
             reps = loader(prm, N)
             if reps is None:
                 continue
@@ -163,9 +170,10 @@ def main():
     print("FGM (param=n, N-axis = m = number of mutations; raw units)")
     out["FGM"] = {"param_name": "n", "N_label": "m", "units": "raw",
                   "series": build_series(fgm_rep_effects, FGM_NS, "n")}
-    print("NK (param=K; Delta*N units)")
+    print("NK (param=K; Delta*N units; N up to 2000)")
     out["NK"] = {"param_name": "K", "N_label": "N", "units": "Delta*N",
-                 "series": build_series(nk_rep_effects, NK_KS, "K")}
+                 "series": build_series(nk_rep_effects, NK_KS, "K",
+                                        n_values=NK_N_VALUES)}
     print("p-spin (param=p, pure; raw units)  [loads multi-GB p=3 files]")
     out["PSPIN"] = {"param_name": "p", "N_label": "N", "units": "raw",
                     "series": build_series(pspin_rep_effects, PSPIN_PS, "p")}

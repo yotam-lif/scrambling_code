@@ -14,6 +14,7 @@ from matplotlib.ticker import (
     ScalarFormatter,
 )
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers the 3d projection)
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 import seaborn as sns
 from scipy.stats import gaussian_kde
@@ -146,6 +147,15 @@ def waterfall_plot_panel(ax, time_datasets, colors, time_values,
             continue
         x_k, y_k = kde_result
         y_full = np.interp(x_full, x_k, y_k, left=0.0, right=0.0)
+        # translucent fill under the curve, in the slice's own colour, sitting
+        # just behind its line (zorder i-0.1) so later slices still occlude it.
+        verts = [(x_full[0], y_t, 0.0)]
+        verts += list(zip(x_full, np.full_like(x_full, y_t), y_full))
+        verts += [(x_full[-1], y_t, 0.0)]
+        fill = Poly3DCollection([verts], facecolors=[(*mpl.colors.to_rgb(color), 0.30)],
+                                edgecolors="none")
+        fill.set_zorder(i - 0.1)
+        ax.add_collection3d(fill)
         ax.plot(x_full, np.full_like(x_full, y_t), y_full,
                 color=color, lw=3, zorder=i)
 
@@ -238,18 +248,33 @@ def scaling_cache():
     return _SCALING_CACHE
 
 
+def _compact_log_label(v, _pos=None):
+    """Compact tick label for a sub-decade log axis: plain decimal, never the
+    wide ``6×10^-2`` mantissa form that overflows the small inset."""
+    if v <= 0:
+        return ""
+    exp = int(np.floor(np.log10(v) + 1e-9))
+    if -3 <= exp <= 3:
+        return f"{v:g}"
+    return rf"$10^{{{exp}}}$"
+
+
 def add_scaling_inset(ax, model_key, items, bounds=(0.165, 0.50, 0.45, 0.47)):
     """Inset of P(0) vs system size N, one curve per panel parameter.
 
     `items` is a list of (param_value, color, label) tuples whose param_value
     keys into the cached series for `model_key` ("FGM" / "NK" / "PSPIN"). Each
     series is drawn as P(0) markers plus a dashed power-law fit, coloured to
-    match its main-panel DFE curve, with the fitted exponent α annotated.
+    match its main-panel DFE curve, with the fitted exponent α annotated above
+    the line and rotated to match its slope.
     """
     data = scaling_cache()[model_key]
     n_label = data.get("N_label", "N")
     axins = ax.inset_axes(bounds)
+    axins.set_xscale("log")
+    axins.set_yscale("log")
 
+    drawn = []
     for param_value, color, _label in items:
         s = data["series"].get(str(param_value))
         if s is None:
@@ -260,27 +285,38 @@ def add_scaling_inset(ax, model_key, items, bounds=(0.165, 0.50, 0.45, 0.47)):
         n_fit = np.array([N.min(), N.max()])
         axins.plot(n_fit, s["coef"] * n_fit ** s["alpha"],
                    ls="--", lw=1.3, color=color, alpha=0.9, zorder=2)
-        # darken the curve colour for the α label so pale curves stay legible
-        text_color = tuple(0.65 * c for c in mpl.colors.to_rgb(color))
-        axins.text(N[-1] * 1.04, P0[-1], rf"$\alpha={s['alpha']:.2f}$",
-                   color=text_color, fontsize=8.5, ha="left", va="center", zorder=4)
+        drawn.append((color, s, N))
 
-    axins.set_xscale("log")
-    axins.set_yscale("log")
     axins.set_xlabel(rf"${n_label}$", fontsize=12, labelpad=0)
-    axins.set_ylabel(r"$P(0)$", fontsize=12, labelpad=0)
-    axins.set_xticks([100, 200, 500])
+    axins.set_ylabel(r"$P(\Delta = 0)$", fontsize=12, labelpad=0)
+    xhi = max(N.max() for _c, _s, N in drawn)
+    axins.set_xticks([100, 500, 2000] if xhi > 600 else [100, 200, 500])
     axins.xaxis.set_major_formatter(FuncFormatter(lambda v, _p: f"{int(v)}"))
     axins.xaxis.set_minor_formatter(NullFormatter())
     axins.yaxis.set_major_locator(LogLocator(base=10, subs=(1.0, 2.0, 5.0), numticks=10))
+    axins.yaxis.set_major_formatter(FuncFormatter(_compact_log_label))
+    axins.yaxis.set_minor_formatter(NullFormatter())
     axins.tick_params(labelsize=9, width=1.0, length=3, which="major")
     axins.tick_params(width=1.0, length=2, which="minor")
-    # leave room on the right for the α labels
-    xhi = max(np.asarray(data["series"][str(p)]["N"]).max() for p, *_ in items)
-    axins.set_xlim(right=xhi * 1.9)
+    axins.set_xlim(right=xhi * 1.18)
     for spine in axins.spines.values():
         spine.set_linewidth(1.0)
     axins.grid(True, which="both", ls=":", lw=0.5, alpha=0.5)
+
+    # α labels: just below each fit line, rotated to its on-screen slope. Done
+    # after the limits are final so transData gives the true display angle.
+    for color, s, N in drawn:
+        n0, n1 = N.min(), N.max()
+        xm = np.sqrt(n0 * n1)                      # log-midpoint of the N range
+        ym = s["coef"] * xm ** s["alpha"] * 0.94   # nudge below the line
+        p_a = axins.transData.transform((n0, s["coef"] * n0 ** s["alpha"]))
+        p_b = axins.transData.transform((n1, s["coef"] * n1 ** s["alpha"]))
+        angle = np.degrees(np.arctan2(p_b[1] - p_a[1], p_b[0] - p_a[0]))
+        text_color = tuple(0.6 * c for c in mpl.colors.to_rgb(color))
+        axins.text(xm, ym,
+                   rf"$\alpha = {s['alpha']:.2f} \pm {s['alpha_err']:.2f}$",
+                   color=text_color, fontsize=9.5, ha="center", va="top",
+                   rotation=angle, rotation_mode="anchor", zorder=4)
 
     return axins
 
