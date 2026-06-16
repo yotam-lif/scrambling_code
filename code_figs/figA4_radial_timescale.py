@@ -1,6 +1,5 @@
 import argparse
 import os
-import math
 import warnings
 import multiprocessing
 
@@ -8,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
-from matplotlib.ticker import MaxNLocator
 from scipy.stats import cramervonmises_2samp, ks_2samp, wasserstein_distance
 
 # ----------------------------------------------------------------
@@ -185,6 +183,13 @@ def run_single_replicate(args):
         # radii rather than being swamped by the exponentially varying scale.
         return np.expm1(get_malthusian(r))
 
+    def get_abs_fitness_effects(r):
+        # True (absolute) fitness effect w(r+delta) - w(r) = w(r) * expm1(malthusian).
+        # Used for the Pearson autocorrelation only; the EMD subset distance keeps
+        # the scale-free selection coefficient above.
+        return model.compute_fitness(r) * np.expm1(get_malthusian(r))
+
+    # EMD subset distance is built from the selection-coefficient DFE.
     dfe0 = get_fitness_effects(model.r)
     # The tracked subset M is fixed at t=0: the mutations initially beneficial.
     initial_beneficial_mask = dfe0 > 0
@@ -196,7 +201,10 @@ def run_single_replicate(args):
         return compute_distance_metric(tracked_dfe_t, dfe_t, subset_metric)
 
     subset_distance0 = get_subset_distance(dfe0)
-    std_dfe0 = np.std(dfe0)
+
+    # Pearson autocorrelation is built from the absolute fitness effects.
+    abs_dfe0 = get_abs_fitness_effects(model.r)
+    std_abs_dfe0 = np.std(abs_dfe0)
 
     radii = np.full(len(time_points), np.nan)
     pearsons = np.full(len(time_points), np.nan)
@@ -219,10 +227,13 @@ def run_single_replicate(args):
             current_t_idx += 1
             radii[current_t_idx] = np.linalg.norm(model.r)
 
-            dfe_t = get_fitness_effects(model.r)
-            if std_dfe0 > 1e-12 and np.std(dfe_t) > 1e-12:
-                pearsons[current_t_idx] = np.corrcoef(dfe0, dfe_t)[0, 1]
+            # Pearson on absolute fitness effects.
+            abs_dfe_t = get_abs_fitness_effects(model.r)
+            if std_abs_dfe0 > 1e-12 and np.std(abs_dfe_t) > 1e-12:
+                pearsons[current_t_idx] = np.corrcoef(abs_dfe0, abs_dfe_t)[0, 1]
+            # EMD on the selection-coefficient subset DFE.
             if np.isfinite(subset_distance0) and subset_distance0 > 1e-12:
+                dfe_t = get_fitness_effects(model.r)
                 subset_distance_t = get_subset_distance(dfe_t)
                 if np.isfinite(subset_distance_t):
                     subset_distances[current_t_idx] = subset_distance_t / subset_distance0
@@ -255,19 +266,21 @@ def run_experiment(n_values, r0_tilde_values, epsilon,
     print("--- Configuration (radial scrambling, wedge-constrained SSWM) ---")
     print(f"Subset distance metric: {subset_metric_label} ({subset_metric})")
     print(f"sigma={sigma}, m={m}, reps={reps}, epsilon={epsilon}")
-    print(f"Panels (R0_tilde): {r0_tilde_values}")
+    print(f"Rows (R0_tilde): {r0_tilde_values}")
     print(f"Curves (n): {n_values}")
 
     base_seed = np.random.randint(0, 1_000_000)
 
-    # Each (panel R0_tilde, curve n) gets `reps` replicates.
+    # One row per R0_tilde; within a row, each curve n gets `reps` replicates.
     tasks = []
-    spans = {}
-    for p, R0_tilde in enumerate(r0_tilde_values):
-        R0 = R0_tilde * sigma
+    spans = {}                 # (row p, curve k) -> (start, end)
+    row_time_points = {}       # row p -> time_points
+    for p, r0_tilde in enumerate(r0_tilde_values):
+        R0 = r0_tilde * sigma
         # Larger starting radius => longer radial descent; scale the horizon.
-        max_t = int(4 * R0_tilde) + 20
+        max_t = int(4 * r0_tilde) + 20
         time_points = np.arange(0, max_t + 1)
+        row_time_points[p] = time_points
         for k, n in enumerate(n_values):
             start = len(tasks)
             for i in range(reps):
@@ -281,32 +294,32 @@ def run_experiment(n_values, r0_tilde_values, epsilon,
                     max_t,
                     time_points,
                 ))
-            spans[(p, k)] = (start, len(tasks), time_points)
+            spans[(p, k)] = (start, len(tasks))
 
     num_proc = min(multiprocessing.cpu_count(), len(tasks))
     with multiprocessing.Pool(processes=num_proc) as pool:
         results = pool.map(run_single_replicate, tasks)
 
     # ------------------------------
-    # Plotting: one panel per R0_tilde, one EMD curve per n
+    # Plotting: one row per R0_tilde, two panels per row, one curve per n.
+    #   left : normalized subset->full DFE distance (EMD, selection coeffs).
+    #   right: Pearson correlation of the t=0 DFE with the DFE at time t (abs fitness).
     # ------------------------------
-    n_panels = len(r0_tilde_values)
-    ncols = 2 if n_panels > 1 else 1
-    nrows = math.ceil(n_panels / ncols)
-    fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 4.6 * nrows), squeeze=False)
-    fig.subplots_adjust(wspace=0.28, hspace=0.38)
+    nrows = len(r0_tilde_values)
+    fig, axes = plt.subplots(nrows, 2, figsize=(12, 4.8 * nrows), squeeze=False)
+    fig.subplots_adjust(wspace=0.26, hspace=0.42)
 
-    panel_labels = [chr(ord("A") + i) for i in range(n_panels)]
     n_colors = sns.color_palette("viridis", len(n_values))
 
-    for p, R0_tilde in enumerate(r0_tilde_values):
-        ax = axes[p // ncols][p % ncols]
-        apply_axis_style(ax, panel_labels[p])
-        max_reached = 1
+    for p, r0_tilde in enumerate(r0_tilde_values):
+        time_points = row_time_points[p]
+        ax_emd, ax_pear = axes[p][0], axes[p][1]
+        apply_axis_style(ax_emd, chr(ord("A") + 2 * p))
+        apply_axis_style(ax_pear, chr(ord("A") + 2 * p + 1))
 
         for k, n in enumerate(n_values):
-            start, end, time_points = spans[(p, k)]
-            _pear, subset, _radii = stack_results(results[start:end])
+            start, end = spans[(p, k)]
+            pear, subset, radii = stack_results(results[start:end])
 
             # Time points past the longest walk are all-NaN columns; ignore the
             # resulting "empty slice" warnings (those points are trimmed by xlim).
@@ -314,22 +327,27 @@ def run_experiment(n_values, r0_tilde_values, epsilon,
                 warnings.simplefilter("ignore", category=RuntimeWarning)
                 mean_subset = np.nanmean(subset, axis=0)
                 std_subset = np.nanstd(subset, axis=0)
+                mean_pear = np.nanmean(pear, axis=0)
+                std_pear = np.nanstd(pear, axis=0)
+                # x-axis: current distance from the peak (radius), in sigma units
+                # (R~ = R/sigma), averaged across replicates at each time point.
+                # Monotonically decreasing from R~0 toward ~0 as the walk descends.
+                mean_radii = np.nanmean(radii, axis=0) / sigma
 
             finite_t = np.where(np.isfinite(mean_subset))[0]
             last = int(finite_t[-1]) if len(finite_t) else 0
-            if len(finite_t):
-                max_reached = max(max_reached, int(time_points[last]))
 
             color = n_colors[k]
-            # Mean EMD trace plus error bars (std across replicates).
-            ax.plot(time_points, mean_subset, color=color, lw=2.0)
             # Subsample markers across the *populated* range, not the full horizon,
             # so the error bars span the visible curve rather than collapsing to a
             # few points near t=0.
             step = max(1, (last + 1) // 10)
             marker_idx = np.arange(0, last + 1, step)
-            ax.errorbar(
-                time_points[marker_idx],
+
+            # Left panel: EMD vs distance from peak (mean trace + std error bars).
+            ax_emd.plot(mean_radii, mean_subset, color=color, lw=2.0)
+            ax_emd.errorbar(
+                mean_radii[marker_idx],
                 mean_subset[marker_idx],
                 yerr=std_subset[marker_idx],
                 fmt="o",
@@ -339,27 +357,44 @@ def run_experiment(n_values, r0_tilde_values, epsilon,
                 label=fr"$n = {int(n)}$",
             )
 
-        # Far-field theory: the radial descent is linear at the SSWM speed
-        # d<R~>/dt = -sqrt(pi/2), and the normalized scrambling tracks the
-        # normalized radius, EMD(t) ~ R~(t)/R~0 = 1 - sqrt(pi/2) * t / R~0.
-        tp_panel = spans[(p, 0)][2]
-        theory = np.clip(1.0 - (np.sqrt(np.pi / 2) / R0_tilde) * tp_panel, 0.0, None)
-        ax.plot(tp_panel, theory, color="black", lw=2.0, ls="--",
-                label=r"$1-\sqrt{\pi/2}\,t/\tilde{R}_0$")
+            # Right panel: Pearson correlation of the DFE (linear scale).
+            ax_pear.plot(mean_radii, mean_pear, color=color, lw=2.0)
+            ax_pear.errorbar(
+                mean_radii[marker_idx],
+                mean_pear[marker_idx],
+                yerr=std_pear[marker_idx],
+                fmt="o",
+                color=color,
+                markersize=4,
+                capsize=3,
+                label=fr"$n = {int(n)}$",
+            )
 
-        ax.set_xlim(0, max_reached)
-        ax.set_ylim(-0.05, 1.05)
-        ax.set_xlabel("Time (steps)")
-        if p % ncols == 0:
-            ax.set_ylabel(f"{subset_metric.upper()} (norm.)")
-        ax.set_title(rf"$\tilde{{R}}_0 = {R0_tilde:g}$,  $\epsilon = {epsilon:g}$")
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        # Far-field theory for the EMD panel: the radial descent is linear at the
+        # SSWM speed d<R~>/dt = -sqrt(pi/2), so the normalized scrambling tracks the
+        # normalized radius. In radius coordinates this is simply the identity line
+        # EMD ~ R~/R~0, a diagonal from (0, 0) to (R~0, 1).
+        radius_grid = np.linspace(0.0, r0_tilde, 50)
+        ax_emd.plot(radius_grid, radius_grid / r0_tilde, color="black", lw=2.0,
+                    ls="--", label=r"$\tilde{R}/\tilde{R}_0$")
+
+        ax_emd.set_xlim(0, r0_tilde)
+        ax_emd.set_ylim(-0.05, 1.05)
+        ax_emd.set_xlabel(r"Distance from peak  $\tilde{R} = R/\sigma$")
+        ax_emd.set_ylabel(f"{subset_metric.upper()} (norm.)")
+        ax_emd.set_title(rf"Subset DFE distance  ($\tilde{{R}}_0 = {r0_tilde:g}$)")
+
+        ax_pear.set_xlim(0, r0_tilde)
+        ax_pear.set_ylim(-0.05, 1.05)
+        ax_pear.set_xlabel(r"Distance from peak  $\tilde{R} = R/\sigma$")
+        ax_pear.set_ylabel("Pearson correlation of DFE")
+        ax_pear.set_title(rf"DFE autocorrelation  ($\tilde{{R}}_0 = {r0_tilde:g}$)")
+
+        # One legend for the whole figure, on the first EMD panel only.
         if p == 0:
-            ax.legend(frameon=False, loc="best", title=None)
+            ax_emd.legend(frameon=False, loc="best")
 
-    # Hide any unused panels
-    for j in range(n_panels, nrows * ncols):
-        axes[j // ncols][j % ncols].axis("off")
+    fig.suptitle(rf"$\epsilon = {epsilon:g}$", y=1.0)
 
     out_dir = "../figs_paper"
     os.makedirs(out_dir, exist_ok=True)
@@ -372,7 +407,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Radial scrambling: SSWM adaptive walk confined to a fixed angular "
                     "wedge around the initial direction, measuring convergence of the "
-                    "initially-beneficial subset DFE to the overall DFE across n values."
+                    "initially-beneficial subset DFE to the overall DFE across n values. "
+                    "Panel A shows the EMD; panel B shows the DFE Pearson correlation."
     )
     parser.add_argument(
         "--subset-metric",
@@ -382,12 +418,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n-values",
         default="5,10,20,40",
-        help="Comma-separated dimensionalities n, overlaid as EMD curves in every panel.",
+        help="Comma-separated dimensionalities n, overlaid as curves in both panels.",
     )
     parser.add_argument(
         "--r0-values",
-        default="20,40,80,160",
-        help="Comma-separated initial R0_tilde values, one panel each.",
+        default="20,80",
+        help="Comma-separated initial R0_tilde values, one row of (EMD, Pearson) panels each.",
     )
     parser.add_argument(
         "--epsilon",

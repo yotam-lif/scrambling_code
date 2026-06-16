@@ -222,102 +222,84 @@ def plot_kde(ax, samples, color, label, bw_method, offset=0.0,
     ax.plot(x_plot, y_plot + offset, lw=3, color=color, label=label)
 
 
-# ── Scaling inset: P(0) vs system size N ───────────────────────────────────────
+# ── Scaling inset: floor exponent α vs panel parameter (n / p / K) ─────────────
 # Each main panel shows the final (peak) DFE for several values of its parameter
 # (n / K / p) at one large system size. The inset distils the finite-size
-# behaviour: P(0), the density of the peak DFE at the boundary Δ=0 (the
-# "pseudogap floor"), as a function of the system size N — one curve per
-# parameter, with a fitted power law P(0) ∝ N^α. The values are precomputed by
-# code_figs/compute_p0_scaling.py (see that file for the estimator) and cached
-# in data/p0_scaling.json so this figure stays light.
-SCALING_CACHE_PATH = os.path.join(REPO_DIR, "data", "p0_scaling.json")
-_SCALING_CACHE = None
+# behaviour into a single number per parameter value: the boundary floor
+# p0(N) = density of the peak DFE at Δ=0 vanishes (or not) with system size as
+# p0(N) ∝ N^{-α}, and the inset plots that floor exponent α as a function of the
+# panel parameter. α is inferred with the Bayesian floor model (the near-zero DFE
+# is p0(N) + c u^θ, extended-Poisson likelihood pooled over the N-sweep; θ free
+# except the known SK value θ=1). Values are precomputed by
+# code_figs/compute_floor_alpha.py and cached in data/floor_alpha_by_param.json.
+# α=0 marks a persistent (N-independent) floor; α>0 a floor that vanishes.
+ALPHA_CACHE_PATH = os.path.join(REPO_DIR, "data", "floor_alpha_by_param.json")
+_ALPHA_CACHE = None
+_PARAM_SYMBOL = {"FGM": "n", "NK": "K", "PSPIN": "p"}
 
 
-def scaling_cache():
-    """Lazily load (and memoise) the precomputed P(0)-vs-N scaling cache."""
-    global _SCALING_CACHE
-    if _SCALING_CACHE is None:
-        if not os.path.exists(SCALING_CACHE_PATH):
+def alpha_cache():
+    """Lazily load (and memoise) the precomputed α-vs-parameter cache."""
+    global _ALPHA_CACHE
+    if _ALPHA_CACHE is None:
+        if not os.path.exists(ALPHA_CACHE_PATH):
             raise FileNotFoundError(
-                f"{SCALING_CACHE_PATH} not found — run "
-                "code_figs/compute_p0_scaling.py first to generate it."
+                f"{ALPHA_CACHE_PATH} not found — run "
+                "code_figs/compute_floor_alpha.py first to generate it."
             )
-        with open(SCALING_CACHE_PATH) as f:
-            _SCALING_CACHE = json.load(f)
-    return _SCALING_CACHE
-
-
-def _compact_log_label(v, _pos=None):
-    """Compact tick label for a sub-decade log axis: plain decimal, never the
-    wide ``6×10^-2`` mantissa form that overflows the small inset."""
-    if v <= 0:
-        return ""
-    exp = int(np.floor(np.log10(v) + 1e-9))
-    if -3 <= exp <= 3:
-        return f"{v:g}"
-    return rf"$10^{{{exp}}}$"
+        with open(ALPHA_CACHE_PATH) as f:
+            _ALPHA_CACHE = json.load(f)
+    return _ALPHA_CACHE
 
 
 def add_scaling_inset(ax, model_key, items, bounds=(0.165, 0.50, 0.45, 0.47)):
-    """Inset of P(0) vs system size N, one curve per panel parameter.
+    """Inset of the floor exponent α vs the panel parameter (n / p / K).
 
     `items` is a list of (param_value, color, label) tuples whose param_value
-    keys into the cached series for `model_key` ("FGM" / "NK" / "PSPIN"). Each
-    series is drawn as P(0) markers plus a dashed power-law fit, coloured to
-    match its main-panel DFE curve, with the fitted exponent α annotated above
-    the line and rotated to match its slope.
+    keys into the cached α for `model_key` ("FGM" / "NK" / "PSPIN"). Each point
+    is the posterior median floor exponent with a 16–84% credible-interval bar,
+    coloured to match its main-panel DFE curve. The dotted line at α=0 marks a
+    persistent (N-independent) floor; α>0 a floor that vanishes as N→∞.
     """
-    data = scaling_cache()[model_key]
-    n_label = data.get("N_label", "N")
+    data = alpha_cache()[model_key]
     axins = ax.inset_axes(bounds)
-    axins.set_xscale("log")
-    axins.set_yscale("log")
 
-    drawn = []
+    xs, los, his = [], [], []
     for param_value, color, _label in items:
-        s = data["series"].get(str(param_value))
+        s = data.get(str(param_value))
         if s is None:
             continue
-        N = np.asarray(s["N"], dtype=float)
-        P0 = np.asarray(s["P0"], dtype=float)
-        axins.plot(N, P0, "o", color=color, ms=4, mec=color, mfc=color, zorder=3)
-        n_fit = np.array([N.min(), N.max()])
-        axins.plot(n_fit, s["coef"] * n_fit ** s["alpha"],
-                   ls="--", lw=1.3, color=color, alpha=0.9, zorder=2)
-        drawn.append((color, s, N))
+        med, lo, hi = s
+        axins.errorbar(param_value, med, yerr=[[med - lo], [hi - med]],
+                       fmt="o", ms=5, color=color, mec=color, mfc=color,
+                       ecolor=color, elinewidth=1.3, capsize=2.5, zorder=3)
+        xs.append(param_value); los.append(lo); his.append(hi)
 
-    axins.set_xlabel(rf"${n_label}$", fontsize=12, labelpad=0)
-    axins.set_ylabel(r"$P(\Delta = 0)$", fontsize=12, labelpad=0)
-    xhi = max(N.max() for _c, _s, N in drawn)
-    axins.set_xticks([100, 500, 2000] if xhi > 600 else [100, 200, 500])
-    axins.xaxis.set_major_formatter(FuncFormatter(lambda v, _p: f"{int(v)}"))
+    xs = np.asarray(xs, dtype=float)
+    order = np.argsort(xs)
+    meds = np.array([data[str(int(x))][0] for x in xs])
+    axins.plot(xs[order], meds[order], "-", color="0.5", lw=0.9, alpha=0.7, zorder=1)
+    axins.axhline(0.0, color="green", ls=":", lw=0.9, alpha=0.8, zorder=0)
+
+    sym = _PARAM_SYMBOL[model_key]
+    if model_key in ("FGM", "NK"):
+        axins.set_xscale("log", base=2)
+        axins.set_xlim(xs.min() / 1.45, xs.max() * 1.45)
+    else:
+        axins.set_xlim(xs.min() - 0.6, xs.max() + 0.6)
+    axins.set_xticks(xs)
+    axins.xaxis.set_major_formatter(FuncFormatter(lambda v, _p: f"{int(round(v))}"))
     axins.xaxis.set_minor_formatter(NullFormatter())
-    axins.yaxis.set_major_locator(LogLocator(base=10, subs=(1.0, 2.0, 5.0), numticks=10))
-    axins.yaxis.set_major_formatter(FuncFormatter(_compact_log_label))
-    axins.yaxis.set_minor_formatter(NullFormatter())
+
+    ylo = min(0.0, min(los)); yhi = max(his); pad = 0.12 * (yhi - ylo)
+    axins.set_ylim(ylo - pad, yhi + pad)
+    axins.set_xlabel(rf"${sym}$", fontsize=12, labelpad=0)
+    axins.set_ylabel(r"$\alpha$", fontsize=12, labelpad=0)
     axins.tick_params(labelsize=9, width=1.0, length=3, which="major")
     axins.tick_params(width=1.0, length=2, which="minor")
-    axins.set_xlim(right=xhi * 1.18)
     for spine in axins.spines.values():
         spine.set_linewidth(1.0)
-    axins.grid(True, which="both", ls=":", lw=0.5, alpha=0.5)
-
-    # α labels: just below each fit line, rotated to its on-screen slope. Done
-    # after the limits are final so transData gives the true display angle.
-    for color, s, N in drawn:
-        n0, n1 = N.min(), N.max()
-        xm = np.sqrt(n0 * n1)                      # log-midpoint of the N range
-        ym = s["coef"] * xm ** s["alpha"] * 0.94   # nudge below the line
-        p_a = axins.transData.transform((n0, s["coef"] * n0 ** s["alpha"]))
-        p_b = axins.transData.transform((n1, s["coef"] * n1 ** s["alpha"]))
-        angle = np.degrees(np.arctan2(p_b[1] - p_a[1], p_b[0] - p_a[0]))
-        text_color = tuple(0.6 * c for c in mpl.colors.to_rgb(color))
-        axins.text(xm, ym,
-                   rf"$\alpha = {s['alpha']:.2f} \pm {s['alpha_err']:.2f}$",
-                   color=text_color, fontsize=9.5, ha="center", va="top",
-                   rotation=angle, rotation_mode="anchor", zorder=4)
-
+    axins.grid(True, which="both", ls=":", lw=0.5, alpha=0.4)
     return axins
 
 
