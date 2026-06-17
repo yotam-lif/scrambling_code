@@ -579,7 +579,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
 
     out_dir = "../figs_paper"
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "figA2_azimuthal_timescale.pdf")
+    out_path = os.path.join(out_dir, "figS1_angular_scrambling.pdf")
     fig.savefig(out_path, format="pdf", bbox_inches="tight")
     print(f"Figure saved to {out_path}")
 

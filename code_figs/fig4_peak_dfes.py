@@ -231,7 +231,8 @@ def plot_kde(ax, samples, color, label, bw_method, offset=0.0,
 # panel parameter. α is inferred with the Bayesian floor model (the near-zero DFE
 # is p0(N) + c u^θ, extended-Poisson likelihood pooled over the N-sweep; θ free
 # except the known SK value θ=1). Values are precomputed by
-# code_figs/compute_floor_alpha.py and cached in data/floor_alpha_by_param.json.
+# cmn/cmn_bayes.py (`python cmn/cmn_bayes.py alpha`) and cached in
+# data/floor_alpha_by_param.json.
 # α=0 marks a persistent (N-independent) floor; α>0 a floor that vanishes.
 ALPHA_CACHE_PATH = os.path.join(REPO_DIR, "data", "floor_alpha_by_param.json")
 _ALPHA_CACHE = None
@@ -245,7 +246,7 @@ def alpha_cache():
         if not os.path.exists(ALPHA_CACHE_PATH):
             raise FileNotFoundError(
                 f"{ALPHA_CACHE_PATH} not found — run "
-                "code_figs/compute_floor_alpha.py first to generate it."
+                "`python cmn/cmn_bayes.py alpha` first to generate it."
             )
         with open(ALPHA_CACHE_PATH) as f:
             _ALPHA_CACHE = json.load(f)
@@ -257,7 +258,7 @@ def add_scaling_inset(ax, model_key, items, bounds=(0.165, 0.50, 0.45, 0.47)):
 
     `items` is a list of (param_value, color, label) tuples whose param_value
     keys into the cached α for `model_key` ("FGM" / "NK" / "PSPIN"). Each point
-    is the posterior median floor exponent with a 16–84% credible-interval bar,
+    is the posterior median floor exponent with a 95% credible-interval bar,
     coloured to match its main-panel DFE curve. The dotted line at α=0 marks a
     persistent (N-independent) floor; α>0 a floor that vanishes as N→∞.
     """
