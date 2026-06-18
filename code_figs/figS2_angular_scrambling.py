@@ -291,7 +291,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     subset_metric_label = distance_metric_label(subset_metric)
 
     sigma = 0.05
-    reps = 100
+    reps = 400
 
     # ------------------------------
     # Panel A
@@ -309,25 +309,24 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     # ------------------------------
     # Panel B
     # ------------------------------
-    n_B = 20
-    m_B = 8 * 10 ** 3
-    R0_B_tilde = 20
-    RF_B_tilde = 5
+    n_B = 5
+    m_B = 1 * 10 ** 4
+    R0_B_tilde = 10
     R0_B = R0_B_tilde * sigma
-    RF_B = RF_B_tilde * sigma
-    V_SSWM_B = sigma * np.sqrt(np.pi / 2)
-    est_steps_B = int((R0_B - RF_B) / V_SSWM_B)
-    max_t_B = int(est_steps_B * 1.5)
-    tp_B = np.arange(0, max_t_B + 1, max(1, max_t_B // 100))
+    epsilon_B = sigma
+    max_t_B = 20
+    tp_B = np.arange(0, max_t_B + 1)
+    tau_B = (2 * R0_B ** 2) / ((n_B - 1) * sigma ** 2)
+    log_offset_B = 1e-3
 
     # ------------------------------
     # Panel C
     # ------------------------------
     n_C = 40
     m_C = 5 * 10 ** 3
-    R0_C_tilde = 80
+    R0_C_tilde = 20
     R0_C = R0_C_tilde * sigma
-    max_t_C = 50
+    max_t_C = 9
     tp_C = np.arange(0, max_t_C + 1)
     tau_C = (2 * R0_C ** 2) / ((n_C - 1) * sigma ** 2)
 
@@ -336,7 +335,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     # ------------------------------
     n_D = 40
     m_D = 5 * 10 ** 3
-    R0_D_tilde = 8
+    R0_D_tilde = 10
     R0_D = R0_D_tilde * sigma
     max_t_D = 3
     tp_D = np.arange(0, max_t_D + 1)
@@ -346,7 +345,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     print("--- Configuration ---")
     print(f"Subset distance metric: {subset_metric_label} ({subset_metric})")
     print(f"A: n={n_A}, m={m_A}, R0_tilde={R0_A_tilde}, max_t={max_t_A}")
-    print(f"B: n={n_B}, m={m_B}, R0_tilde={R0_B_tilde}, Rf_tilde={RF_B_tilde}, max_t={max_t_B}")
+    print(f"B: n={n_B}, m={m_B}, R0_tilde={R0_B_tilde}, max_t={max_t_B}")
     print(f"C: n={n_C}, m={m_C}, R0_tilde={R0_C_tilde}, max_t={max_t_C}")
     print(f"D: n={n_D}, m={m_D}, R0_tilde={R0_D_tilde}, max_t={max_t_D}")
 
@@ -373,13 +372,13 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     start_B = len(tasks)
     for i in range(reps):
         tasks.append((
-            "sswm",
+            "constant",
             base_seed + 20_000 + i,
             n_B,
             sigma,
             m_B,
             R0_B,
-            {"R_final": RF_B, "subset_metric": subset_metric},
+            {"epsilon": epsilon_B, "R_final": 0.0, "subset_metric": subset_metric},
             max_t_B,
             tp_B,
         ))
@@ -437,12 +436,8 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     # ------------------------------
     cos_B, rad_B, pear_B, int_B, subset_B = stack_results(results[start_B:end_B])
     yB, yB_lo, yB_hi, mean_cos_B, std_cos_B = summarize_log_traces(
-        cos_B, tiny=1e-1, log_offset=0.0
+        cos_B, tiny=1e-12, log_offset=log_offset_B
     )
-
-    mean_integral_B = np.nanmean(int_B, axis=0)
-    log_theory_B = -0.5 * (n_B - 1) * (sigma ** 2) * mean_integral_B
-
     mean_pear_B, std_pear_B = summarize_logged_positive_traces(pear_B, tiny=1e-2)
     mean_subset_B, std_subset_B = summarize_logged_positive_traces(subset_B, tiny=1e-12)
 
@@ -479,13 +474,13 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     # A (Constant R approx)
     ax = axes[0, 0]
     apply_axis_style(ax, "A")
-    ax.plot(tp_A, yA, color=CMR_COLORS[0], lw=2.4, label="Angular autocorrelation function")
+    ax.plot(tp_A, yA, color=CMR_COLORS[0], lw=2.4, label="Simulation")
     ax.fill_between(tp_A, yA_lo, yA_hi, color=CMR_COLORS[0], alpha=0.25, linewidth=0)
-    step_A = max(1, len(tp_A) // 15)
+    idx_A = np.round(np.linspace(0, len(tp_A) - 1, 15)).astype(int)
     ax.errorbar(
-        tp_A[::step_A],
-        mean_pear_A[::step_A],
-        yerr=std_pear_A[::step_A],
+        tp_A[idx_A],
+        mean_pear_A[idx_A],
+        yerr=std_pear_A[idx_A],
         fmt="o",
         color="slategray",
         markersize=4,
@@ -493,34 +488,33 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
         label="Pearson",
     )
     ax.errorbar(
-        tp_A[::step_A],
-        mean_subset_A[::step_A],
-        yerr=std_subset_A[::step_A],
+        tp_A[idx_A],
+        mean_subset_A[idx_A],
+        yerr=std_subset_A[idx_A],
         fmt="s",
         color="darkorange",
         markersize=4,
         capsize=3,
         label=fr"EMD",
     )
-    ax.plot(tp_A, -tp_A / tau_A, color="magenta", lw=2.0, ls=":", label=r"Theory")
+    ax.plot(tp_A, -tp_A / tau_A, color="magenta", lw=2.0, ls=":", label=r"Theory (Eq. *)")
     ax.set_xlim(0, max_t_A)
     ax.set_xlabel("Time (steps)")
     ax.set_ylabel(r"$\log$ metric")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_title(rf"$\tilde{{R}}(0) = {R0_A_tilde:g},\ n = {n_A}$")
     ax.legend(frameon=False)
 
-    # B
+    # B (Constant R approx)
     ax = axes[0, 1]
     apply_axis_style(ax, "B")
-    ax.plot(tp_B, yB, color=CMR_COLORS[1], lw=2.5, ls="-", label="Angular autocorrelation function")
-    ax.fill_between(tp_B, yB_lo, yB_hi, color=CMR_COLORS[1], alpha=0.30, linewidth=0)
-
-    # Overlay Pearson correlation with error bars
-    step = max(1, len(tp_B) // 15)
+    ax.plot(tp_B, yB, color=CMR_COLORS[0], lw=2.4, label="Simulation")
+    ax.fill_between(tp_B, yB_lo, yB_hi, color=CMR_COLORS[0], alpha=0.25, linewidth=0)
+    idx_B = np.round(np.linspace(0, len(tp_B) - 1, 11)).astype(int)
     ax.errorbar(
-        tp_B[::step],
-        mean_pear_B[::step],
-        yerr=std_pear_B[::step],
+        tp_B[idx_B],
+        mean_pear_B[idx_B],
+        yerr=std_pear_B[idx_B],
         fmt="o",
         color="slategray",
         markersize=4,
@@ -528,58 +522,49 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
         label="Pearson",
     )
     ax.errorbar(
-        tp_B[::step],
-        mean_subset_B[::step],
-        yerr=std_subset_B[::step],
+        tp_B[idx_B],
+        mean_subset_B[idx_B],
+        yerr=std_subset_B[idx_B],
         fmt="s",
         color="darkorange",
         markersize=4,
         capsize=3,
         label=fr"EMD",
     )
-
-    ax.plot(tp_B, log_theory_B, color="black", lw=2.3, ls=":",
-            label=r"Theory")
-
+    ax.plot(tp_B, -tp_B / tau_B, color="magenta", lw=2.0, ls=":", label=r"Theory (Eq. *)")
+    ax.set_xlim(0, max_t_B)
     ax.set_xlabel("Time (steps)")
+    # ax.set_ylabel(r"$\log$ metric")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-
-    # Force the diffusion equation label to the bottom of the legend
-    handles, labels = ax.get_legend_handles_labels()
-    target_label = r"Diffusion Approximation (**)"
-    if target_label in labels:
-        idx = labels.index(target_label)
-        order = [i for i in range(len(labels)) if i != idx] + [idx]
-        ax.legend([handles[i] for i in order], [labels[i] for i in order], frameon=False)
-    else:
-        ax.legend(frameon=False)
+    ax.set_title(rf"$\tilde{{R}}(0) = {R0_B_tilde:g},\ n = {n_B}$")
+    ax.legend(frameon=False)
 
     # C
     ax = axes[1, 0]
     apply_axis_style(ax, "C")
-    ax.plot(tp_C, yC, color=CMR_COLORS[2], lw=2.5, ls="-", label="Simulation")
-    ax.fill_between(tp_C, yC_lo, yC_hi, color=CMR_COLORS[2], alpha=0.40, linewidth=0)
-    ax.plot(tp_C, -tp_C / tau_C, color="brown", lw=2.0, ls=":", label=r"Theory")
+    ax.plot(tp_C, yC, color=CMR_COLORS[1], lw=2.5, ls="-", label="Simulation")
+    ax.fill_between(tp_C, yC_lo, yC_hi, color=CMR_COLORS[1], alpha=0.40, linewidth=0)
+    ax.plot(tp_C, -tp_C / tau_C, color="black", lw=2.0, ls=":", label=r"Theory (Eq. *)")
     ax.set_xlabel("Time (steps)")
     ax.set_ylabel(r"$\log C_{\boldsymbol{\hat r}}(0, t)$")
-    ax.set_title(rf"$\tilde{{R}}_0 = {R0_C_tilde:g}$")
+    ax.set_title(rf"$\tilde{{R}}(0) = {R0_C_tilde:g},\ n = {n_C}$")
     ax.legend(frameon=False, loc="lower left")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     # D
     ax = axes[1, 1]
     apply_axis_style(ax, "D")
-    ax.plot(tp_D, yD, color=CMR_COLORS[2], lw=2.5, ls="-", label="Simulation")
-    ax.fill_between(tp_D, yD_lo, yD_hi, color=CMR_COLORS[2], alpha=0.40, linewidth=0)
-    ax.plot(tp_D, -tp_D / tau_D, color="brown", lw=2.0, ls=":", label=r"Theory")
+    ax.plot(tp_D, yD, color=CMR_COLORS[1], lw=2.5, ls="-", label="Simulation")
+    ax.fill_between(tp_D, yD_lo, yD_hi, color=CMR_COLORS[1], alpha=0.40, linewidth=0)
+    ax.plot(tp_D, -tp_D / tau_D, color="black", lw=2.0, ls=":", label=r"Theory (Eq. *)")
     ax.set_xlabel("Time (steps)")
-    ax.set_title(rf"$\tilde{{R}}_0 = {R0_D_tilde:g}$")
+    ax.set_title(rf"$\tilde{{R}}(0) = {R0_D_tilde:g},\ n = {n_D}$")
     ax.legend(frameon=False, loc="lower left")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     out_dir = "../figs_paper"
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "figS1_angular_scrambling.pdf")
+    out_path = os.path.join(out_dir, "figS2_angular_scrambling.pdf")
     fig.savefig(out_path, format="pdf", bbox_inches="tight")
     print(f"Figure saved to {out_path}")
 

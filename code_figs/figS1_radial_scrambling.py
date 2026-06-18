@@ -199,7 +199,7 @@ def plot_fgm_cv2_panel(ax):
         ax.plot(percent_axis, cv2, color=color, lw=2.3, label=rf"$n={n_val}$")
 
     ax.set_xlabel("Walk progress (%)")
-    ax.set_ylabel(r"$CV^2(\|\boldsymbol{r}\|)$")
+    ax.set_ylabel(r"$CV^2(R(t))$")
     ax.legend(frameon=False, loc="best")
 
 
@@ -296,22 +296,6 @@ def plot_fgm_radius_panel(ax):
         n_steps = held.shape[1]
         t = np.arange(n_steps)
 
-        # Time at which the (realigned) mean radius crosses tilde_r = sqrt(n): the
-        # RMS size of a single mutation (||r|| = sqrt(n) sigma), the scale where
-        # the far-field linear theory is expected to break down. Located by linear
-        # interpolation between integer steps.
-        target = np.sqrt(n_val)
-        below = np.nonzero(mean_r <= target)[0]
-        t_cross = np.nan
-        if below.size:
-            j = int(below[0])
-            if j == 0:
-                t_cross = 0.0
-            else:
-                r_hi, r_lo = mean_r[j - 1], mean_r[j]
-                frac = (r_hi - target) / (r_hi - r_lo) if r_hi > r_lo else 0.0
-                t_cross = (j - 1) + frac
-
         # Normalize by the common start radius r_ref so all n share one theory line.
         norm_mean = mean_r / r_ref
         norm_std = std_r / r_ref
@@ -319,10 +303,6 @@ def plot_fgm_radius_panel(ax):
         ax.plot(t, norm_mean, color=color, lw=2.2, label=rf"$n = {n_val}$")
         ax.fill_between(t, norm_mean - norm_std, norm_mean + norm_std,
                         color=color, alpha=0.18, lw=0)
-
-        # Dotted marker (in this n's color) at the tilde_r = sqrt(n) crossing.
-        if np.isfinite(t_cross):
-            ax.axvline(t_cross, color=color, ls=":", lw=1.6, alpha=0.9)
         right_edges.append(n_steps - 1)
 
     # One shared far-field line, from the common start radius r_ref; mask the part
@@ -332,16 +312,14 @@ def plot_fgm_radius_panel(ax):
     theory = 1.0 - slope * t_th / r_ref
     theory[theory < 0] = np.nan
     ax.plot(t_th, theory, color="black", lw=1.5, ls="--", alpha=0.9,
-            label=r"$1-\sqrt{\pi/2}\,t/\tilde{\boldsymbol{r}}_0$")
-    # Single proxy entry for the (per-n) tilde_r = sqrt(n) crossing markers.
-    ax.plot([], [], color="0.35", ls=":", lw=1.6,
-            label=r"$\langle \tilde{\boldsymbol{r}}\rangle=\sqrt{n}$")
+            label="Theory (Eq. *)")
 
     ax.set_xlabel("Time (steps)")
-    ax.set_ylabel(r"$\langle \| \tilde{\boldsymbol{r}}(t) \| \rangle\,/\, \| \tilde{\boldsymbol{r}}_0 \|$")
+    ax.set_ylabel(r"$\langle \tilde{R}(t) \rangle / \tilde{R}(0)$")
+    ax.set_title(rf"$\tilde{{R}}(0) = {r_ref:.0f}$")
     ax.set_ylim(bottom=0)
     ax.set_xlim(0, t_max + 2)
-    ax.legend(frameon=True, loc="best")
+    ax.legend(frameon=False, loc="best")
 
 
 # ----------------------------------------------------------------
@@ -621,13 +599,13 @@ def run_experiment(n_values, r0_tilde_values, phi,
         tp_panel = spans[(p, 0)][2]
         theory = np.clip(1.0 - (np.sqrt(np.pi / 2) / R0_tilde) * tp_panel, 0.0, None)
         ax.plot(tp_panel, theory, color="black", lw=2.0, ls="--",
-                label=r"$1-\sqrt{\pi/2}\,t/\tilde{R}_0$")
+                label="Theory (Eq. *)")
 
         ax.set_xlim(0, max_reached)
         ax.set_ylim(-0.05, 1.05)
         ax.set_xlabel("Time (steps)")
         ax.set_ylabel(f"{subset_metric.upper()} (norm.)")
-        ax.set_title(rf"$\tilde{{R}}_0 = {R0_tilde:g}$,  $\phi = {phi:g}$")
+        ax.set_title(rf"$\tilde{{R}}(0) = {R0_tilde:g}$,  $\phi = {phi:g}$")
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.legend(frameon=False, loc="best", title=None)
 
@@ -637,7 +615,7 @@ def run_experiment(n_values, r0_tilde_values, phi,
 
     out_dir = "../figs_paper"
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "figS2_radial_scrambling.pdf")
+    out_path = os.path.join(out_dir, "figS1_radial_scrambling.pdf")
     fig.savefig(out_path, format="pdf", bbox_inches="tight")
     print(f"Figure saved to {out_path}")
 
@@ -655,7 +633,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--n-values",
-        default="5,10,20,40",
+        default="4,8,16,32",
         help="Comma-separated dimensionalities n, overlaid as EMD curves in every panel.",
     )
     parser.add_argument(
