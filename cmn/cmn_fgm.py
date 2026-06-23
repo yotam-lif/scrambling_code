@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import ncx2
+from scipy.stats import ncx2, norm
 
 class Fisher:
     """
@@ -173,6 +173,40 @@ def fgm_dfe_pdf(delta, n, sigma, r):
     return np.exp(fgm_dfe_logpdf(delta, n, sigma, r))
 
 
+# scipy's ncx2.cdf sums ~nc/2 series terms, so it is ~20x slower per element once
+# the noncentrality nc = r^2/sigma^2 is large (small sigma in the grid). Sankaran's
+# (1959) cube-root-normal approximation is O(1) and grows MORE accurate with nc
+# (abs error ~1e-4 at nc~80, ~1e-9 by nc~600), so it is the fast path there.
+_NCX2_EXACT_MAX = 300.0   # use exact ncx2 while df + 2*nc <= this, Sankaran above
+
+
+def _sankaran_cdf(y, k, l):
+    """Sankaran approximation to the noncentral chi^2 CDF, P(X <= y; df=k, nc=l)."""
+    s = k + 2.0 * l
+    h = 1.0 - (2.0 / 3.0) * (k + l) * (k + 3.0 * l) / s ** 2
+    p = s / (k + l) ** 2
+    m = (h - 1.0) * (1.0 - 3.0 * h)
+    base = np.maximum(y / (k + l), 1e-300)
+    num = base ** h - (1.0 + h * p * (h - 1.0 - 0.5 * (2.0 - h) * m * p))
+    den = h * np.sqrt(2.0 * p) * (1.0 + 0.5 * m * p)
+    return norm.cdf(num / den)
+
+
+def _ncx2_cdf(y, df, nc):
+    """ncx2 CDF with the Sankaran fast path for large noncentrality. ``df`` and
+    ``nc`` broadcast against ``y``."""
+    df_b = np.broadcast_to(df, y.shape)
+    nc_b = np.broadcast_to(nc, y.shape)
+    out = np.empty(y.shape, float)
+    big = (df_b + 2.0 * nc_b) > _NCX2_EXACT_MAX
+    sm = ~big
+    if sm.any():
+        out[sm] = ncx2.cdf(y[sm], df=df_b[sm], nc=nc_b[sm])
+    if big.any():
+        out[big] = _sankaran_cdf(y[big], df_b[big], nc_b[big])
+    return out
+
+
 def _fgm_cdf_U_at(edges, n, sigma, r):
     """F_U(u(edge)) = P(U <= u(edge)) for each bin edge, broadcast over a grid.
 
@@ -190,7 +224,7 @@ def _fgm_cdf_U_at(edges, n, sigma, r):
     mid = ~(below | above)
     s2 = sigma * sigma
     u = -2.0 * np.log(np.where(mid, s, 1.0))       # safe log (clamped off-support)
-    F = ncx2.cdf(u / s2, df=n, nc=r * r / s2)      # broadcast to (G, E)
+    F = _ncx2_cdf(u / s2, n, r * r / s2)           # broadcast to (G, E)
     F = np.where(mid, F, 0.0)
     F[below] = 1.0
     return F
