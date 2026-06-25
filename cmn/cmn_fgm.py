@@ -132,45 +132,52 @@ class Fisher:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Analytic isotropic FGM distribution of fitness effects (DFE)
+# Analytic isotropic FGM distribution of fitness effects (DFE), in LOG-FITNESS.
 #
-# Derivation: Theory/fgm_dfe.tex. A genotype sits at radius r in an n-dimensional
-# phenotype space with Gaussian fitness w(x) = exp(-|x|^2 / 2). A mutation adds an
-# isotropic step delta ~ N(0, sigma^2 I_n); the fitness effect is
+# Derivation: Theory/fgm_dfe.tex and Tenaillon (2014, Theory/utility_of_fgm.pdf). A
+# genotype sits at radius r in an n-dimensional phenotype space with Gaussian fitness
+# w(x) = exp(-|x|^2 / 2). A mutation adds an isotropic step delta ~ N(0, sigma^2 I_n).
+# The SELECTION COEFFICIENT is the LOG-fitness ratio -- the additive coefficient that
+# competition assays actually measure, NOT the raw fitness difference exp(-U/2)-exp(-r^2/2):
 #
-#       Delta = exp(-U/2) - exp(-r^2/2),   U = |r + delta|^2,
+#       s = log(w(r+delta)/w(r)) = (r^2 - U)/2,   U = |r + delta|^2,
 #
-# and U/sigma^2 ~ noncentral chi^2 with n d.o.f. and noncentrality lambda=r^2/sigma^2.
+# with U/sigma^2 ~ noncentral chi^2 (df = n, noncentrality lambda = r^2/sigma^2). So
+#
+#       s = s_max - (sigma^2/2) X,   X ~ ncx2(n, r^2/sigma^2),   s_max = r^2/2,
+#
+# where s_max = -log w(r) = r^2/2 is the ancestor maladaptation = the UPPER support of s
+# (the best possible mutation reaches the optimum, gaining s = s_max). Support is
+# s in (-inf, r^2/2]: ONE-SIDED -- the deleterious tail is unbounded, so only the
+# beneficial reach (the data max) bounds r (from below at r_lo = sqrt(2*s_max)).
 # Three parameters: n (phenotypic dimension), sigma (mutation step s.d.), r (radius).
-# Support: Delta in [-exp(-r^2/2), 1 - exp(-r^2/2)].
+# (Earlier versions of this file fitted the fitness DIFFERENCE Delta; the data are
+# selection coefficients, so we fit log-fitness s. See Tenaillon eq for p(s).)
 # ──────────────────────────────────────────────────────────────────────────────
 def fgm_support(r):
-    """Support (delta_min, delta_max) of the FGM DFE at radius ``r``."""
-    e = np.exp(-0.5 * np.square(r))
-    return -e, 1.0 - e
+    """Support (s_min, s_max) of the log-fitness FGM DFE at radius ``r``: (-inf, r^2/2]."""
+    return -np.inf, 0.5 * np.square(r)
 
 
-def fgm_dfe_logpdf(delta, n, sigma, r):
-    """Log density of the FGM DFE P(Delta | n, sigma, r), vectorized over ``delta``.
+def fgm_dfe_logpdf(s, n, sigma, r):
+    """Log density of the log-fitness FGM DFE P(s | n, sigma, r), vectorized over ``s``.
 
-    ``n``, ``sigma``, ``r`` are scalars. Returns -inf outside the support.
+    ``n``, ``sigma``, ``r`` are scalars. Returns -inf above the support (s > r^2/2).
     """
-    delta = np.asarray(delta, float)
+    s = np.asarray(s, float)
     s2 = sigma * sigma
-    e = np.exp(-0.5 * r * r)
-    arg = delta + e                       # = exp(-U/2); must lie in (0, 1]
-    out = np.full(arg.shape, -np.inf)
-    m = (arg > 0.0) & (arg <= 1.0)
+    smax = 0.5 * r * r
+    out = np.full(s.shape, -np.inf)
+    m = s < smax
     if np.any(m):
-        u = -2.0 * np.log(arg[m])
-        out[m] = (np.log(2.0) - np.log(arg[m])
-                  + ncx2.logpdf(u / s2, df=n, nc=r * r / s2) - np.log(s2))
+        X = (r * r - 2.0 * s[m]) / s2          # = 2 (smax - s)/sigma^2 > 0
+        out[m] = ncx2.logpdf(X, df=n, nc=r * r / s2) + np.log(2.0 / s2)
     return out
 
 
-def fgm_dfe_pdf(delta, n, sigma, r):
-    """Density of the FGM DFE (exp of :func:`fgm_dfe_logpdf`)."""
-    return np.exp(fgm_dfe_logpdf(delta, n, sigma, r))
+def fgm_dfe_pdf(s, n, sigma, r):
+    """Density of the log-fitness FGM DFE (exp of :func:`fgm_dfe_logpdf`)."""
+    return np.exp(fgm_dfe_logpdf(s, n, sigma, r))
 
 
 # scipy's ncx2.cdf sums ~nc/2 series terms, so it is ~20x slower per element once
@@ -207,31 +214,32 @@ def _ncx2_cdf(y, df, nc):
     return out
 
 
-def _fgm_cdf_U_at(edges, n, sigma, r):
-    """F_U(u(edge)) = P(U <= u(edge)) for each bin edge, broadcast over a grid.
+def _fgm_cdf_s_at(edges, n, sigma, r):
+    """F_s(edge) = P(S <= edge) for each bin edge, broadcast over a grid.
 
-    ``n``, ``sigma``, ``r`` are 1-D arrays of length G (grid points); ``edges`` is
-    a 1-D array of length E. Returns an array of shape (G, E). Edges below the
-    support map to 1 (all mass is above), edges at/above delta_max map to 0.
+    ``n``, ``sigma``, ``r`` are 1-D arrays of length G (grid points); ``edges`` is a
+    1-D array of length E. Returns shape (G, E), INCREASING in the edge. Edges at or
+    above s_max = r^2/2 map to 1; the deleterious side is unbounded (-> 0).
     """
     n = np.asarray(n, float)[:, None]
     sigma = np.asarray(sigma, float)[:, None]
     r = np.asarray(r, float)[:, None]
-    e = np.exp(-0.5 * r * r)                      # (G, 1)
-    s = edges[None, :] + e                         # (G, E) = exp(-U/2) at each edge
-    below = s <= 0.0                               # delta <= delta_min  -> F_U = 1
-    above = s >= 1.0                               # delta >= delta_max  -> F_U = 0
-    mid = ~(below | above)
     s2 = sigma * sigma
-    u = -2.0 * np.log(np.where(mid, s, 1.0))       # safe log (clamped off-support)
-    F = _ncx2_cdf(u / s2, n, r * r / s2)           # broadcast to (G, E)
-    F = np.where(mid, F, 0.0)
-    F[below] = 1.0
-    return F
+    X = (r * r - 2.0 * edges[None, :]) / s2        # (G, E) = 2(s_max - edge)/sigma^2
+    above = X <= 0.0                               # edge >= s_max -> all mass below
+    # F_s(edge) = P(S <= edge) = P(X >= X(edge)) = sf(X) = 1 - cdf(X)
+    F = 1.0 - _ncx2_cdf(np.where(above, 0.0, X), n, r * r / s2)
+    return np.where(above, 1.0, F)
+
+
+def fgm_bin_probs(edges, n, sigma, r):
+    """Per-bin model probabilities P(bin_j) on a parameter grid, shape (G, B)."""
+    F = _fgm_cdf_s_at(edges, n, sigma, r)          # (G, B+1), increasing
+    return np.clip(F[:, 1:] - F[:, :-1], 0.0, None)
 
 
 def fgm_bin_loglik(counts, edges, n, sigma, r):
-    """Fine-binned multinomial log-likelihood of the FGM DFE over a parameter grid.
+    """Fine-binned multinomial log-likelihood of the log-fitness FGM DFE over a grid.
 
     Parameters
     ----------
@@ -241,14 +249,15 @@ def fgm_bin_loglik(counts, edges, n, sigma, r):
 
     Returns
     -------
-    (G,) array of log-likelihoods. A triple is -inf when any populated bin falls
-    outside the FGM support (this is what pins r to the data's extreme effects).
+    (G,) array of log-likelihoods. A triple is -inf when a populated bin lies above
+    s_max = r^2/2 (the beneficial reach is what bounds r from below). The deleterious
+    side is unbounded, so r is no longer capped from above by the support; the bins
+    only cover the observed range, so mass leaking above s_max / below the data
+    discourages an over-large r through the (unnormalised) bin probabilities.
     """
     counts = np.asarray(counts, float)
     edges = np.asarray(edges, float)
-    F = _fgm_cdf_U_at(edges, n, sigma, r)          # (G, B+1)
-    P = F[:, :-1] - F[:, 1:]                        # (G, B); P(bin_j) >= 0
-    P = np.clip(P, 0.0, None)
+    P = fgm_bin_probs(edges, n, sigma, r)          # (G, B)
     with np.errstate(divide="ignore", invalid="ignore"):
         logP = np.where(P > 0.0, np.log(P), -np.inf)
         contrib = np.where(counts[None, :] > 0.0, counts[None, :] * logP, 0.0)
