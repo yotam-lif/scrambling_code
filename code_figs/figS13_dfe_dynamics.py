@@ -4,9 +4,12 @@ import pickle
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+from matplotlib.transforms import Bbox
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers the 3d projection)
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 import seaborn as sns
-from matplotlib.transforms import blended_transform_factory
 from scipy.stats import gaussian_kde
 
 
@@ -39,7 +42,9 @@ def _two_sided_kde(data, bw_method, num_points=400, min_fraction=0.02):
     """Boundary-corrected KDE on each side of 0, weighted by empirical fraction.
 
     A side is only plotted if it contains at least min_fraction of the data,
-    preventing artefact bumps from a handful of near-zero outliers.
+    preventing artefact bumps from a handful of near-zero outliers. For data
+    that is entirely <=0 (the t=100% slice) this reduces to mirroring the
+    negative values around zero and plotting only the negative side.
     """
     neg = data[data <= 0]
     pos = data[data > 0]
@@ -64,9 +69,21 @@ def _two_sided_kde(data, bw_method, num_points=400, min_fraction=0.02):
     return np.concatenate(parts_x), np.concatenate(parts_y)
 
 
-def ridge_plot_panel(ax, time_datasets, colors, labels, bw_method=0.4,
-                     xlabel=None, title=None, overlap=0.6, xmax=None):
-    """Draw a joy/ridge plot in a single matplotlib axes."""
+def waterfall_plot_panel(ax, time_datasets, colors, time_values,
+                         bw_method=0.4, elev=15, azim=-75, title=None):
+    """Draw a 3D waterfall of the DFE time evolution on a 3d matplotlib axes.
+
+    Each time slice is placed at its own depth (y = time percentage) so the
+    slices recede into the page: t=0% sits at the back, t=100% is drawn in
+    front nearest the viewer. Every slice uses a plain KDE except the final
+    t=100% slice. There the population sits at the peak, every fitness effect
+    is <=0, and we use the same boundary-corrected reflect-negative KDE as the
+    final (t=100%) slice of fig4 panel A: the negative values are mirrored
+    around Δ=0, a KDE is fit to the symmetrised sample, and only the negative
+    side is drawn, giving a clean vertical cut at Δ=0.
+    """
+    ax.computed_zorder = False
+
     kdes = []
     xmin_g, xmax_g = np.inf, -np.inf
     max_y = 0.0
@@ -79,13 +96,12 @@ def ridge_plot_panel(ax, time_datasets, colors, labels, bw_method=0.4,
             kdes.append(None)
             continue
         if i == last_idx:
-            data = data[data <= 0]
-            if data.size < 2 or np.allclose(data.min(), data.max()):
+            # t=100%: same treatment as fig4 panel A's final slice.
+            result = _two_sided_kde(data, bw_method)
+            if result is None:
                 kdes.append(None)
                 continue
-            kde = gaussian_kde(data, bw_method=bw_method)
-            x_pts = np.linspace(data.min(), 0.0, 400)
-            y_pts = kde.evaluate(x_pts)
+            x_pts, y_pts = result
         else:
             kde = gaussian_kde(data, bw_method=bw_method)
             x_pts = np.linspace(data.min(), data.max(), 400)
@@ -98,47 +114,51 @@ def ridge_plot_panel(ax, time_datasets, colors, labels, bw_method=0.4,
     if max_y == 0.0 or not np.isfinite(xmin_g):
         return
 
-    n = len(kdes)
-    step = max_y * (1.0 - overlap)
     x_full = np.linspace(xmin_g, xmax_g, 600)
-    trans = blended_transform_factory(ax.transAxes, ax.transData)
-
-    # t=0% (i=0) → top row (highest offset); t=100% (i=n-1) → bottom (offset=0)
-    offsets = [(n - 1 - i) * step for i in range(n)]
-
-    # Draw t=0% first (back) through t=100% last (front).
-    # Within each curve: fill → outline → baseline, so the baseline is in front
-    # of that curve's fill but behind the next curve's fill.
     for i, (kde_result, color) in enumerate(zip(kdes, colors)):
-        offset = offsets[i]
-        base_z = 10 * i
+        y_t = time_values[i]
         if kde_result is None:
-            ax.axhline(offset, color="black", lw=0.8, zorder=base_z + 3)
+            ax.plot([xmin_g, xmax_g], [y_t, y_t], [0.0, 0.0],
+                    color=color, lw=3, zorder=i)
             continue
         x_k, y_k = kde_result
         y_full = np.interp(x_full, x_k, y_k, left=0.0, right=0.0)
-        ax.fill_between(x_full, offset, y_full + offset,
-                        color="white", zorder=base_z, lw=0)
-        ax.fill_between(x_full, offset, y_full + offset,
-                        color=color, alpha=0.75, zorder=base_z + 1, lw=0)
-        ax.plot(x_full, y_full + offset, color="black", lw=0.8, zorder=base_z + 2)
-        ax.axhline(offset, color="black", lw=0.8, zorder=base_z + 3)
+        verts = [(x_full[0], y_t, 0.0)]
+        verts += list(zip(x_full, np.full_like(x_full, y_t), y_full))
+        verts += [(x_full[-1], y_t, 0.0)]
+        fill = Poly3DCollection([verts], facecolors=[(*mpl.colors.to_rgb(color), 0.30)],
+                                edgecolors="none")
+        fill.set_zorder(i - 0.1)
+        ax.add_collection3d(fill)
+        ax.plot(x_full, np.full_like(x_full, y_t), y_full,
+                color=color, lw=3, zorder=i)
 
-    # Labels on top of everything
-    label_z = 10 * n + 5
-    for i, (color, label) in enumerate(zip(colors, labels)):
-        ax.text(0.02, offsets[i] + step * 0.45, label, transform=trans,
-                ha="left", va="center", fontsize=13, color=color,
-                fontweight="bold", zorder=label_z)
+    ax.set_xlim(xmin_g, xmax_g)
+    ax.set_ylim(time_values[-1], time_values[0])  # t=100% toward the viewer
+    ax.set_zlim(0.0, None)
+    ax.view_init(elev=elev, azim=azim)
+    ax.set_box_aspect(None, zoom=1.4)
 
-    ax.set_xlim(xmin_g, xmax_g if xmax is None else xmax)
-    ax.set_yticks([])
-    for spine in ["left", "right", "top"]:
-        ax.spines[spine].set_visible(False)
-    ax.spines["bottom"].set_linewidth(1.5)
-    ax.tick_params(width=1.5, length=6, which="major")
-    if xlabel:
-        ax.set_xlabel(xlabel)
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    ax.set_yticks(list(time_values))
+    ax.set_yticklabels([])
+    ax.set_zticks([])
+    ax.tick_params(axis="both", labelsize=16, pad=0.01)
+    ax.tick_params(width=3, length=10, which="major")
+    ax.tick_params(width=3, length=5, which="minor")
+    # Offset the time labels just past the right edge of the data, scaled to
+    # the panel's own fitness-effect range (an absolute offset would overflow
+    # into the neighbouring panel for the small-range models, e.g. FGM).
+    dx = 0.03 * (xmax_g - xmin_g)
+    for v in time_values:
+        ax.text(xmax_g + dx, v, 0.0, f" {v}%", fontsize=16, ha="left", va="center")
+    ax.set_xlabel(r"Fitness effect $(\Delta)$", labelpad=2)
+    ax.set_ylabel(r"$t$", labelpad=7)
+
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
+        axis.pane.set_alpha(0.0)
+        axis.line.set_linewidth(1.5)
+    ax.grid(False)
     if title:
         ax.set_title(title, fontsize=18, pad=10)
 
@@ -213,6 +233,28 @@ def load_nk_single_k():
     return []
 
 
+def _content_bbox(fig, pad=0.1):
+    """Tight crop box (in inches) computed from the rendered pixels.
+
+    `bbox_inches="tight"` crops a 3d axes at its subplot-cell edge and ignores
+    `ax.text` artists placed in data coordinates, so the rightmost panel's time
+    labels get clipped. Measuring the non-white bounding box of the drawn canvas
+    instead captures every visible mark (labels included), regardless of artist
+    type, and is converted back to an inch-space Bbox for savefig.
+    """
+    fig.canvas.draw()
+    buf = np.asarray(fig.canvas.buffer_rgba())
+    h, w = buf.shape[:2]
+    nonwhite = (buf[:, :, :3] < 250).any(axis=2)
+    rows = np.where(nonwhite.any(axis=1))[0]
+    cols = np.where(nonwhite.any(axis=0))[0]
+    dpi = fig.dpi
+    x0, x1 = cols.min() / dpi, cols.max() / dpi
+    # canvas rows run top→bottom; inch-space y runs bottom→top.
+    y0, y1 = (h - rows.max()) / dpi, (h - rows.min()) / dpi
+    return Bbox([[x0 - pad, y0 - pad], [x1 + pad, y1 + pad]])
+
+
 def main():
     print("Loading FGM data...")
     fgm_reps = load_fgm_reps()
@@ -223,30 +265,31 @@ def main():
     print("Loading NK data...")
     nk_data = load_nk_single_k()
 
-    labels = [f"$t={p}\\%$" for p in PERCENTS]
-
     fgm_datasets = extract_fgm_ridge_data(fgm_reps)
     pspin_datasets = extract_pspin_ridge_data(pspin_data[2])
     nk_datasets = extract_nk_ridge_data(nk_data)
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    fig.subplots_adjust(wspace=0.1)
+    fig = plt.figure(figsize=(24, 7))
+    fig.subplots_adjust(wspace=0.30, left=0.02, right=0.78)
+    ax1 = fig.add_subplot(1, 3, 1, projection="3d")
+    ax2 = fig.add_subplot(1, 3, 2, projection="3d")
+    ax3 = fig.add_subplot(1, 3, 3, projection="3d")
 
-    ridge_plot_panel(axes[0], fgm_datasets, CMR_COLORS, labels,
-                     bw_method=0.5, xlabel=r"Fitness effect $(\Delta)$", title="FGM")
-    ridge_plot_panel(axes[1], pspin_datasets, CMR_COLORS, labels,
-                     bw_method=0.4, xlabel=r"Fitness effect $(\Delta)$", title="p-spin")
-    ridge_plot_panel(axes[2], nk_datasets, CMR_COLORS, labels,
-                     bw_method=0.5, xlabel=r"Fitness effect $(\Delta)$", title="NK")
+    waterfall_plot_panel(ax1, fgm_datasets, CMR_COLORS, PERCENTS,
+                         bw_method=0.5, title="FGM")
+    waterfall_plot_panel(ax2, pspin_datasets, CMR_COLORS, PERCENTS,
+                         bw_method=0.4, title="p-spin")
+    waterfall_plot_panel(ax3, nk_datasets, CMR_COLORS, PERCENTS,
+                         bw_method=0.5, title="NK")
 
-    for panel_label, ax in zip(["A", "B", "C"], axes):
-        ax.text(-0.1, 1.05, panel_label, transform=ax.transAxes,
-                fontsize=18, fontweight="bold", va="bottom", ha="left")
+    label_kw = dict(fontsize=18, fontweight="bold", va="bottom", ha="left")
+    for panel_label, ax in zip(["A", "B", "C"], [ax1, ax2, ax3]):
+        ax.text2D(-0.05, 1.05, panel_label, transform=ax.transAxes, **label_kw)
 
     out_dir = os.path.join("..", "figs_paper")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "figS13_dfe_dynamics.pdf")
-    fig.savefig(out_path, format="pdf", bbox_inches="tight")
+    fig.savefig(out_path, format="pdf", bbox_inches=_content_bbox(fig, pad=0.1))
     print(f"Saved: {out_path}")
 
 

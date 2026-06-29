@@ -140,6 +140,7 @@ if __name__ == "__main__":
         dest="P",
         type=int,
         required=True,
+        default=2,
         help="Maximum interaction order in the mixed p-spin model",
     )
     parser.add_argument(
