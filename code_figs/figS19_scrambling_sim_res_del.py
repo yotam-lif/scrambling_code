@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import ScalarFormatter
 from cmn.cmn_fgm import Fisher
-from cmn.cmn import compute_sigma_from_hist
-from cmn.cmn_sk import compute_dfe
+import cmn.cmn_pspin as cmn_pspin
 from cmn.cmn_plots import create_segben_sim, create_overlapping_dfes_sim
 import matplotlib as mpl
 import pickle
@@ -80,24 +79,27 @@ fgm_dfe1 = dfes[ind1]
 fgm_dfe2 = dfes[ind2]
 
 # SK data
-res_directory = os.path.join(os.path.dirname(__file__), '..', 'data', 'SK')
-data_file_sk = os.path.join(res_directory, 'N4000_rho100_beta100_repeats50.pkl')
+res_directory = os.path.join(os.path.dirname(__file__), '..', 'data', 'PSPIN')
+data_file_sk = os.path.join(res_directory, 'N2000_P2_pure_repeats10.pkl')
 with open(data_file_sk, 'rb') as f:
     data_sk = pickle.load(f)
-entry = 10
+entry = 2
 data_entry = data_sk[entry]
-alpha_initial = data_entry['init_alpha']
-h = data_entry['h']
+sigma_initial = data_entry.get('init_sigma', data_entry.get('init_alpha'))
 J = data_entry['J']
 flip_seq = data_entry['flip_seq']
 sk_t1 = 0.4
 sk_t2 = 0.5
 ind1 = int(sk_t1 * (len(flip_seq) - 1))
 ind2 = int(sk_t2 * (len(flip_seq) - 1))
-sig1 = compute_sigma_from_hist(alpha_initial, flip_seq, t=ind1)
-sig2 = compute_sigma_from_hist(alpha_initial, flip_seq, t=ind2)
-sk_dfe1 = compute_dfe(sig1, h, J)
-sk_dfe2 = compute_dfe(sig2, h, J)
+state = cmn_pspin._initialize_relaxation_state(sigma_initial, J)
+for t, site in enumerate(flip_seq):
+    if t == ind1:
+        sk_dfe1 = state['dfe'].copy()
+    if t == ind2:
+        sk_dfe2 = state['dfe'].copy()
+        break
+    cmn_pspin._apply_flip(state, J, int(site))
 
 # NK data
 res_directory = os.path.join(os.path.dirname(__file__), '..', 'data', 'NK')
@@ -127,4 +129,4 @@ create_overlapping_dfes_sim(axH, axI, nk_dfe1, nk_dfe2, xlim=0.01, ben=False)
 # Save the figure
 output_dir = "../figs_paper"
 os.makedirs(output_dir, exist_ok=True)
-fig.savefig(os.path.join(output_dir, "figS12_scrambling_sim_res_del.pdf"), format="pdf", bbox_inches="tight")
+fig.savefig(os.path.join(output_dir, "figS19_scrambling_sim_res_del.pdf"), format="pdf", bbox_inches="tight")

@@ -288,7 +288,7 @@ def main():
 
     out_dir = os.path.join("..", "figs_paper")
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "figS13_dfe_dynamics.pdf")
+    out_path = os.path.join(out_dir, "figS20_dfe_dynamics.pdf")
     fig.savefig(out_path, format="pdf", bbox_inches=_content_bbox(fig, pad=0.1))
     print(f"Saved: {out_path}")
 

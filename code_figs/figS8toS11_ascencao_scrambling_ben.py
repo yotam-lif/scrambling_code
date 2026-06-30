@@ -23,7 +23,7 @@ def _save_new_figs_as_pdf():
         if num in _saved_fig_ids:
             continue
         fig = plt.figure(num)
-        out = os.path.join(out_dir, f"figS{num}_ascensao_scrambling.pdf")
+        out = os.path.join(out_dir, f"figS{num+7}_ascensao_scrambling.pdf")
         fig.savefig(out, bbox_inches="tight", format='pdf')
         _saved_fig_ids.add(num)
 
@@ -53,8 +53,8 @@ mpl.rcParams['xtick.labelsize'] = 14
 mpl.rcParams['ytick.labelsize'] = 14
 mpl.rcParams['legend.fontsize'] = 12
 color = sns.color_palette('CMRmap', 5)
-EVO_FILL = (color[1][0], color[1][1], color[1][2], 0.75)
-ANC_FILL = (0.5, 0.5, 0.5, 0.4)
+EVO_FILL = (color[1][0], color[1][1], color[1][2], 0.5)
+ANC_FILL = (0.5, 0.5, 0.5, 0.15)
 DFE_FILL = color[2]
 xlim = 0.06
 shift_frac = 0.025
@@ -299,7 +299,6 @@ for i, exp_dir in enumerate(experiment_dirs):
     S_valid = S[valid_indices]
     create_overlapping_dfes(ax3, ax4, R_valid, S_valid)
     plt.tight_layout()
-    _save_new_figs_as_pdf()
-
-# Final safeguard: save any figures that weren't saved yet
-_save_new_figs_as_pdf()
+    out = os.path.join(out_dir, f"figS{i+8}_ascensao_scrambling_{exp_dir}.pdf")
+    fig.savefig(out, bbox_inches="tight", format='pdf')
+    plt.close(fig)

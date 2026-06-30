@@ -214,7 +214,7 @@ def main():
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
-    output_path = os.path.join(out_dir, "figS9_couce_scramble_ben.pdf")
+    output_path = os.path.join(out_dir, "figS16_couce_scramble_ben.pdf")
     fig.savefig(output_path, format="pdf", bbox_inches='tight')
     print(f"Saved {output_path}")
 
