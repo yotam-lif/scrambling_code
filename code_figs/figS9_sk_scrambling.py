@@ -42,7 +42,7 @@ mpl.rcParams.update({
 })
 
 # ───────────────────────────────────── Configuration ─────────────────────────────────────
-CACHE_PATH = "../data/figS7_sk_scrambling_cache.pkl"
+CACHE_PATH = "../data/cache/figS7_sk_scrambling_cache.pkl"
 
 # Subset->total DFE EMD panels: figS3-style, one anchor angle per panel. Row A,B,C uses p=2
 # (N=500); row D,E,F is the same measure for p=3 (N=500).

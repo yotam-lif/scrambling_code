@@ -141,7 +141,7 @@ def create_overlapping_dfes_ben(ax_left, ax_right, dfe_anc, dfe_evo, label_anc="
                    lw=1.1, label=label_anc)
 
     ax_left.legend(frameon=False)
-    ax_left.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_left.set_xlabel(r'Fitness effect $(s)$')
 
     # --- Right Panel (Backward Time) ---
     counts2, bin_edges2, _ = thresholded_histogram(data=bdfe_evo, threshold=2, final_bins=12)
@@ -169,7 +169,7 @@ def create_overlapping_dfes_ben(ax_left, ax_right, dfe_anc, dfe_evo, label_anc="
                     label=f"DFE {label_anc}")
 
     ax_right.legend(frameon=False)
-    ax_right.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_right.set_xlabel(r'Fitness effect $(s)$')
 
     for ax in [ax_left, ax_right]:
         ax.spines['top'].set_visible(False)

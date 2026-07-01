@@ -171,7 +171,7 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo):
         label="Ancestor"
     )
     ax_left.legend(frameon=False)
-    ax_left.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_left.set_xlabel(r'Fitness effect $(s)$')
 
     # Right Panel
     counts2, bin_edges2, _ = thresholded_histogram(data=ddfe_evo, threshold=2, final_bins=20)
@@ -232,7 +232,7 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo):
     )
 
     ax_right.legend(frameon=False)
-    ax_right.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_right.set_xlabel(r'Fitness effect $(s)$')
 
     # Adjust spines and tick positions for a cleaner look
     for ax in [ax_left, ax_right]:

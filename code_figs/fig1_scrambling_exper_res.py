@@ -185,7 +185,7 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo):
         label="Anc."
     )
     ax_left.legend(frameon=False)
-    ax_left.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_left.set_xlabel(r'Fitness effect $(s)$')
     # ax_left.text(
     #     0.05, 0.95,
     #     fr'$p_{{KS}} = {evo_vs_prop_test.pvalue:.2g}$',
@@ -247,7 +247,7 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo):
     )
 
     ax_right.legend(frameon=False)
-    ax_right.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_right.set_xlabel(r'Fitness effect $(s)$')
     # ax_right.text(
     #     0.05, 0.95,
     #     fr'$p_{{KS}} = {anc_vs_prop_test.pvalue:.2g}$',
@@ -313,7 +313,7 @@ def create_segben(ax, dfe_anc, dfe_evo, labels=(r'$t_1$', r'$t_2$')):
     ax.set_xticks([x0, x1])
     ax.set_xticklabels(labels)
     ax.set_xlim(x0 - 0.2, x1 + 0.2)
-    ax.set_ylabel(r'Fitness effect $(\Delta)$')
+    ax.set_ylabel(r'Fitness effect $(s)$')
     ax.axhline(0, linestyle='--', color='black', linewidth=0.8)
     ax.tick_params(labelsize=14)
     # ax.legend(frameon=False)

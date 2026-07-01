@@ -179,7 +179,7 @@ def waterfall_plot_panel(ax, time_datasets, colors, time_values,
     ax.tick_params(width=3, length=5, which="minor")
     for v in time_values:
         ax.text(xmax_g + 0.4, v, 0.0, f" {v}%", fontsize=16, ha="left", va="center")
-    ax.set_xlabel(r"Fitness effect $(\Delta)$", labelpad=2)
+    ax.set_xlabel(r"Fitness effect $(s)$", labelpad=2)
     ax.set_ylabel(r"$t$", labelpad=7)
 
     # Keep the box clean: translucent panes, no grid. Match the 2d panels'
@@ -188,7 +188,7 @@ def waterfall_plot_panel(ax, time_datasets, colors, time_values,
         axis.pane.set_alpha(0.0)
         axis.line.set_linewidth(1.5)
     ax.grid(False)
-    ax.set_title("Additive model: DFE evolution", fontsize=18, pad=10)
+    ax.set_title("Additive model", fontsize=18, pad=10)
 
 
 # ── KDE line plot (used for final-DFE panels) ─────────────────────────────────
@@ -234,7 +234,7 @@ def plot_kde(ax, samples, color, label, bw_method, offset=0.0,
 # cmn/cmn_bayes.py (`python cmn/cmn_bayes.py alpha`) and cached in
 # data/floor_alpha_by_param.json.
 # α=0 marks a persistent (N-independent) floor; α>0 a floor that vanishes.
-ALPHA_CACHE_PATH = os.path.join(REPO_DIR, "data", "floor_alpha_by_param.json")
+ALPHA_CACHE_PATH = os.path.join(REPO_DIR, "data", "cache", "floor_alpha_by_param.json")
 _ALPHA_CACHE = None
 _PARAM_SYMBOL = {"FGM": "n", "NK": "K", "PSPIN": "p"}
 
@@ -392,7 +392,7 @@ def fgm_final_panel(ax, final):
         label = f"$n={n_val}$"
         plot_kde(ax, dfe, color, label, bw_method=0.3)
         items.append((n_val, color, label))
-    ax.set_xlabel(r"Fitness effect $(\Delta)$")
+    ax.set_xlabel(r"Fitness effect $(s)$")
     # ax.set_ylabel(r"$P(\Delta, t=100\%)$")
     _set_xlim_with_epsilon(ax)
     ax.legend(frameon=True, loc="lower left")
@@ -412,7 +412,7 @@ def pspin_final_panel(ax, pspin_data):
                  reflect_negative=(order == 1))
         if order != 1:  # p=1 (additive) has no N-sweep -> omitted from the inset
             items.append((order, color, label))
-    ax.set_xlabel(r"Fitness effect $(\Delta)$")
+    ax.set_xlabel(r"Fitness effect $(s)$")
     # ax.set_ylabel(r"$P(\Delta, t=100\%)$")
     _set_xlim_with_epsilon(ax)
     ax.legend(loc="lower left", frameon=True)
@@ -430,7 +430,7 @@ def nk_final_panel(ax, data_arr, k_values):
         label = f"$K={k_val}$"
         plot_kde(ax, dfe_arr, color, label, bw_method=0.25)
         items.append((k_val, color, label))
-    ax.set_xlabel(r"Fitness effect $(\Delta)$")
+    ax.set_xlabel(r"Fitness effect $(s)$")
     # ax.set_ylabel(r"$P(\Delta, t=100\%)$")
     _set_xlim_with_epsilon(ax)
     ax.legend(frameon=True, loc="lower left")
@@ -486,13 +486,13 @@ def main():
 
     # B, C, D: final DFEs — FGM, SK, NK
     fgm_final_panel(axes[0, 1], fgm_final)
-    axes[0, 1].set_title("FGM: final DFE", fontsize=18, pad=10)
+    axes[0, 1].set_title("FGM", fontsize=18, pad=10)
 
     pspin_final_panel(axes[1, 0], pspin_data)
-    axes[1, 0].set_title("p-spin: final DFE", fontsize=18, pad=10)
+    axes[1, 0].set_title("p-spin", fontsize=18, pad=10)
 
     nk_final_panel(axes[1, 1], nk_data_arr, nk_k_values)
-    axes[1, 1].set_title("NK: final DFE", fontsize=18, pad=10)
+    axes[1, 1].set_title("NK", fontsize=18, pad=10)
 
     # B–D: standard 2d panel labels at the top-left of each data area.
     label_kw = dict(fontsize=18, fontweight="bold", va="bottom", ha="left")

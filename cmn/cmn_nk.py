@@ -38,6 +38,11 @@ class NK:
         self.K = K
         self.mean = mean
         self.std = std
+        # Fitness offset stored on the model. It is subtracted from every fitness
+        # computation (see compute_fitness), so it acts as an additive constant on
+        # the fitness landscape. Set it with set_offset() so that the fitness of the
+        # initial configuration equals 1; until then it is 0 (raw fitness).
+        self.f_off = np.float32(0.0)
 
         if seed is not None:
             np.random.seed(seed)
@@ -58,7 +63,7 @@ class NK:
             for i in self.neighbor_indices[j]:
                 self.dependents[i].append(j)
 
-    def compute_fitness(self, sigma, f_off=0.0):
+    def compute_fitness(self, sigma, f_off=None):
         """
         Compute the total fitness of a given configuration.
         The fitness is the mean of f_i over all loci i.
@@ -68,13 +73,17 @@ class NK:
         sigma : numpy.ndarray
             Array of locus states, typically -1 or +1.
         f_off : float, optional
-            Fitness offset to be subtracted from the total fitness. Default is 0.0.
+            Fitness offset to be subtracted from the total fitness. If None
+            (the default), the offset stored on the model (``self.f_off``) is
+            used, so the offset is applied automatically on every call.
 
         Returns
         -------
         numpy.float32
             The total fitness of the configuration
         """
+        if f_off is None:
+            f_off = self.f_off
         fit_sum = np.float32(0.0)
         for i in range(self.N):
             # Identify the pattern: locus i and its K neighbors (circular)
@@ -87,6 +96,29 @@ class NK:
         f_off = np.float32(f_off)
         return np.float32(fit_sum / self.N - f_off)
 
+    def set_offset(self, sigma_init):
+        """
+        Set the stored fitness offset so that ``compute_fitness(sigma_init) == 1``.
+
+        The offset acts as an additive constant on the fitness landscape (it is
+        subtracted inside compute_fitness). After this call every fitness is
+        measured relative to an initial fitness of 1, which is what the selection
+        coefficient (see :func:`compute_dfe` with ``sel_coeff=True``) divides by.
+
+        Parameters
+        ----------
+        sigma_init : numpy.ndarray
+            The initial configuration whose fitness is pinned to 1.
+
+        Returns
+        -------
+        numpy.float32
+            The offset that was stored on the model.
+        """
+        raw = self.compute_fitness(sigma_init, f_off=0.0)
+        self.f_off = np.float32(raw - np.float32(1.0))
+        return self.f_off
+
     def get_fis(self):
         """
         Get the fitness values for all loci and patterns.
@@ -98,7 +130,7 @@ class NK:
         """
         return self.fis
 
-def compute_dfe(sigma, nk, f_off=0.0):
+def compute_dfe(sigma, nk, f_off=None, sel_coeff=False):
     """
     Compute the distribution of fitness effects (DFE) for a given configuration.
 
@@ -109,7 +141,13 @@ def compute_dfe(sigma, nk, f_off=0.0):
     nk : NK
         An instance of the NK model.
     f_off : float, optional
-        Fitness offset to be subtracted from the total fitness. Default is 0.0.
+        Fitness offset to be subtracted from the total fitness. If None (the
+        default), the offset stored on the model (``nk.f_off``) is used.
+    sel_coeff : bool, optional
+        If True, return selection coefficients: each absolute fitness effect is
+        divided by the current fitness of ``sigma``. Default is False (raw
+        fitness differences). Combine with :meth:`NK.set_offset` so the current
+        fitness (the denominator) is measured relative to an initial fitness of 1.
 
     Returns
     -------
@@ -123,6 +161,8 @@ def compute_dfe(sigma, nk, f_off=0.0):
         sigma[i] = -sigma[i]
         dfe[i] = nk.compute_fitness(sigma, f_off) - curr_fit
         sigma[i] = -sigma[i]
+    if sel_coeff:
+        dfe = (dfe / curr_fit).astype(np.float32)
     return dfe
 
 

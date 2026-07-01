@@ -282,15 +282,26 @@ def compute_fitness_delta_mutant(sigma, J, k):
 # Distribution of fitness effects (DFE)
 # ---------------------------------------------------------------------------
 
-def compute_dfe(sigma, J):
-    """Compute the DFE: the fitness change ΔF_i for flipping each spin i."""
+def compute_dfe(sigma, J, f_off=0.0, sel_coeff=False):
+    """Compute the DFE: the fitness change ΔF_i for flipping each spin i.
+
+    If ``sel_coeff`` is True, each absolute effect is divided by the current
+    fitness of ``sigma`` (computed with offset ``f_off``), returning selection
+    coefficients s_i = ΔF_i / F(sigma) instead of raw fitness differences. Pass
+    the offset that pins the initial fitness to 1 (see :func:`compute_fit_off`)
+    so the denominator is measured relative to an initial fitness of 1.
+    """
     sigma = _as_spin_array(sigma)
-    return (-FLOAT_DTYPE(2.0) * sigma * compute_lfs(sigma, J)).astype(FLOAT_DTYPE, copy=False)
+    dfe = (-FLOAT_DTYPE(2.0) * sigma * compute_lfs(sigma, J)).astype(FLOAT_DTYPE, copy=False)
+    if sel_coeff:
+        curr_fit = compute_fit_slow(sigma, J, f_off)
+        dfe = (dfe / FLOAT_DTYPE(curr_fit)).astype(FLOAT_DTYPE, copy=False)
+    return dfe
 
 
-def compute_bdfe(sigma, J):
+def compute_bdfe(sigma, J, f_off=0.0, sel_coeff=False):
     """Return (beneficial DFE values, their site indices)."""
-    dfe = compute_dfe(sigma, J)
+    dfe = compute_dfe(sigma, J, f_off=f_off, sel_coeff=sel_coeff)
     return _extract_beneficial(dfe)
 
 
@@ -300,9 +311,9 @@ def _extract_beneficial(dfe):
     return dfe[mask], np.flatnonzero(mask)
 
 
-def compute_normalized_bdfe(sigma, J):
+def compute_normalized_bdfe(sigma, J, f_off=0.0, sel_coeff=False):
     """Return the beneficial DFE normalized to a probability distribution."""
-    bdfe, b_ind = compute_bdfe(sigma, J)
+    bdfe, b_ind = compute_bdfe(sigma, J, f_off=f_off, sel_coeff=sel_coeff)
     norm = np.sum(bdfe, dtype=FLOAT_DTYPE)
     if norm > 0:
         bdfe = bdfe / norm
@@ -404,3 +415,83 @@ def relax_pspin(sigma0, J, sswm=True):
         _apply_flip(state, J, int(flip_site))
 
     return flip_sequence
+
+
+# ---------------------------------------------------------------------------
+# Object-oriented interface
+# ---------------------------------------------------------------------------
+
+class PSpin:
+    """
+    Mixed / pure p-spin model as an object.
+
+    Bundles the fitness landscape (the interaction sectors ``J``), the current
+    spin configuration (state) and a fitness offset ``f_off`` into one object,
+    mirroring the :class:`NK` and :class:`Fisher` models. The offset is stored on
+    the model and applied on every fitness computation, so that -- once
+    :meth:`set_offset` has pinned it -- the initial configuration has fitness 1
+    and selection coefficients are measured relative to that.
+
+    The landscape is kept in the same dict layout produced by :func:`init_J`
+    (exposed as the read-only :attr:`J` view), so every module-level function in
+    this file remains usable with ``model.J``.
+
+    Attributes
+    ----------
+    N, P, pure : landscape dimensions / flags (see :func:`init_J`).
+    sectors : list of interaction sectors (the couplings J).
+    sigma : current spin configuration (state).
+    f_off : fitness offset subtracted on every fitness computation.
+    """
+
+    def __init__(self, N, P, sigma_init=None, random_state=None, pure=False):
+        model = init_J(N, P, random_state=random_state, pure=pure)
+        self.N = model["N"]
+        self.P = model["P"]
+        self.pure = model["pure"]
+        self.sectors = model["sectors"]
+        self.f_off = FLOAT_DTYPE(0.0)
+        if sigma_init is not None:
+            self.sigma = _as_spin_array(sigma_init, copy=True)
+            self.set_offset(self.sigma)
+        else:
+            self.sigma = None
+
+    @property
+    def J(self):
+        """Read-only dict view of the landscape, as returned by :func:`init_J`."""
+        return {"N": self.N, "P": self.P, "pure": self.pure, "sectors": self.sectors}
+
+    def set_offset(self, sigma_init):
+        """Store the offset so that ``compute_fitness(sigma_init) == 1``."""
+        self.f_off = FLOAT_DTYPE(compute_fit_off(sigma_init, self.J))
+        return self.f_off
+
+    def compute_fitness(self, sigma):
+        """Fitness of ``sigma``, with the stored offset applied."""
+        return compute_fit_slow(sigma, self.J, self.f_off)
+
+    def compute_dfe(self, sigma, sel_coeff=False):
+        """DFE at ``sigma``; if ``sel_coeff`` divide effects by the current fitness."""
+        return compute_dfe(sigma, self.J, f_off=self.f_off, sel_coeff=sel_coeff)
+
+    def compute_bdfe(self, sigma, sel_coeff=False):
+        """Beneficial DFE (values, indices) at ``sigma``."""
+        return compute_bdfe(sigma, self.J, f_off=self.f_off, sel_coeff=sel_coeff)
+
+    def compute_rank(self, sigma):
+        """Number of beneficial mutations at ``sigma``."""
+        return compute_rank(sigma, self.J)
+
+    def relax(self, sigma0=None, sswm=True):
+        """Run an SSWM adaptive walk, updating :attr:`sigma`. Returns flip sequence."""
+        if sigma0 is None:
+            if self.sigma is None:
+                raise ValueError("No configuration to relax: pass sigma0 or set self.sigma.")
+            sigma0 = self.sigma
+        flip_sequence = relax_pspin(sigma0, self.J, sswm=sswm)
+        sigma = _as_spin_array(sigma0, copy=True)
+        for site in flip_sequence:
+            sigma[site] = -sigma[site]
+        self.sigma = sigma
+        return flip_sequence

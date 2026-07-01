@@ -55,7 +55,7 @@ PEARSON_FILES = {
     2: "../data/PSPIN/N500_P2_pure_repeats10.pkl",
     3: "../data/PSPIN/N500_P3_pure_repeats10.pkl",
 }
-CACHE_PATH = "../data/figS8_sk_pearson_cache.pkl"
+CACHE_PATH = "../data/cache/figS8_sk_pearson_cache.pkl"
 
 # Pearson display.
 PEARSON_FLOOR = 1e-3      # clip rho before taking the log

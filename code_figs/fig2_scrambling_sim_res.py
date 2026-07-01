@@ -1,6 +1,7 @@
 import os
 import pickle
 
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
@@ -9,31 +10,58 @@ from matplotlib.ticker import ScalarFormatter
 from cmn.cmn import compute_sigma_from_hist
 from cmn.cmn_fgm import Fisher
 from cmn.cmn_plots import create_overlapping_dfes_sim, create_segben_sim
-from cmn.cmn_sk import compute_dfe
+from cmn import cmn_pspin
+
+
+# The stored p-spin/NK datasets predate the selection-coefficient update, so their DFEs
+# are raw fitness differences ΔF. Here we transform each DFE into selection
+# coefficients s_i = ΔF_i / F(σ), where F(σ) is the fitness at that point in the walk
+# and the fitness offset is chosen so that the *initial* configuration has fitness 1
+# (matching cmn.compute_fit_off across the models). Per model:
+#   * FGM   : recomputed live via Fisher.compute_dfe(r, sel_coeff=True) (ratio w'/w - 1).
+#   * p-spin: recomputed live from the stored landscape J via
+#             cmn_pspin.compute_dfe(sigma, J, f_off, sel_coeff=True); the offset
+#             pins the initial fitness to 1 (cmn_pspin.compute_fit_off).
+#   * NK    : the landscape is NOT stored, only the precomputed ΔF DFEs and flip
+#             sequence. The fitness is reconstructed exactly from the walk:
+#             F(σ_t) = 1 + Σ_{k<t} dfes[k][flip_seq[k]]  (the initial fitness is 1).
+
+
+def auto_xlim(dfe1, dfe2, q=99.0):
+    """Pick a symmetric x-limit from the beneficial (positive) effects of both DFEs.
+
+    Uses the ``q``-th percentile so a single outlier does not blow up the box.
+    Returns a positive float; falls back to 1.0 if there are no positive effects.
+    """
+    vals = np.concatenate([np.asarray(dfe1, float), np.asarray(dfe2, float)])
+    vals = vals[np.isfinite(vals) & (vals > 0)]
+    if vals.size == 0:
+        return 1.0
+    return float(np.percentile(vals, q))
 
 
 # FGM parameters
-FGM_N = 8
+FGM_N = 4
 FGM_SIGMA = 0.05
-FGM_M = 8 * 10 ** 3
+FGM_M = 4 * 10 ** 3
 FGM_RANDOM_STATE = 1
-FGM_T1 = 0.75
-FGM_T2 = 0.85
-FGM_XLIM = 0.125
+FGM_T1 = 0.8
+FGM_T2 = 0.9
+FGM_XLIM = 0.08  # now derived automatically from the selection-coefficient data
 
 # SK parameters
-SK_FILE = "N4000_rho100_beta100_repeats50.pkl"
-SK_ENTRY = 0
-SK_T1 = 0.1
-SK_T2 = 0.5
-SK_XLIM = 10
+SK_FILE = "N2000_P2_pure_repeats10.pkl"
+SK_ENTRY = 1
+SK_T1 = 0.3
+SK_T2 = 0.55
+SK_XLIM = 1.1 * 10 **-2  # now derived automatically from the selection-coefficient data
 
 # NK parameters
-NK_FILE = "N_2000_K_4_repeats_100.pkl"
+NK_FILE = "N_2000_K_32_repeats_100.pkl"
 NK_ENTRY = 2
 NK_T1 = 0.1
 NK_T2 = 0.5
-NK_XLIM = 0.01
+NK_XLIM = 2 * 10 ** -2  # now derived automatically from the selection-coefficient data
 
 # Output parameters
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "figs_paper")
@@ -97,64 +125,74 @@ fgm = Fisher(n=FGM_N, sigma=FGM_SIGMA, m=FGM_M, random_state=FGM_RANDOM_STATE)
 flips, traj, dfes = fgm.relax()
 ind1 = int(FGM_T1 * (len(dfes) - 1))
 ind2 = int(FGM_T2 * (len(dfes) - 1))
-fgm_dfe1 = dfes[ind1]
-fgm_dfe2 = dfes[ind2]
+# Recompute as selection coefficients: traj[k] is the phenotype at which dfes[k]
+# was taken, so this reproduces dfes[ind] but as s_i = (w(r+delta_i) - w(r)) / w(r).
+fgm_dfe1 = fgm.compute_dfe(traj[ind1], sel_coeff=True)
+fgm_dfe2 = fgm.compute_dfe(traj[ind2], sel_coeff=True)
 
-# # SK data
-# res_directory = os.path.join(os.path.dirname(__file__), "..", "data", "SK")
-# data_file_sk = os.path.join(res_directory, SK_FILE)
-# with open(data_file_sk, "rb") as f:
-#     data_sk = pickle.load(f)
-# data_entry = data_sk[SK_ENTRY]
-# alpha_initial = data_entry["init_alpha"]
-# h = data_entry["h"]
-# J = data_entry["J"]
-# flip_seq = data_entry["flip_seq"]
-# ind1 = int(SK_T1 * (len(flip_seq) - 1))
-# ind2 = int(SK_T2 * (len(flip_seq) - 1))
-# sig1 = compute_sigma_from_hist(alpha_initial, flip_seq, t=ind1)
-# sig2 = compute_sigma_from_hist(alpha_initial, flip_seq, t=ind2)
-# sk_dfe1 = compute_dfe(sig1, h, J)
-# sk_dfe2 = compute_dfe(sig2, h, J)
-#
-# # NK data
-# res_directory = os.path.join(os.path.dirname(__file__), "..", "data", "NK")
-# data_file_nk = os.path.join(res_directory, NK_FILE)
-# with open(data_file_nk, "rb") as f:
-#     data_nk = pickle.load(f)
-# data_entry = data_nk[NK_ENTRY]
-# flip_seq = data_entry["flip_seq"]
-# ind1 = int(NK_T1 * (len(flip_seq) - 1))
-# ind2 = int(NK_T2 * (len(flip_seq) - 1))
-# nk_dfe1 = data_entry["dfes"][ind1]
-# nk_dfe2 = data_entry["dfes"][ind2]
+# SK data
+res_directory = os.path.join(os.path.dirname(__file__), "..", "data", "PSPIN")
+data_file_sk = os.path.join(res_directory, SK_FILE)
+with open(data_file_sk, "rb") as f:
+    data_sk = pickle.load(f)
+data_entry = data_sk[SK_ENTRY]
+init_sigma = data_entry["init_sigma"]
+J = data_entry["J"]
+flip_seq = data_entry["flip_seq"]
+ind1 = int(SK_T1 * (len(flip_seq) - 1))
+ind2 = int(SK_T2 * (len(flip_seq) - 1))
+sig1 = compute_sigma_from_hist(init_sigma, flip_seq, t=ind1)
+sig2 = compute_sigma_from_hist(init_sigma, flip_seq, t=ind2)
+# Offset so the initial configuration has fitness 1, then let compute_dfe divide each
+# effect by the fitness at that time (sel_coeff=True) -> selection coefficients.
+f_off_sk = cmn_pspin.compute_fit_off(init_sigma, J)
+sk_dfe1 = cmn_pspin.compute_dfe(sig1, J, f_off=f_off_sk, sel_coeff=True)
+sk_dfe2 = cmn_pspin.compute_dfe(sig2, J, f_off=f_off_sk, sel_coeff=True)
+
+# NK data
+res_directory = os.path.join(os.path.dirname(__file__), "..", "data", "NK")
+data_file_nk = os.path.join(res_directory, NK_FILE)
+with open(data_file_nk, "rb") as f:
+    data_nk = pickle.load(f)
+data_entry = data_nk[NK_ENTRY]
+flip_seq = data_entry["flip_seq"]
+dfes = data_entry["dfes"]
+ind1 = int(NK_T1 * (len(flip_seq) - 1))
+ind2 = int(NK_T2 * (len(flip_seq) - 1))
+# The NK landscape is not stored, so reconstruct the fitness from the walk itself.
+# Each accepted flip k changes the fitness by dfes[k][flip_seq[k]], and the initial
+# fitness is pinned to 1, so F(sigma_t) = 1 + sum_{k<t} dfes[k][flip_seq[k]].
+nk_gains = np.array([dfes[k][flip_seq[k]] for k in range(len(flip_seq))])
+nk_fitness = 1.0 + np.concatenate([[0.0], np.cumsum(nk_gains)])  # F(sigma_t), len == len(dfes)
+nk_dfe1 = np.asarray(dfes[ind1]) / nk_fitness[ind1]
+nk_dfe2 = np.asarray(dfes[ind2]) / nk_fitness[ind2]
 
 # FGM Plots
 create_segben_sim(
     axA,
     fgm_dfe1,
     fgm_dfe2,
-    labels=(rf"$t_1 = {int(FGM_T1 * 100)}\%$", rf"$t_2 = {int(FGM_T2 * 100)}\%$"),
+    labels=(r"$t_1$", r"$t_2$"),
 )
 create_overlapping_dfes_sim(axB, axC, fgm_dfe1, fgm_dfe2, xlim=FGM_XLIM)
 
-# # SK Plots
-# create_segben_sim(
-#     axD,
-#     sk_dfe1,
-#     sk_dfe2,
-#     labels=(rf"$t_1 = {int(SK_T1 * 100)}\%$", rf"$t_2 = {int(SK_T2 * 100)}\%$"),
-# )
-# create_overlapping_dfes_sim(axE, axF, sk_dfe1, sk_dfe2, xlim=SK_XLIM)
+# SK Plots
+create_segben_sim(
+    axD,
+    sk_dfe1,
+    sk_dfe2,
+    labels=(r"$t_1$", rf"$t_2$"),
+)
+create_overlapping_dfes_sim(axE, axF, sk_dfe1, sk_dfe2, xlim=SK_XLIM)
 
-# # NK Plots
-# create_segben_sim(
-#     axG,
-#     nk_dfe1,
-#     nk_dfe2,
-#     labels=(rf"$t_1 = {int(NK_T1 * 100)}\%$", rf"$t_2 = {int(NK_T2 * 100)}\%$"),
-# )
-# create_overlapping_dfes_sim(axH, axI, nk_dfe1, nk_dfe2, xlim=NK_XLIM)
+# NK Plots
+create_segben_sim(
+    axG,
+    nk_dfe1,
+    nk_dfe2,
+    labels=(rf"$t_1$", rf"$t_2$"),
+)
+create_overlapping_dfes_sim(axH, axI, nk_dfe1, nk_dfe2, xlim=NK_XLIM)
 
 # Save the figure
 os.makedirs(OUTPUT_DIR, exist_ok=True)

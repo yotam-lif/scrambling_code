@@ -255,13 +255,13 @@ def create_overlapping_dfes_sim(ax_left, ax_right, dfe_anc, dfe_evo, xlim=0.08, 
             ax.plot([x0, x1], [y0, y1], linestyle="--", color="grey", lw=lw_main)
 
     # --- Histograms Calculation ---
-    counts, bin_edges = np.histogram(prop_bdfe_anc, bins=20, density=True)
-    anc_counts, anc_bin_edges = np.histogram(bdfe_anc, bins=10, density=True)
-    dfe_counts, dfe_bin_edges = np.histogram(dfe_evo, bins=20, density=True)
+    counts, bin_edges = np.histogram(prop_bdfe_anc, bins=15, density=True)
+    anc_counts, anc_bin_edges = np.histogram(bdfe_anc, bins=8, density=True)
+    dfe_counts, dfe_bin_edges = np.histogram(dfe_evo, bins=15, density=True)
 
     counts2, bin_edges2 = np.histogram(bdfe_evo, bins=10, density=True)
-    anc2_counts, anc2_bin_edges = np.histogram(prop_bdfe_evo, bins=20, density=True)
-    dfe2_counts, dfe2_bin_edges = np.histogram(dfe_anc, bins=20, density=True)
+    anc2_counts, anc2_bin_edges = np.histogram(prop_bdfe_evo, bins=10, density=True)
+    dfe2_counts, dfe2_bin_edges = np.histogram(dfe_anc, bins=15, density=True)
 
     # --- Calculate Scale and Limits ---
     # 1. Determine Z based on max data height
@@ -304,7 +304,7 @@ def create_overlapping_dfes_sim(ax_left, ax_right, dfe_anc, dfe_evo, xlim=0.08, 
     ax_left.set_xlim(-xlim, xlim)
     ax_left.set_ylim(0, ylim)
     ax_left.tick_params(labelsize=14)
-    ax_left.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_left.set_xlabel(r'Fitness effect $(s)$')
     ax_left.legend(frameon=False)
 
     # --- Right Panel (Backward) ---
@@ -443,7 +443,7 @@ def create_segben_sim(ax, dfe_anc, dfe_evo, labels=(r'$t_1$', r'$t_2$'), ben=Tru
     ax.set_xticks([x0, x1])
     ax.set_xticklabels(labels)
     ax.set_xlim(x0 - 0.2, x1 + 0.2)
-    ax.set_ylabel(r'Fitness effect $(\Delta)$')
+    ax.set_ylabel(r'Fitness effect $(s)$')
     ax.axhline(0, linestyle='--', color='black', linewidth=0.8)
     ax.tick_params(labelsize=14)
     # ax.legend(frameon=False)
