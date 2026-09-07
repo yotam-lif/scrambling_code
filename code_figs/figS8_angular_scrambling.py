@@ -1,14 +1,13 @@
-import argparse
 import os
 import multiprocessing
 
+import cmasher  # noqa: F401  (registers the cmr.* colormaps with matplotlib)
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
 from matplotlib.ticker import MaxNLocator
-from scipy.stats import cramervonmises_2samp, ks_2samp, wasserstein_distance
 
 # ----------------------------------------------------------------
 # 1. VISUAL STYLE CONFIGURATION
@@ -19,14 +18,27 @@ mpl.rcParams.update({
     "axes.titlesize": 16,
     "xtick.labelsize": 16,
     "ytick.labelsize": 16,
-    "legend.fontsize": 14,
+    "legend.fontsize": 16,
 })
 
 CMR_COLORS = sns.color_palette("CMRmap", 4)
-DEFAULT_SUBSET_DISTANCE_METRIC = "emd"
+
+# Panels A/B reuse fig4's row-1 palette so the two figures read as one set: the two
+# model curves are two positions along the single cmr.fall ramp, and the measured points
+# are the same grey the fig4 histograms use. The pair is pushed a little further apart
+# than fig4's (0.30, 0.60) because here the two curves lie almost on top of each other:
+# the dark end goes deeper into the plum, while the light end stays short of ~0.68, where
+# the amber starts turning to the pale olive the top of the ramp ends in.
+SIM_COLOR, THEORY_COLOR = (
+    mpl.colors.to_hex(mpl.colormaps["cmr.fall"](position))
+    for position in (0.22, 0.65)
+)
+DATA_COLOR = "#666666"
 
 
 def apply_axis_style(ax, label):
+    """Bold panel letter plus the spine/tick geometry shared with the other
+    figures: only the left and bottom spines, both pushed outward."""
     ax.text(
         -0.08, 1.04, label,
         transform=ax.transAxes,
@@ -35,52 +47,17 @@ def apply_axis_style(ax, label):
         va="bottom",
         ha="left",
     )
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_position(("outward", 10))
+    ax.spines["left"].set_position(("outward", 10))
+    ax.xaxis.set_ticks_position("bottom")
+    ax.yaxis.set_ticks_position("left")
     for spine in ax.spines.values():
-        spine.set_linewidth(1.4)
-    ax.tick_params(width=1.4, length=5, which="major")
-    ax.tick_params(width=1.2, length=3, which="minor")
+        spine.set_linewidth(1.5)
+    ax.tick_params(width=1.5, length=6, which="major")
+    ax.tick_params(width=1.5, length=3, which="minor")
     ax.grid(False)
-
-
-def normalize_distance_metric(metric):
-    metric_key = metric.strip().lower().replace("-", "_").replace(" ", "_")
-    aliases = {
-        "cvm": "cvm",
-        "cramervonmises": "cvm",
-        "cramer_von_mises": "cvm",
-        "emd": "emd",
-        "earth_movers_distance": "emd",
-        "earth_mover_distance": "emd",
-        "earthmovers": "emd",
-        "wasserstein": "emd",
-        "ks": "ks",
-        "ks_2samp": "ks",
-        "kolmogorov_smirnov": "ks",
-    }
-    if metric_key not in aliases:
-        raise ValueError(f"Unsupported metric '{metric}'. Choose from cvm, emd, or ks.")
-    return aliases[metric_key]
-
-
-def distance_metric_label(metric):
-    metric_key = normalize_distance_metric(metric)
-    labels = {
-        "cvm": "CvM distance",
-        "emd": "Earth mover's distance",
-        "ks": "KS statistic",
-    }
-    return labels[metric_key]
-
-
-def compute_distance_metric(values_a, values_b, metric):
-    metric_key = normalize_distance_metric(metric)
-    if metric_key == "cvm":
-        return cramervonmises_2samp(values_a, values_b).statistic
-    if metric_key == "emd":
-        return wasserstein_distance(values_a, values_b)
-    if metric_key == "ks":
-        return ks_2samp(values_a, values_b).statistic
-    raise ValueError(f"Unsupported metric '{metric}'")
 
 
 # ----------------------------------------------------------------
@@ -151,9 +128,6 @@ def run_single_replicate(args):
     mode, seed, n, sigma, m, R0, params, max_t, time_points = args
 
     R_final = params.get("R_final", 0.0)
-    subset_metric = normalize_distance_metric(
-        params.get("subset_metric", DEFAULT_SUBSET_DISTANCE_METRIC)
-    )
 
     if mode == "constant":
         model = FisherConstantRadius(n, sigma, m, R0, seed=seed)
@@ -177,29 +151,16 @@ def run_single_replicate(args):
         return model.compute_fitness(r) * np.expm1(get_malthusian(r))
 
     dfe0 = get_fitness_effects(model.r)
-    # M is fixed at t=0: the mutations that are initially beneficial.
-    initial_beneficial_mask = dfe0 > 0
-
-    def get_subset_distance(dfe_t):
-        if not np.any(initial_beneficial_mask):
-            return np.nan
-        tracked_dfe_t = dfe_t[initial_beneficial_mask]
-        return compute_distance_metric(tracked_dfe_t, dfe_t, subset_metric)
-
-    subset_distance0 = get_subset_distance(dfe0)
 
     cosines = np.full(len(time_points), np.nan)
     radii = np.full(len(time_points), np.nan)
     pearsons = np.full(len(time_points), np.nan)
     integrals = np.full(len(time_points), np.nan)  # Array for the running integral
-    subset_distances = np.full(len(time_points), np.nan)
 
     cosines[0] = 1.0
     radii[0] = np.linalg.norm(model.r)
     pearsons[0] = 1.0
     integrals[0] = 0.0
-    if np.isfinite(subset_distance0):
-        subset_distances[0] = 1.0
 
     current_t_idx = 0
     time_points_set = set(time_points)
@@ -231,16 +192,12 @@ def run_single_replicate(args):
             dfe_t = get_fitness_effects(model.r)
             if np.std(dfe_t) > 1e-12 and np.std(dfe0) > 1e-12:
                 pearsons[current_t_idx] = np.corrcoef(dfe0, dfe_t)[0, 1]
-            if np.isfinite(subset_distance0) and subset_distance0 > 1e-12:
-                subset_distance_t = get_subset_distance(dfe_t)
-                if np.isfinite(subset_distance_t):
-                    subset_distances[current_t_idx] = subset_distance_t / subset_distance0
 
         # Break after recording to ensure the final state is captured
         if mode == "sswm" and current_R < R_final:
             break
 
-    return cosines, radii, pearsons, integrals, subset_distances
+    return cosines, radii, pearsons, integrals
 
 
 # ----------------------------------------------------------------
@@ -251,8 +208,7 @@ def stack_results(res_list):
     radii = np.array([res[1] for res in res_list], dtype=float)
     pearsons = np.array([res[2] for res in res_list], dtype=float)
     integrals = np.array([res[3] for res in res_list], dtype=float)
-    subset_distances = np.array([res[4] for res in res_list], dtype=float)
-    return values, radii, pearsons, integrals, subset_distances
+    return values, radii, pearsons, integrals
 
 
 def summarize_log_traces(values, tiny=1e-12, log_offset=0.0):
@@ -287,10 +243,7 @@ def make_long_df(values, time_points, value_name):
 # ----------------------------------------------------------------
 # 5. MAIN EXPERIMENT
 # ----------------------------------------------------------------
-def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
-    subset_metric = normalize_distance_metric(subset_metric)
-    subset_metric_label = distance_metric_label(subset_metric)
-
+def run_experiment():
     sigma = 0.05
     reps = 400
 
@@ -344,7 +297,6 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
 
 
     print("--- Configuration ---")
-    print(f"Subset distance metric: {subset_metric_label} ({subset_metric})")
     print(f"A: n={n_A}, m={m_A}, R0_tilde={R0_A_tilde}, max_t={max_t_A}")
     print(f"B: n={n_B}, m={m_B}, R0_tilde={R0_B_tilde}, max_t={max_t_B}")
     print(f"C: n={n_C}, m={m_C}, R0_tilde={R0_C_tilde}, max_t={max_t_C}")
@@ -363,7 +315,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
             sigma,
             m_A,
             R0_A,
-            {"epsilon": epsilon_A, "R_final": 0.0, "subset_metric": subset_metric},
+            {"epsilon": epsilon_A, "R_final": 0.0},
             max_t_A,
             tp_A,
         ))
@@ -379,7 +331,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
             sigma,
             m_B,
             R0_B,
-            {"epsilon": epsilon_B, "R_final": 0.0, "subset_metric": subset_metric},
+            {"epsilon": epsilon_B, "R_final": 0.0},
             max_t_B,
             tp_B,
         ))
@@ -395,7 +347,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
             sigma,
             m_C,
             R0_C,
-            {"R_final": 0.0, "subset_metric": subset_metric},
+            {"R_final": 0.0},
             max_t_C,
             tp_C,
         ))
@@ -411,7 +363,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
             sigma,
             m_D,
             R0_D,
-            {"R_final": 0.0, "subset_metric": subset_metric},
+            {"R_final": 0.0},
             max_t_D,
             tp_D,
         ))
@@ -425,27 +377,25 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     # ------------------------------
     # Unpack A
     # ------------------------------
-    cos_A, rad_A, pear_A, int_A, subset_A = stack_results(results[start_A:end_A])
+    cos_A, rad_A, pear_A, int_A = stack_results(results[start_A:end_A])
     yA, yA_lo, yA_hi, mean_cos_A, std_cos_A = summarize_log_traces(
         cos_A, tiny=1e-12, log_offset=log_offset_A
     )
     mean_pear_A, std_pear_A = summarize_logged_positive_traces(pear_A, tiny=1e-2)
-    mean_subset_A, std_subset_A = summarize_logged_positive_traces(subset_A, tiny=1e-12)
 
     # ------------------------------
     # Unpack B
     # ------------------------------
-    cos_B, rad_B, pear_B, int_B, subset_B = stack_results(results[start_B:end_B])
+    cos_B, rad_B, pear_B, int_B = stack_results(results[start_B:end_B])
     yB, yB_lo, yB_hi, mean_cos_B, std_cos_B = summarize_log_traces(
         cos_B, tiny=1e-12, log_offset=log_offset_B
     )
     mean_pear_B, std_pear_B = summarize_logged_positive_traces(pear_B, tiny=1e-2)
-    mean_subset_B, std_subset_B = summarize_logged_positive_traces(subset_B, tiny=1e-12)
 
     # ------------------------------
     # Unpack C
     # ------------------------------
-    cos_C, rad_C, pear_C, int_C, subset_C = stack_results(results[start_C:end_C])
+    cos_C, rad_C, pear_C, int_C = stack_results(results[start_C:end_C])
     yC, yC_lo, yC_hi, mean_cos_C, std_cos_C = summarize_log_traces(
         cos_C, tiny=1e-12, log_offset=0.0
     )
@@ -453,7 +403,7 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     # ------------------------------
     # Unpack D
     # ------------------------------
-    cos_D, rad_D, pear_D, int_D, subset_D = stack_results(results[start_D:end_D])
+    cos_D, rad_D, pear_D, int_D = stack_results(results[start_D:end_D])
     yD, yD_lo, yD_hi, mean_cos_D, std_cos_D = summarize_log_traces(
         cos_D, tiny=1e-12, log_offset=0.0
     )
@@ -469,37 +419,34 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     # ------------------------------
     # Plotting: 2 rows x 2 columns
     # ------------------------------
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    fig.subplots_adjust(wspace=0.28, hspace=0.35)
+    fig, axes = plt.subplots(2, 2, figsize=(12.0, 9.6))
+    fig.subplots_adjust(wspace=0.28, hspace=0.45)
 
     # A (Constant R approx)
     ax = axes[0, 0]
     apply_axis_style(ax, "A")
-    ax.plot(tp_A, yA, color=CMR_COLORS[0], lw=2.4, label="Simulation")
-    ax.fill_between(tp_A, yA_lo, yA_hi, color=CMR_COLORS[0], alpha=0.25, linewidth=0)
+    ax.plot(tp_A, yA, color=SIM_COLOR, lw=2.6, label="Simulation", zorder=4)
+    ax.fill_between(tp_A, yA_lo, yA_hi, color=SIM_COLOR, alpha=0.20, linewidth=0, zorder=2)
     idx_A = np.round(np.linspace(0, len(tp_A) - 1, 15)).astype(int)
     ax.errorbar(
         tp_A[idx_A],
         mean_pear_A[idx_A],
         yerr=std_pear_A[idx_A],
         fmt="o",
-        color="slategray",
+        color=DATA_COLOR,
         markersize=4,
         capsize=3,
         label="Pearson",
+        zorder=5,
     )
-    ax.errorbar(
-        tp_A[idx_A],
-        mean_subset_A[idx_A],
-        yerr=std_subset_A[idx_A],
-        fmt="s",
-        color="darkorange",
-        markersize=4,
-        capsize=3,
-        label=fr"EMD",
-    )
-    ax.plot(tp_A, -tp_A / tau_A, color="magenta", lw=2.0, ls=":", label=r"Theory (Eq. *)")
+    # The theory line all but coincides with the simulation, so it is drawn over it:
+    # the dotted amber reads through the solid maroon.
+    ax.plot(tp_A, -tp_A / tau_A, color=THEORY_COLOR, lw=2.4, ls="--",
+            label=r"Theory (Eq. *)", zorder=6)
     ax.set_xlim(0, max_t_A)
+    # C(0) = 1 by construction, so every curve starts at log C = 0: pin the top of the
+    # view there and let the bottom autoscale.
+    ax.set_ylim(top=0.0)
     ax.set_xlabel("Time (steps)")
     ax.set_ylabel(r"$\log$ metric")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -509,31 +456,26 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     # B (Constant R approx)
     ax = axes[0, 1]
     apply_axis_style(ax, "B")
-    ax.plot(tp_B, yB, color=CMR_COLORS[0], lw=2.4, label="Simulation")
-    ax.fill_between(tp_B, yB_lo, yB_hi, color=CMR_COLORS[0], alpha=0.25, linewidth=0)
+    ax.plot(tp_B, yB, color=SIM_COLOR, lw=2.6, label="Simulation", zorder=4)
+    ax.fill_between(tp_B, yB_lo, yB_hi, color=SIM_COLOR, alpha=0.20, linewidth=0, zorder=2)
     idx_B = np.round(np.linspace(0, len(tp_B) - 1, 11)).astype(int)
     ax.errorbar(
         tp_B[idx_B],
         mean_pear_B[idx_B],
         yerr=std_pear_B[idx_B],
         fmt="o",
-        color="slategray",
+        color=DATA_COLOR,
         markersize=4,
         capsize=3,
         label="Pearson",
+        zorder=5,
     )
-    ax.errorbar(
-        tp_B[idx_B],
-        mean_subset_B[idx_B],
-        yerr=std_subset_B[idx_B],
-        fmt="s",
-        color="darkorange",
-        markersize=4,
-        capsize=3,
-        label=fr"EMD",
-    )
-    ax.plot(tp_B, -tp_B / tau_B, color="magenta", lw=2.0, ls=":", label=r"Theory (Eq. *)")
+    # The theory line all but coincides with the simulation, so it is drawn over it:
+    # the dotted amber reads through the solid maroon.
+    ax.plot(tp_B, -tp_B / tau_B, color=THEORY_COLOR, lw=2.4, ls="--",
+            label=r"Theory (Eq. *)", zorder=6)
     ax.set_xlim(0, max_t_B)
+    ax.set_ylim(top=0.0)
     ax.set_xlabel("Time (steps)")
     # ax.set_ylabel(r"$\log$ metric")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -545,7 +487,8 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     apply_axis_style(ax, "C")
     ax.plot(tp_C, yC, color=CMR_COLORS[1], lw=2.5, ls="-", label="Simulation")
     ax.fill_between(tp_C, yC_lo, yC_hi, color=CMR_COLORS[1], alpha=0.40, linewidth=0)
-    ax.plot(tp_C, -tp_C / tau_C, color="black", lw=2.0, ls=":", label=r"Theory (Eq. *)")
+    ax.plot(tp_C, -tp_C / tau_C, color="black", lw=2.0, ls="--", label=r"Theory (Eq. *)")
+    ax.set_ylim(top=0.0)
     ax.set_xlabel("Time (steps)")
     ax.set_ylabel(r"$\log C_{\boldsymbol{\hat r}}(0, t)$")
     ax.set_title(rf"$\tilde{{R}}(0) = {R0_C_tilde:g},\ n = {n_C}$")
@@ -557,7 +500,8 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
     apply_axis_style(ax, "D")
     ax.plot(tp_D, yD, color=CMR_COLORS[1], lw=2.5, ls="-", label="Simulation")
     ax.fill_between(tp_D, yD_lo, yD_hi, color=CMR_COLORS[1], alpha=0.40, linewidth=0)
-    ax.plot(tp_D, -tp_D / tau_D, color="black", lw=2.0, ls=":", label=r"Theory (Eq. *)")
+    ax.plot(tp_D, -tp_D / tau_D, color="black", lw=2.0, ls="--", label=r"Theory (Eq. *)")
+    ax.set_ylim(top=0.0)
     ax.set_xlabel("Time (steps)")
     ax.set_title(rf"$\tilde{{R}}(0) = {R0_D_tilde:g},\ n = {n_D}$")
     ax.legend(frameon=False, loc="lower left")
@@ -571,11 +515,4 @@ def run_experiment(subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Plot azimuthal memory and fixed-subset DFE distances.")
-    parser.add_argument(
-        "--subset-metric",
-        default=DEFAULT_SUBSET_DISTANCE_METRIC,
-        help="Distance metric for comparing the t=0 beneficial subset to the full DFE: cvm, emd, or ks.",
-    )
-    args = parser.parse_args()
-    run_experiment(subset_metric=args.subset_metric)
+    run_experiment()

@@ -7,13 +7,16 @@ is one genotype, one library and one condition with nothing between the two numb
 noise.  No evolution, so whatever decorrelation these panels show is measurement error, and it
 is what calibrates the ancestor-to-evolved panels of fig S3.
 
-    A  REL606, acetate (GHI)     B  REL606, DM27.8 (MNO)
-    C  S, DM25 exp. (PQT)        D  S, DM27.8 (MNO)
+    A  R (GHI)     B  R (MNO)
+    C  L (GHI)     D  S (MNO)
 
-Two genotypes in two conditions each, so a high correlation cannot be an artefact of one
-strain or one medium.  The experiment code in each title identifies the growth regime; the
-five monoculture regimes -- all of them serial dilution, differing in dilution factor and
-transfer interval -- are documented in ``cmn/cmn_exper.py`` under ``ASENCAO_MONO``.
+``R`` is REL606, the Ara-2 ancestor; ``S`` and ``L`` are the two ecotypes that diversified from
+it.  All three genotypes appear, and two of them twice over, in two experiments each -- so a high
+correlation cannot be an artefact of one strain or one condition.  The experiment code in each
+title is the whole condition label: the five monoculture regimes -- all serial dilution, differing
+in dilution factor and transfer interval, GHI on acetate and MNO on DM27.8 at 1:10 -- are
+documented in ``cmn/cmn_exper.py`` under ``ASENCAO_MONO``, and repeating the medium in the title
+would only crowd it.
 
 Panels are drawn by the same code as fig1 row 2 (``cmn/cmn_scatter.py``).  The partition drops the largest 2% of
 |ancestral effect| rather than fig1 D's 10%: the Ascensao DFEs are an order of magnitude more
@@ -45,11 +48,12 @@ cmn_scatter.apply_style()
 
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 
-# Short condition tag per experiment folder; the full regime lives in cmn_exper.ASENCAO_MONO.
-REGIME = {"SLR": "DM25", "GHI": "acetate", "MNO": "DM27.8", "PQT": "DM25 exp."}
+# Genotype label used in the panel titles.  The release calls the ancestor REL606; "R" is what
+# the rest of this figure's row/column vocabulary uses and what fits a title next to S and L.
+ECOTYPE_LABEL = {"REL606": "R"}
 
-# Ascensao monoculture strain letters, in panel order: REL606 in GHI and MNO, S in PQT and MNO.
-CONTROLS = ("I", "O", "P", "M")
+# Ascensao monoculture strain letters, in panel order: R in GHI and MNO, L in GHI, S in MNO.
+CONTROLS = ("I", "O", "H", "M")
 
 # The Ascensao core is an order of magnitude tighter than Limdi's, so the inset zooms harder.
 ASENCAO_INSET_LIMITS = (-0.03, 0.03)
@@ -66,19 +70,20 @@ def replicate_pair(letter):
     return x[keep], y[keep]
 
 
-def mono_title(letter):
-    folder, ecotype, _media, _description, _n_rep = cmn_exper.ASENCAO_MONO[letter]
-    return f"{ecotype}, {REGIME[folder]} ({folder})"
+def mono_label(letter):
+    """``(genotype, experiment folder)`` as they appear in the panel title, e.g. ``("R", "GHI")``."""
+    folder, ecotype = cmn_exper.ASENCAO_MONO[letter][:2]
+    return ECOTYPE_LABEL.get(ecotype, ecotype), folder
 
 
 def main():
     panels = []
     for letter in CONTROLS:
         x, y = replicate_pair(letter)
-        folder, ecotype = cmn_exper.ASENCAO_MONO[letter][:2]
+        ecotype, folder = mono_label(letter)
         panels.append({
             "name": f"{ecotype} {folder} rep1 vs rep2", "x": x, "y": y,
-            "title": mono_title(letter),
+            "title": f"{ecotype} ({folder})",
             "xlabel": r"Fitness effect $(s)$, replicate 1",
             "ylabel": r"Fitness effect $(s)$, replicate 2",
             "limits": envelope_limits(x, y),

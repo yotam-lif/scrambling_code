@@ -87,11 +87,28 @@ Solid curves are the latent correlation -- the model's own effects, with no meas
 error anywhere.  Dashed curves add rank-matched measurement noise: each simulated mutation
 is assigned the published error of the empirical gene at its own effect rank, drawn fresh at
 every step for the endpoint and once per replicate for the ancestor.  The band is the
-16-84% interval over walk x noise replicates.  Filled triangles are the measured
+16-84% interval over walk x noise replicates.  Filled stars are the measured
 correlations.
 
-Where the dots sit
-------------------
+Where the markers sit
+---------------------
+Panels D and E carry a t = 0 marker, F does not.  The t = 0 marker is the ISOGENIC CONTROL:
+the same genotype assayed twice, so nothing has fixed between the two measurements and the
+only thing separating them is the assay itself.  It is the ceiling the panel's curves start
+from -- the simulation asserts r = 1 at t = 0, and the control says what the measurement can
+actually deliver there.  Both are read straight out of TableS1 (``REL606 green -> red`` and
+``REL607 green -> red``) rather than recomputed, on the same |s|-ranked ladder as every other
+marker, so the figure and that table cannot drift apart.
+
+Panel F has no such row to draw.  The Couce release publishes no replicate of a timepoint;
+its only same-background pair is ``fitted1`` against ``fitted2``, two fits of the SAME five
+read counts.  Their disagreement is 0.29x the published per-segment error where a genuine
+replicate scores about 1 (Limdi's green/red channels give 1.5-1.8), so their r = 0.98 is an
+upper bound on a ceiling, not a control -- see the FIT-VARIANT ROWS block in
+``code_figs/TableS2_couce_autocorr.py``.  Drawn at t = 0 it would sit pinned at the top of
+the frame and read as an assay far more reproducible than Limdi's, when it is really the only
+column whose t = 0 would not be a replicate.  Better absent than misleading.
+
 Panel F carries two sets of dots.  The right-hand set sits at 22 fixed mutations, the count
 the 0K -> 15K walk cache was built around; the left-hand set at 9 is the short 0K -> 2K leg.
 (The main text quotes roughly 8 fixed mutations for the 0-2K interval and 22 for 2K-15K, so
@@ -125,6 +142,7 @@ Output:             figs_paper/fig4_autocorrelation.pdf
 """
 
 import argparse
+import csv
 import json
 import os
 import sys
@@ -162,6 +180,11 @@ mpl.rcParams['legend.fontsize'] = 14
 DATA_COLOR = "#666666"
 DATA_EDGE = "#4A4A4A"
 
+# Row 2's grid: light enough to read past, since it runs under curves, bands and markers
+# alike and is a reading aid rather than anything the figure claims.
+GRID_COLOR = "#EBEBEB"
+GRID_LINEWIDTH = 0.6
+
 # Row 1 draws two models over one histogram, so its palette is two bands -- exactly the
 # structure cmn_scatter's bands have, and picked the same way: two positions along a single
 # cmasher ramp rather than two independently chosen hexes, so the pair cannot drift out of
@@ -197,6 +220,9 @@ MAX_INTEGER_EVALUATIONS = 10  # ceiling on the integer-n profile search
 # both read it by this path, and renaming it would silently strand them on a stale copy.
 FIT_JSON = os.path.join(_REPO_ROOT, "data", "fig3_fgm_fits.json")
 WALK_DIR = os.path.join(_REPO_ROOT, "data", "FGM_HEAVY_TAILED")
+# The t = 0 isogenic controls are read from the supplementary table rather than recomputed,
+# so the stars on this figure and the numbers in that table cannot drift apart.
+LIMDI_TABLE = os.path.join(_REPO_ROOT, "data", "TableS1_limdi_autocorr.csv")
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 
 
@@ -586,9 +612,11 @@ def load_or_fit(refit):
 # to the raw medians.
 SMOOTH_SIGMA = 1.6
 
-# Measured markers: triangles, area in points^2.  Line2D takes a diameter instead, so the
-# legend handle is sized as sqrt(area) to match what the panels draw.
-MEASURED_MARKER_AREA = 210.0
+# Measured markers: filled stars, area in points^2.  A star's points are thin, so at a given
+# nominal area it reads smaller than a blob of the same number -- hence an area well above the
+# 210 the triangles and crosses used, to keep the same visual weight on the page.  Line2D
+# takes a diameter instead, so the legend handle is sized as sqrt(area) to match the panels.
+MEASURED_MARKER_AREA = 330.0
 
 PANELS = (
     {
@@ -606,8 +634,9 @@ PANELS = (
         # A plateau reference, not a substitution count -- see the module docstring.  The
         # note says so on the face of the figure, since the marker's position would
         # otherwise read as a claim that Ara-1 fixed 15 mutations.
-        "markers": ({"time": 15, "pair": ("limdi", "REL606", "Ara-1"),
-                     "note": "Measured at $t = 1100$ $\\rightarrow$"},),
+        "markers": ({"time": 0, "control": (LIMDI_TABLE, "REL606 green -> red")},
+                    {"time": 15, "pair": ("limdi", "REL606", "Ara-1"),
+                     "note": "Measured at $t = 1100$ $\\rightarrow$"}),
     },
     {
         "cache": ("poster_fig5_limdi_REL607_to_Ara_plus_2_without_errors_"
@@ -623,8 +652,9 @@ PANELS = (
         "legend": "cuts",
         # Ara+2 is a non-mutator and carries about 70 mutations by 50K -- three fewer orders
         # of magnitude than Ara-1's hitchhiker load, and still not a step count.
-        "markers": ({"time": 15, "pair": ("limdi", "REL607", "Ara+2"),
-                     "note": "Measured at $t = 70$ $\\rightarrow$"},),
+        "markers": ({"time": 0, "control": (LIMDI_TABLE, "REL607 green -> red")},
+                    {"time": 15, "pair": ("limdi", "REL607", "Ara+2"),
+                     "note": "Measured at $t = 70$ $\\rightarrow$"}),
     },
     {
         "cache": ("poster_fig5_couce_0K_to_15K_beta_prime_observed_window_"
@@ -642,6 +672,12 @@ PANELS = (
         # the same ranked-|s| ladder, so they carry the same meaning as the ones
         # ``empirical_ladder`` returns, and they are keyed by retained fraction to
         # match this panel's cuts (r100 and r98).
+        # NO t = 0 marker here, unlike D and E.  The Couce release publishes no replicate
+        # of a timepoint; its only same-background pair is fitted1 against fitted2, two fits
+        # of the SAME read counts, whose disagreement is 0.29x the published per-segment
+        # error (a real replicate scores about 1).  It correlates at r = 0.98 and would sit
+        # pinned at the top of the frame, reading as an assay far more reproducible than
+        # Limdi's when it is really the only column whose t = 0 is not a replicate at all.
         "markers": ({"time": 22, "pair": ("couce", "0K", "15K")},
                     {"time": 9, "ladder": {"r100": 0.48, "r98": 0.25}}),
     },
@@ -717,8 +753,40 @@ def empirical_ladder(spec, exclusions):
     return ladder
 
 
+def control_ladder(table, transition, exclusions):
+    """Measured r for each retained fraction, read out of a supplementary table row.
+
+    The t = 0 markers are the ISOGENIC controls: the same genotype measured twice, so the
+    only thing separating the two assays is measurement noise and no background mutation
+    has fixed between them.  They are the ceiling every curve in the panel starts from --
+    r = 1 is what the simulation asserts at t = 0, and these say what the assay itself can
+    actually deliver there.
+
+    Read from the table rather than recomputed here because the ranked-|s| ladder in
+    TableS1/TableS2 already applies exactly the rule ``empirical_ladder`` applies, on the
+    same green/red replicate pairing; recomputing it in this script would duplicate that
+    pairing logic for no gain and let the figure drift away from the tables.
+    """
+    with open(table, encoding="utf-8", newline="") as handle:
+        rows = [row for row in csv.DictReader(handle)
+                if row["transition"] == transition]
+    if len(rows) != 1:
+        raise SystemExit(f"{os.path.basename(table)} holds {len(rows)} rows for "
+                         f"{transition!r}; expected exactly one")
+    row = rows[0]
+    ladder = {}
+    for excluded in exclusions:
+        key = cut_key(excluded)
+        column = f"r_{key[1:]}"
+        if not row.get(column):
+            raise SystemExit(f"{os.path.basename(table)} row {transition!r} has no "
+                             f"{column} column for the {key} cut")
+        ladder[key] = float(row[column])
+    return ladder
+
+
 def marker_ladder(marker, exclusions):
-    """One marker's ``{cut key: r}``, either stated in the panel or measured here."""
+    """One marker's ``{cut key: r}``: stated in the panel, tabulated, or measured here."""
     if "ladder" in marker:
         missing = [cut_key(excluded) for excluded in exclusions
                    if cut_key(excluded) not in marker["ladder"]]
@@ -726,6 +794,8 @@ def marker_ladder(marker, exclusions):
             raise SystemExit(f"Marker at t={marker['time']} has no value for "
                              + ", ".join(missing))
         return marker["ladder"]
+    if "control" in marker:
+        return control_ladder(*marker["control"], exclusions)
     return empirical_ladder(marker["pair"], exclusions)
 
 
@@ -953,7 +1023,7 @@ def draw_autocorr_panel(axis, curves, ladders, last_time, cuts):
                      linestyle=(0, (2.0, 2.5)), zorder=1)
         for key, color in zip(keys, CURVE_COLORS):
             # clip_on stays off so a marker sitting on the frame edge is drawn whole.
-            axis.scatter([time], [ladder[key]], s=MEASURED_MARKER_AREA, marker="^",
+            axis.scatter([time], [ladder[key]], s=MEASURED_MARKER_AREA, marker="*",
                          facecolor=color, edgecolor="white", linewidth=1.0,
                          zorder=7, clip_on=False)
         if note:
@@ -979,7 +1049,7 @@ def style_legend(axis):
     return axis.legend(
         [Line2D([], [], color="#555555", linewidth=2.7),
          Line2D([], [], color="#555555", linewidth=2.5, linestyle=(0, (4.0, 2.4))),
-         Line2D([], [], marker="^", linestyle="none",
+         Line2D([], [], marker="*", linestyle="none",
                 markersize=np.sqrt(MEASURED_MARKER_AREA),
                 markerfacecolor="#777777", markeredgecolor="white")],
         ["Latent", "Noisy", "Measured"],
@@ -1012,13 +1082,29 @@ def build_autocorr_row(axes):
         axis.xaxis.set_major_locator(
             FixedLocator(list(range(0, last_time + 1, spacing))))
         style_axis(axis)
+        # A light rule at every major tick of BOTH axes, so a plateau height and the step it
+        # is reached at can be read off without tracking a value back to the spine.  Pushed
+        # behind everything the panel draws: set_axisbelow drops the whole axis layer below
+        # the artists -- which is what the filled bands need, being patches at zorder 1 --
+        # and the per-line zorder puts it behind anything that might be given a zorder of
+        # its own below that.
+        axis.set_axisbelow(True)
+        axis.grid(True, which="major", color=GRID_COLOR,
+                  linewidth=GRID_LINEWIDTH, alpha=1.0, zorder=0)
+        for gridline in axis.get_xgridlines() + axis.get_ygridlines():
+            gridline.set_zorder(0)
         # After style_axis, not before: its set_ticks_position("left") puts the shared
         # axis's labels back, exactly as it does in row 1.
         if index != 0:
             axis.tick_params(axis="y", labelleft=False)
 
         for (time, ladder, _), marker in zip(ladders, panel["markers"]):
-            source = "/".join(marker["pair"]) if "pair" in marker else "stated"
+            if "pair" in marker:
+                source = "/".join(marker["pair"])
+            elif "control" in marker:
+                source = f"control {marker['control'][1]}"
+            else:
+                source = "stated"
             print(f"{panel['title']} {source} at t={time}: measured "
                   + ", ".join(f"{key}={value:+.3f}" for key, value in ladder.items())
                   + "   simulated observed "
@@ -1028,7 +1114,7 @@ def build_autocorr_row(axes):
               f"{curves['surviving'][-1]}/{curves['walks']}")
 
         # Every panel names its own subsets, because 10% and 2% are different cuts and
-        # cannot share a label.  The style key -- what solid, dashed and the triangles mean,
+        # cannot share a label.  The style key -- what solid, dashed and the stars mean,
         # which is the same in all three -- is stated once, in D, with D's colour key
         # immediately to its right.
         if panel["legend"] == "both":

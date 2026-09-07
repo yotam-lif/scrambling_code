@@ -3,7 +3,7 @@ r"""Table S2: DFE autocorrelation across the Ascensao monoculture panel.
 
 The Ascensao analog of TableS1.  For every transition ``early -> late`` we ask how well a gene
 knockout's fitness effect measured in the EARLIER background predicts its effect in the LATER one,
-over the genes assayed in both, and report the Pearson ``r`` of the matched pairs on three nested
+over the genes assayed in both, and report the Pearson ``r`` of the matched pairs on four nested
 subsets defined from the early side alone.  Data: Ascensao et al., "Quantifying the Adaptive
 Potential of a Nascent Bacterial Community" (github.com/joaoascensao/S-L-REL606-BarSeq).
 
@@ -49,8 +49,10 @@ counts in the ``E_*_meta.csv`` files agree with it exactly (6.64385619 = log2 10
 E_U, 3.3219 = log2 10 for E_MNO, measured and strain-specific for E_GHI and E_PQT).
 
 The genotypes are the LTEE Ara-2 ancestor REL606 and the two ecotypes S and L that diversified
-from it, so ``REL606 -> S`` and ``REL606 -> L`` are the ancestor-to-evolved transitions, eight in
-all.  The CO-CULTURE experiments (C, D, F, V, W, X, Y -- one library against a wild-type majority,
+from it, so ``R -> S`` and ``R -> L`` are the ancestor-to-evolved transitions, eight in all.  The
+``comparison`` column writes the ancestor as ``R``, not REL606: it sits beside S and L in every
+row label and in the figS4 panel titles, and the release's own spelling is kept in
+``cmn_exper.ASENCAO_MONO``.  The CO-CULTURE experiments (C, D, F, V, W, X, Y -- one library against a wild-type majority,
 or at ecological equilibrium) are deliberately excluded: there the selection coefficients are
 measured against a different and changing background, so they are not the same observable.
 
@@ -73,7 +75,8 @@ nothing between the two numbers but assay noise.
 
 That matters more here than it would in Limdi, because the assay quality varies enormously between
 experiments -- the control's own r_90 runs from 0.13 (L in DM25) to 0.84 (REL606 at 1:10 dilution).
-A single shared ceiling would be meaningless across that range.  ``f95``/``f90`` therefore divide
+A single shared ceiling would be meaningless across that range.  ``f98``/``f95``/``f90`` therefore
+divide
 each row by the ANCESTOR's control IN ITS OWN EXPERIMENT: the ancestor is the side the nested
 subsets are defined from, and it is common to both transitions of an environment.  Each evolved
 strain's own control is a row too, so its reproducibility is visible rather than assumed.
@@ -82,16 +85,16 @@ MEASUREMENT DEPTH.  Every transition uses the authors' COMBINED two-replicate fi
 the same values as the .npy arrays the rest of this repo uses, and never a single replicate.  Every
 control is necessarily two SINGLE replicates, because that is the only form a within-experiment
 control can take.  This is not a column: it follows from the comparison, which is either
-"X rep1 vs rep2" (a control, replicate depth) or "REL606 -> X" (a transition, combined depth).
+"X rep1 vs rep2" (a control, replicate depth) or "R -> X" (a transition, combined depth).
 
-That asymmetry biases ``f95``/``f90`` in a known direction, and it is worth being explicit about
+That asymmetry biases ``f98``/``f95``/``f90`` in a known direction, and it is worth being explicit about
 it.  A combined fit is less noisy than one replicate -- by Spearman-Brown its reliability is
 2r/(1+r) against a single replicate's r -- so each transition is divided by a ceiling noisier than
 itself, which makes f GENEROUS: it overstates how much of the DFE survived.  The transitions
 collapse to f90 ~ 0 regardless, so the finding is safe against a bias that works in its favour.
 This was checked directly rather than assumed: recomputing the transitions at single-replicate
 depth, averaged over all cross-replicate pairings so they are exactly noise-matched to the
-controls, moves r_90 by at most ~0.02 (e.g. REL606 -> S in DM25 goes -0.067 to -0.044, in glucose
+controls, moves r_90 by at most ~0.02 (e.g. R -> S in DM25 goes -0.067 to -0.044, in glucose
 -0.048 to -0.051) and changes no conclusion.  Those rows are not carried in the table; only
 combined-to-combined transitions are.
 
@@ -108,7 +111,8 @@ THE LADDER, AND WHAT ``cut`` MEANS.  Each row reports r three times, on nested s
 throwing away the largest-magnitude genes as measured in the EARLY background only:
 
   r_100   every matched gene, nothing removed
-  r_95    the largest 5% of |early-side effect| removed
+  r_98    the largest 2% of |early-side effect| removed
+  r_95    the largest 5% removed
   r_90    the largest 10% removed
 
     RANKED ON |s|, NOT ON s.  This ladder used to rank on the signed effect and drop the most
@@ -116,10 +120,13 @@ throwing away the largest-magnitude genes as measured in the EARLY background on
     deleterious one -- a one-sided subset.  Ranking on |s| drops the largest effects of either
     sign, leaving a set symmetric about zero, and matches what ``cmn/cmn_scatter.py`` does in
     fig1 and figs S1-S4 and what TableS1 and TableS2 now do.  Changing one and not the others
-    would have left three tables silently disagreeing about what "r_90" names.
+    would have left three tables silently disagreeing about what "r_90" names.  The 2% rung
+    is extra here and has no counterpart in TableS1: it refines the top of the same ladder
+    rather than redefining it, so the shared rungs still mean exactly the same thing.
 
-The removal is by RANK, so the subsets are nested and equally sized across rows.  ``cut_95`` and
-``cut_90`` translate that rank back onto the effect scale: each is the ``|s|`` threshold AT OR
+The removal is by RANK, so the subsets are nested and equally sized across rows.  ``cut_98``,
+``cut_95`` and ``cut_90`` translate that rank back onto the effect scale: each is the ``|s|``
+threshold AT OR
 ABOVE which the cut threw genes away, so the subset kept is everything strictly inside it.  There
 is no ``cut_100`` because nothing is removed at that rung.  The column exists so the knife's
 position is visible in physical units, since a percentile is not a fixed value of |s| and moves
@@ -148,7 +155,7 @@ backgrounds partly conditions on the late side (see below), which is the thing t
 to avoid.
 
 Adopting the weight sharpens the table rather than softening it.  Ceilings rise (E_SLR REL606
-0.747 -> 0.961, E_PQT 0.795 -> 0.970) while transitions fall (REL606 -> S 0.314 -> 0.056 in DM25,
+0.747 -> 0.961, E_PQT 0.795 -> 0.970) while transitions fall (R -> S 0.314 -> 0.056 in DM25,
 0.432 -> -0.003 in glucose exponential phase), so control and transition separate further.  The
 mechanism is worth stating because it is the same one the ladder exploits: sigma tracks |s|
 (Spearman +0.41 to +0.47 across these strains), since a knockout whose barcodes crash is measured
@@ -160,7 +167,7 @@ which is uncorrelated.  Weighted and rank-based subsetting reach the same place 
 
 Read ``r_100_w`` against the control in its own block only: the weights differ from row to row, so
 it is even less comparable across rows than r_100 is.  There is deliberately no weighted f-column
--- f95/f90 stay defined on the unweighted ladder, which is the table's primary result.
+-- f98/f95/f90 stay defined on the unweighted ladder, which is the table's primary result.
 
 Removing a rank rather than a fixed value is what makes this table commensurate with TableS1.
 Effects here are per GENERATION (multiply by ~6.64 for per-cycle), roughly an order of magnitude
@@ -168,18 +175,19 @@ smaller than Limdi's per-cycle values -- Limdi's percentiles land near s = -0.25
 near s = -0.03 -- but Pearson r is scale-free and a rank is scale-free, so the two ladders mean the
 same thing despite the units.  An absolute cutoff would not transfer at all.
 
-NOISE-ONLY NULL.  Each experimental ``r_100/r_95/r_90`` is followed by ``r_*_null``, the expected
+NOISE-ONLY NULL.  Each experimental ``r_100/r_98/r_95/r_90`` is followed by ``r_*_null``, the expected
 raw correlation under ``Y_A = X + e_A`` and ``Y_E = X + e_E``: one numerically identical true
 effect ``X`` per gene, independent mean-zero Gaussian errors, and the published gene-specific
 ``s_std`` on both sides.  For each gene, ``X`` is fitted as the inverse-variance weighted mean of
 the two observed effects.  The null columns are the median of 1,000 simulations that add fresh
-errors to BOTH endpoints and then rebuild the ancestor-ranked 100/95/90 subsets inside each
+errors to BOTH endpoints and then rebuild the ancestor-ranked 100/98/95/90 subsets inside each
 simulation.  This is a forward expectation under no scrambling, not a disattenuated version of
 the experimental correlation.
 
     data/TableS3_ascensao_autocorr.csv
     columns: experiment, media, description, comparison, n_100, r_100, r_100_null, r_100_w,
-             n_95, cut_95, r_95, r_95_null, n_90, cut_90, r_90, r_90_null, f95, f90
+             n_98, cut_98, r_98, r_98_null, n_95, cut_95, r_95, r_95_null,
+             n_90, cut_90, r_90, r_90_null, f98, f95, f90
 
 ``media`` and ``description`` are split because they are independent, and DM25 is why: it is the
 medium of THREE different experiments here -- E_SLR's 24 h cycle, E_PQT's 5-8 h cycle and E_U's
@@ -213,14 +221,21 @@ from cmn.cmn_exper import (  # noqa: E402
 OUT_CSV = os.path.join(DATA_DIR, "TableS3_ascensao_autocorr.csv")
 COLUMNS = ["experiment", "media", "description", "comparison",
            "n_100", "r_100", "r_100_null", "r_100_w",
+           "n_98", "cut_98", "r_98", "r_98_null",
            "n_95", "cut_95", "r_95", "r_95_null",
-           "n_90", "cut_90", "r_90", "r_90_null", "f95", "f90"]
+           "n_90", "cut_90", "r_90", "r_90_null", "f98", "f95", "f90"]
 
 # Fractions of the EARLY (ancestor) side removed, LARGEST |effect| first, for the nested-subset
-# ladder.  Same rule and same fractions as TableS1_limdi_autocorr.py, so the two tables are read the
-# same way.  Deliberately duplicated rather than imported: figure/table scripts in this repo do
-# not import one another (shared loaders live in cmn/).
-TAIL_EXCLUSIONS = (0.00, 0.05, 0.10)
+# ladder.  Same RULE as TableS1_limdi_autocorr.py -- rank on |early effect|, drop the largest
+# fraction -- so the two tables are read the same way; this one adds a 2% rung that TableS1 does
+# not have, which only makes its ladder finer at the top, not different in kind.  Deliberately
+# duplicated rather than imported: figure/table scripts in this repo do not import one another
+# (shared loaders live in cmn/).
+TAIL_EXCLUSIONS = (0.00, 0.02, 0.05, 0.10)
+# Genotype name as it appears in the ``comparison`` column.  The release spells the Ara-2 ancestor
+# REL606; "R" is what fits beside S and L in a row label and in the figS4 panel titles.  This is a
+# display name only -- cmn_exper.ASENCAO_MONO keeps the release's own spelling.
+ECOTYPE_LABEL = {"REL606": "R"}
 # Rank on |s| and drop the largest, not on s dropping the most deleterious.  Changed together
 # with TableS1 and TableS2 so all three ladders, and the fig1/figs S1-S4 scatter panels they
 # annotate, partition identically; see RANKED ON |s| in TableS1_limdi_autocorr.py.
@@ -271,7 +286,8 @@ def noise_only_null_ladder(a, a_err, b, b_err, seed):
     Under no scrambling each gene has one shared effect ``X_i``.  Its fitted value is the
     inverse-variance weighted mean of the two observed measurements.  Each of
     ``NULL_SIMULATIONS`` simulations draws a new early measurement around ``X_i`` using that
-    gene's early-side error and a new late measurement using its late-side error.  The 100/95/90
+    gene's early-side error and a new late measurement using its late-side error.  The
+    100/98/95/90
     subsets are rebuilt from the SIMULATED early side, so the null includes noise in the endpoint
     used for selection as well as noise in the endpoint being predicted.
 
@@ -410,7 +426,7 @@ def build_rows():
     """
     rows = []
     for folder, media, desc, anc_letter, evolved in ASENCAO_MONO_ENVIRONMENTS:
-        anc_eco = ASENCAO_MONO[anc_letter][1]
+        anc_eco = ECOTYPE_LABEL.get(ASENCAO_MONO[anc_letter][1], ASENCAO_MONO[anc_letter][1])
 
         # Controls: replicate 1 vs replicate 2 of each strain, in this experiment.
         for eco, letter in ((anc_eco, anc_letter),) + evolved:
@@ -427,6 +443,7 @@ def build_rows():
 
     # The standalone REL606 repeat: controls only, and every disjoint replicate pair it allows.
     _, eco, media, desc, n_rep = ASENCAO_MONO["U"]
+    eco = ECOTYPE_LABEL.get(eco, eco)
     u = reps("U")
     for i in range(0, n_rep - 1, 2):
         rows.append(make_row("U", media, desc, f"{eco} rep{i+1} vs rep{i+2}", "control",
@@ -435,7 +452,7 @@ def build_rows():
 
 
 def attach_ceilings(rows):
-    """Add f95/f90: each row over the ANCESTOR's control in the SAME experiment, same depth.
+    """Add f98/f95/f90: each row over the ANCESTOR's control in the SAME experiment, same depth.
 
     Per-experiment by construction -- there is no shared ceiling in this panel and there should
     not be one, since assay quality varies several-fold between experiments.  A control row
@@ -443,11 +460,11 @@ def attach_ceilings(rows):
     """
     ceilings = {}
     for row in rows:
-        if row["kind"] == "control" and row["comparison"].startswith("REL606 rep1"):
+        if row["kind"] == "control" and row["comparison"].startswith(f"{ECOTYPE_LABEL['REL606']} rep1"):
             ceilings[row["experiment"]] = row
     for row in rows:
         ceil = ceilings.get(row["experiment"])
-        for level in (95, 90):
+        for level in (98, 95, 90):
             row[f"f{level}"] = (row[f"r_{level}"] / ceil[f"r_{level}"]
                                 if ceil is not None else np.nan)
     return rows
@@ -463,11 +480,14 @@ def write_table(rows, out_csv):
                              row["comparison"], row["n_100"], f"{row['r_100']:.4g}",
                              f"{row['r_100_null']:.4g}",
                              f"{row['r_100_w']:.4g}",
+                             row["n_98"], f"{row['cut_98']:.4g}", f"{row['r_98']:.4g}",
+                             f"{row['r_98_null']:.4g}",
                              row["n_95"], f"{row['cut_95']:.4g}", f"{row['r_95']:.4g}",
                              f"{row['r_95_null']:.4g}",
                              row["n_90"], f"{row['cut_90']:.4g}", f"{row['r_90']:.4g}",
                              f"{row['r_90_null']:.4g}",
-                             f"{row['f95']:.4g}", f"{row['f90']:.4g}"])
+                             f"{row['f98']:.4g}", f"{row['f95']:.4g}",
+                             f"{row['f90']:.4g}"])
 
 
 def parse_args(argv):
@@ -481,14 +501,15 @@ def main(argv=None):
     rows = attach_ceilings(build_rows())
     write_table(rows, args.out)
 
-    print("\nnested subsets: the largest 0% / 5% / 10% of |EARLY-side effect| removed, "
+    print("\nnested subsets: the largest 0% / 2% / 5% / 10% of |EARLY-side effect| removed, "
           "late side free")
     print("cut = the |s| threshold at or above which early-side genes were dropped")
     print("controls are replicate 1 vs replicate 2 of one strain in ONE experiment -- zero")
-    print("evolution, so f95/f90 divide by the ANCESTOR's control in that same experiment")
+    print("evolution, so f98/f95/f90 divide by the ANCESTOR's control in that same experiment")
     print("effects are per GENERATION (x6.64 for per-cycle); genes matched on gene_ID")
     header = (f"{'exp':<6}{'media':<16}{'description':<25}{'comparison':<20}"
               f"{'n_100':>7}{'r_100':>8}{'null':>8}{'r_100_w':>9}"
+              f"{'n_98':>7}{'cut_98':>9}{'r_98':>8}{'null':>8}{'f98':>8}"
               f"{'n_95':>7}{'cut_95':>9}{'r_95':>8}{'null':>8}{'f95':>8}"
               f"{'n_90':>7}{'cut_90':>9}{'r_90':>8}{'null':>8}{'f90':>8}")
     print()
@@ -503,6 +524,8 @@ def main(argv=None):
               f"{row['comparison']:<20}"
               f"{row['n_100']:>7}{row['r_100']:>8.3f}{row['r_100_null']:>8.3f}"
               f"{row['r_100_w']:>9.3f}"
+              f"{row['n_98']:>7}{row['cut_98']:>9.4f}{row['r_98']:>8.3f}"
+              f"{row['r_98_null']:>8.3f}{row['f98']:>8.3f}"
               f"{row['n_95']:>7}{row['cut_95']:>9.4f}{row['r_95']:>8.3f}"
               f"{row['r_95_null']:>8.3f}{row['f95']:>8.3f}"
               f"{row['n_90']:>7}{row['cut_90']:>9.4f}{row['r_90']:>8.3f}"
@@ -526,7 +549,7 @@ def main(argv=None):
         lad = ancestor_exclusion_ladder(*pairs)
         print(f"  {c1:<24} vs {c2:<24} n={lad[0]['n']:>5} "
               f"r_100={lad[0]['r']:+.3f}  r_100_w={inverse_variance_pearson(*pairs)[0]:+.3f}  "
-              f"r_95={lad[1]['r']:+.3f}  r_90={lad[2]['r']:+.3f}")
+              f"r_98={lad[1]['r']:+.3f}  r_95={lad[2]['r']:+.3f}  r_90={lad[3]['r']:+.3f}")
 
     # E_SLR's REL606 and E_U are the same genotype in the same medium, measured as two separate
     # experiments -- the one true zero-evolution pair in the panel at COMBINED depth.
@@ -536,19 +559,19 @@ def main(argv=None):
     print(f"\ncombined-depth zero-evolution check -- E_SLR REL606 vs E_U REL606 (same medium, "
           f"separate experiment):\n  n={lad[0]['n']}  r_100={lad[0]['r']:+.3f}  "
           f"r_100_w={inverse_variance_pearson(*pairs)[0]:+.3f}  "
-          f"r_95={lad[1]['r']:+.3f}  r_90={lad[2]['r']:+.3f}")
+          f"r_98={lad[1]['r']:+.3f}  r_95={lad[2]['r']:+.3f}  r_90={lad[3]['r']:+.3f}")
 
     print("\nr_100          = Pearson r over every matched pair")
     print(f"r_*_null       = median of {NULL_SIMULATIONS} forward simulations under Y_A = X + e_A and")
     print("                 Y_E = X + e_E, using the published per-gene errors on both sides;")
-    print("                 the 100/95/90 subsets are rebuilt from simulated Y_A each time")
+    print("                 the 100/98/95/90 subsets are rebuilt from simulated Y_A each time")
     print("r_100_w        = the same pairs as r_100 -- NO genes filtered out -- but weighted by")
     print("                 w = 1/(sigma_early^2 + sigma_late^2), the authors' own weight")
     print("                 (analyses/corr_bw_envs/). Compare Fig 1E, which ALSO drops every")
     print("                 gene with sigma_s > 0.3%; that filter is not applied here")
-    print("r_95 / r_90    = same, after removing the largest 5% / 10% of |EARLY-side effect|;")
-    print("                 the late side is never used to define the subset")
-    print("cut_95/cut_90  = the rank cut put back on the effect scale: the |s| threshold at or")
+    print("r_98/r_95/r_90 = same, after removing the largest 2% / 5% / 10% of |EARLY-side")
+    print("                 effect|; the late side is never used to define the subset")
+    print("cut_98/95/90   = the rank cut put back on the effect scale: the |s| threshold at or")
     print("                 above which early-side genes were thrown away, so the kept subset")
     print("                 is everything strictly inside it.  Per generation.  No cut_100")
     print("description    = (dilution factor)/(transfer interval), and what that does to the")
@@ -560,8 +583,9 @@ def main(argv=None):
     print("                 never leave exponential phase -- E_PQT by transferring every 5-8 h,")
     print("                 E_GHI by diluting daily into 80x the carbon (acetate)")
     print("comparison     = 'X rep1 vs rep2' is a control (one strain against itself, replicate")
-    print("                 depth); 'REL606 -> X' is a transition (combined fits on both sides)")
-    print("f95 / f90      = r as a fraction of the ANCESTOR's control in the SAME experiment")
+    print("                 depth); 'R -> X' is a transition (combined fits on both sides).")
+    print("                 R = REL606, the Ara-2 ancestor of the S and L ecotypes")
+    print("f98/f95/f90    = r as a fraction of the ANCESTOR's control in the SAME experiment")
     print(f"\nSaved {args.out}")
 
 

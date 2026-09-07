@@ -23,11 +23,19 @@ mpl.rcParams.update({
     "axes.titlesize": 16,
     "xtick.labelsize": 16,
     "ytick.labelsize": 16,
-    "legend.fontsize": 14,
+    "legend.fontsize": 16,
 })
 
 CMR_COLORS = sns.color_palette("CMRmap", 4)
 DEFAULT_SUBSET_DISTANCE_METRIC = "emd"
+# What the R~(0) panels show: the DFE autocorrelation rho(t) or the normalized
+# subset-DFE distance (whose metric is DEFAULT_SUBSET_DISTANCE_METRIC).
+DEFAULT_OBSERVABLE = "pearson"
+SQRT_HALF_PI = np.sqrt(np.pi / 2.0)   # |d<R~>/dt| of the far-field SSWM radial law
+PEARSON_FLOOR = 1e-3                  # clip rho to this before taking the log
+SIM_SIGMA = 0.05                      # mutation scale of the wedge simulation
+SIM_M = 5 * 10 ** 4                   # mutations in the tracked pool
+DEFAULT_REPS = 100                    # replicates per (R~(0), n) cell
 
 N_PATTERN = re.compile(r"_n(\d+)_")
 # Finite-size sweep files (e.g. fgm_rps10_n4_N500_sig0.05.pkl) carry only ~10
@@ -35,11 +43,16 @@ N_PATTERN = re.compile(r"_n(\d+)_")
 # runs (fgm_rps1000_n*_sig*.pkl) have ~1000 replicates. Exclude the _N###_ sweep
 # files so the CV^2 panel uses the smooth 1000-rep data, not the noisy 10-rep one.
 NSWEEP_PATTERN = re.compile(r"_N\d+_")
+# This script's own wedge-walk caches also live in data/FGM; they hold summary
+# arrays rather than trajectories, so keep them out of the trajectory globs.
+WEDGE_PATTERN = re.compile(r"wedge")
 SIG_PATTERN = re.compile(r"sig([0-9]*\.?[0-9]+)")
 N_PERCENT_POINTS = 100
 
 
 def apply_axis_style(ax, label):
+    """Bold panel letter plus the spine/tick geometry shared with the other
+    figures: only the left and bottom spines, both pushed outward."""
     ax.text(
         -0.08, 1.04, label,
         transform=ax.transAxes,
@@ -48,11 +61,25 @@ def apply_axis_style(ax, label):
         va="bottom",
         ha="left",
     )
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_position(("outward", 10))
+    ax.spines["left"].set_position(("outward", 10))
+    ax.xaxis.set_ticks_position("bottom")
+    ax.yaxis.set_ticks_position("left")
     for spine in ax.spines.values():
-        spine.set_linewidth(1.4)
-    ax.tick_params(width=1.4, length=5, which="major")
-    ax.tick_params(width=1.2, length=3, which="minor")
+        spine.set_linewidth(1.5)
+    ax.tick_params(width=1.5, length=6, which="major")
+    ax.tick_params(width=1.5, length=3, which="minor")
     ax.grid(False)
+
+
+def set_ylim_clipped(ax, ymin, ymax, pad=0.01, step=0.2, pad_top=0.0):
+    """Give the curves a little room below ymin without drawing frame there: the
+    view extends to ymin - pad, but the left spine and its ticks still stop at ymin."""
+    ax.set_ylim(ymin - pad, ymax + pad_top)
+    ax.set_yticks(np.arange(ymin, ymax + 1e-9, step))
+    ax.spines["left"].set_bounds(ymin, ymax)
 
 
 def normalize_distance_metric(metric):
@@ -85,6 +112,50 @@ def distance_metric_label(metric):
     return labels[metric_key]
 
 
+def normalize_observable(observable):
+    """Which quantity the R~(0) panels plot: 'pearson' (DFE autocorrelation) or
+    'distance' (normalized subset-DFE distance). The distance metric itself is a
+    separate choice, so cvm/emd/ks all alias to 'distance'."""
+    key = observable.strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "pearson": "pearson",
+        "rho": "pearson",
+        "autocorr": "pearson",
+        "autocorrelation": "pearson",
+        "distance": "distance",
+        "subset": "distance",
+        "subset_distance": "distance",
+        "emd": "distance",
+        "cvm": "distance",
+        "ks": "distance",
+    }
+    if key not in aliases:
+        raise ValueError(
+            f"Unsupported observable '{observable}'. Choose 'pearson' or 'emd'."
+        )
+    return aliases[key]
+
+
+def pearson_theory_radial(t, r0_tilde, n):
+    r"""Far-field prediction for the DFE autocorrelation of a purely radial descent.
+
+    With the background pinned to the fixed axis, r = R rhat0, a mutation delta has
+    Malthusian effect m(R) = -||delta||^2 / 2 - R delta_par. Across the pool the two
+    terms are uncorrelated, with variances n sigma^4 / 2 and R^2 sigma^2, so
+
+        rho(0, t) = (n/2 + R~0 R~t) / sqrt( (n/2 + R~0^2) (n/2 + R~t^2) ),
+
+    evaluated on the SSWM radial law R~(t) = R~0 - t sqrt(pi/2). Shrinking the radius
+    only rescales the delta_par term, so radial motion alone cannot scramble the DFE
+    completely: rho bottoms out at sqrt(n/2) / sqrt(n/2 + R~0^2) at the optimum.
+    """
+    t = np.asarray(t, dtype=float)
+    r_t = np.clip(r0_tilde - SQRT_HALF_PI * t, 0.0, None)
+    half_n = 0.5 * n
+    return (half_n + r0_tilde * r_t) / np.sqrt((half_n + r0_tilde ** 2)
+                                               * (half_n + r_t ** 2))
+
+
 def compute_distance_metric(values_a, values_b, metric):
     metric_key = normalize_distance_metric(metric)
     if metric_key == "cvm":
@@ -103,7 +174,9 @@ def find_fgm_files(data_root):
     if not data_root.exists():
         return []
     files = [p for p in data_root.glob("*.pkl")
-             if "fgm" in p.name.lower() and not NSWEEP_PATTERN.search(p.name)]
+             if "fgm" in p.name.lower()
+             and not NSWEEP_PATTERN.search(p.name)
+             and not WEDGE_PATTERN.search(p.name)]
 
     def extract_n(path):
         match = N_PATTERN.search(path.name)
@@ -201,7 +274,9 @@ def plot_fgm_cv2_panel(ax):
 
     ax.set_xlabel("Walk progress (%)")
     ax.set_ylabel(r"$CV^2(R(t))$")
-    ax.legend(frameon=False, loc="best")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 1)
+    ax.legend(frameon=False, loc="upper left")
 
 
 # ----------------------------------------------------------------
@@ -288,6 +363,7 @@ def plot_fgm_radius_panel(ax):
     r_ref = float(np.nanmean(radius_by_n[smallest_n][:, 0]))
 
     right_edges = []
+    n_handles = []
     for color, (n_val, radii) in zip(CMR_COLORS, radius_by_n.items()):
         held = realign_held_from_radius(radii, r_ref)
         if held.size == 0:
@@ -301,10 +377,17 @@ def plot_fgm_radius_panel(ax):
         norm_mean = mean_r / r_ref
         norm_std = std_r / r_ref
 
-        ax.plot(t, norm_mean, color=color, lw=2.2, label=rf"$n = {n_val}$")
+        line, = ax.plot(t, norm_mean, color=color, lw=2.2, label=rf"$n = {n_val}$")
+        n_handles.append(line)
         ax.fill_between(t, norm_mean - norm_std, norm_mean + norm_std,
                         color=color, alpha=0.18, lw=0)
         right_edges.append(n_steps - 1)
+
+        # Peel-off marker: the step at which the mean walk reaches tilde_R = sqrt(n),
+        # where the far-field ODE stops holding and the descent decelerates.
+        crossings = np.nonzero(mean_r <= np.sqrt(n_val))[0]
+        if crossings.size:
+            ax.axvline(t[crossings[0]], color=color, ls=":", lw=1.6, alpha=0.9)
 
     # One shared far-field line, from the common start radius r_ref; mask the part
     # below zero so the dashed line stops at the peak.
@@ -312,15 +395,23 @@ def plot_fgm_radius_panel(ax):
     t_th = np.arange(0, t_max + 1)
     theory = 1.0 - slope * t_th / r_ref
     theory[theory < 0] = np.nan
-    ax.plot(t_th, theory, color="black", lw=1.5, ls="--", alpha=0.9,
-            label="Theory (Eq. *)")
+    theory_line, = ax.plot(t_th, theory, color="black", lw=1.5, ls="--", alpha=0.9,
+                           label="Eq. *")
+    # Neutral proxy so the per-n dotted peel-off markers get one legend entry.
+    peel_proxy = mpl.lines.Line2D([], [], color="0.35", ls=":", lw=1.6,
+                                  label=r"$\langle \tilde{R} \rangle = \sqrt{n}$")
 
     ax.set_xlabel("Time (steps)")
     ax.set_ylabel(r"$\langle \tilde{R}(t) \rangle / \tilde{R}(0)$")
     ax.set_title(rf"$\tilde{{R}}(0) = {r_ref:.0f}$")
-    ax.set_ylim(bottom=0)
-    ax.set_xlim(0, t_max + 2)
-    ax.legend(frameon=False, loc="best")
+    set_ylim_clipped(ax, 0.0, 1.0)
+    ax.set_xlim(0, 50)
+    # Two legends: the n curves in the top-right corner, the theory line on its own
+    # at the bottom left so it does not stretch the n block.
+    theory_leg = ax.legend(handles=[theory_line, peel_proxy], frameon=False,
+                           loc="lower left")
+    ax.add_artist(theory_leg)
+    ax.legend(handles=n_handles, frameon=False, loc="upper right")
 
 
 # ----------------------------------------------------------------
@@ -409,6 +500,7 @@ def run_single_replicate(args):
     subset_metric = normalize_distance_metric(
         params.get("subset_metric", DEFAULT_SUBSET_DISTANCE_METRIC)
     )
+    observable = normalize_observable(params.get("observable", DEFAULT_OBSERVABLE))
 
     model = FisherRadialWedge(n, sigma, m, R0, phi, seed=seed)
 
@@ -437,7 +529,9 @@ def run_single_replicate(args):
         tracked_dfe_t = dfe_t[initial_beneficial_mask]
         return compute_distance_metric(tracked_dfe_t, dfe_t, subset_metric)
 
-    subset_distance0 = get_subset_distance(dfe0)
+    # Left NaN when the panels plot rho(t): the two-sample distances are the
+    # expensive part of the loop, so skip them entirely unless they are needed.
+    subset_distance0 = get_subset_distance(dfe0) if observable == "distance" else np.nan
     std_dfe0 = np.std(dfe0)
 
     radii = np.full(len(time_points), np.nan)
@@ -482,27 +576,23 @@ def stack_results(res_list):
     return pearsons, subset_distances, radii
 
 
-# ----------------------------------------------------------------
-# 5. MAIN EXPERIMENT
-# ----------------------------------------------------------------
-def run_experiment(n_values, r0_tilde_values, phi,
-                   subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC):
-    subset_metric = normalize_distance_metric(subset_metric)
-    subset_metric_label = distance_metric_label(subset_metric)
+def radial_cache_path(reps, sigma, phi, subset_metric):
+    """One pickle per simulation setting, kept beside the other FGM walk data."""
+    return resolve_fgm_data_dir() / (
+        f"fgm_wedge_rps{reps}_sig{sigma:g}_phi{phi:g}_{subset_metric}.pkl"
+    )
 
-    sigma = 0.05
-    reps = 50
-    m = 5 * 10 ** 4
 
-    print("--- Configuration (radial scrambling, wedge-constrained SSWM) ---")
-    print(f"Subset distance metric: {subset_metric_label} ({subset_metric})")
-    print(f"sigma={sigma}, m={m}, reps={reps}, phi={phi} rad")
-    print(f"Panels (R0_tilde): {r0_tilde_values}")
-    print(f"Curves (n): {n_values}")
+def simulate_radial_walks(n_values, r0_tilde_values, phi, reps, subset_metric,
+                          sigma=SIM_SIGMA, m=SIM_M, seed=None):
+    """Wedge-constrained SSWM walks for every (R~(0), n) cell.
 
-    base_seed = np.random.randint(0, 1_000_000)
+    Both observables are recorded per replicate -- rho(t) is nearly free once the
+    DFE has been evaluated, the two-sample distances are not -- so a single run
+    serves either panel choice.
+    """
+    base_seed = np.random.randint(0, 1_000_000) if seed is None else int(seed)
 
-    # Each (panel R0_tilde, curve n) gets `reps` replicates.
     tasks = []
     spans = {}
     for p, R0_tilde in enumerate(r0_tilde_values):
@@ -519,27 +609,93 @@ def run_experiment(n_values, r0_tilde_values, phi,
                     sigma,
                     m,
                     R0,
-                    {"phi": phi, "subset_metric": subset_metric},
+                    # "distance" fills in rho as well, so the cache holds both.
+                    {"phi": phi, "subset_metric": subset_metric,
+                     "observable": "distance"},
                     max_t,
                     time_points,
                 ))
-            spans[(p, k)] = (start, len(tasks), time_points)
+            spans[(float(R0_tilde), int(n))] = (start, len(tasks), time_points)
 
     num_proc = min(multiprocessing.cpu_count(), len(tasks))
+    print(f"Simulating {len(tasks)} replicates on {num_proc} processes ...")
     with multiprocessing.Pool(processes=num_proc) as pool:
         results = pool.map(run_single_replicate, tasks)
 
+    cells = {}
+    for key, (start, end, time_points) in spans.items():
+        pearsons, subset_distances, radii = stack_results(results[start:end])
+        cells[key] = {"time_points": time_points, "pearson": pearsons,
+                      "distance": subset_distances, "radii": radii}
+
+    return {
+        "sigma": sigma, "m": m, "reps": reps, "phi": phi,
+        "subset_metric": subset_metric, "base_seed": base_seed,
+        "n_values": [int(n) for n in n_values],
+        "r0_tilde_values": [float(r) for r in r0_tilde_values],
+        "cells": cells,
+    }
+
+
+def load_radial_walks(n_values, r0_tilde_values, phi, reps, subset_metric,
+                      refresh=False):
+    """Cached wedge walks: simulated once, written to data/FGM, reused after."""
+    path = radial_cache_path(reps, SIM_SIGMA, phi, subset_metric)
+    if not refresh and path.exists():
+        with open(path, "rb") as handle:
+            cache = pickle.load(handle)
+        missing = [(float(r0), int(n)) for r0 in r0_tilde_values for n in n_values
+                   if (float(r0), int(n)) not in cache["cells"]]
+        if not missing:
+            print(f"Loaded wedge walks from {path}")
+            return cache
+        print(f"{path.name} is missing cells {missing}; re-simulating.")
+
+    cache = simulate_radial_walks(n_values, r0_tilde_values, phi, reps, subset_metric)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as handle:
+        pickle.dump(cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    print(f"Saved wedge walks to {path}")
+    return cache
+
+
+# ----------------------------------------------------------------
+# 5. MAIN EXPERIMENT
+# ----------------------------------------------------------------
+def run_experiment(n_values, r0_tilde_values, phi,
+                   subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC,
+                   observable=DEFAULT_OBSERVABLE, reps=DEFAULT_REPS,
+                   refresh_cache=False):
+    subset_metric = normalize_distance_metric(subset_metric)
+    subset_metric_label = distance_metric_label(subset_metric)
+    observable = normalize_observable(observable)
+
+    sigma = SIM_SIGMA
+    m = SIM_M
+
+    print("--- Configuration (radial scrambling, wedge-constrained SSWM) ---")
+    if observable == "pearson":
+        print("Observable: DFE autocorrelation rho(t) = corr(s_0, s_t)")
+    else:
+        print(f"Observable: subset-DFE {subset_metric_label} ({subset_metric})")
+    print(f"sigma={sigma}, m={m}, reps={reps}, phi={phi} rad")
+    print(f"Panels (R0_tilde): {r0_tilde_values}")
+    print(f"Curves (n): {n_values}")
+
+    cells = load_radial_walks(n_values, r0_tilde_values, phi, reps, subset_metric,
+                              refresh=refresh_cache)["cells"]
+
     # ------------------------------
     # Plotting: panel A = FGM radius CV^2; panel B = FGM mean radius vs time
-    # (far-field ODE test); panels C.. = one EMD panel per R0_tilde. Laid out on
-    # a 2-column grid (a clean 2x2 for the default two R0_tilde panels).
+    # (far-field ODE test); panels C.. = one scrambling panel per R0_tilde. Laid
+    # out on a 2-column grid (a clean 2x2 for the default two R0_tilde panels).
     # ------------------------------
     n_panels = len(r0_tilde_values)
     total_panels = 2 + n_panels                # A: CV^2, B: radius-vs-time, C..: EMD per R0_tilde
     ncols = 2
     nrows = int(np.ceil(total_panels / ncols))
     fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 4.8 * nrows), squeeze=False)
-    fig.subplots_adjust(wspace=0.28, hspace=0.32)
+    fig.subplots_adjust(wspace=0.28, hspace=0.45)
     panel_axes = axes.flatten()
 
     # Panel A: FGM radius CV^2 vs walk progress (loaded from saved trajectories).
@@ -550,25 +706,49 @@ def run_experiment(n_values, r0_tilde_values, phi,
     apply_axis_style(panel_axes[1], "B")
     plot_fgm_radius_panel(panel_axes[1])
 
-    # EMD n-curves use cmr.emerald (matching fig4_peak_dfes), sampled over
+    # The n-curves use cmr.emerald (matching fig4_peak_dfes), sampled over
     # cmap_range=(0.3, 1.0) to skip the near-white low end.
     n_colors = cmr.take_cmap_colors("cmr.emerald", len(n_values), cmap_range=(0.3, 1.0))
 
     for p, R0_tilde in enumerate(r0_tilde_values):
-        ax = panel_axes[p + 2]               # EMD panels follow panels A and B
+        ax = panel_axes[p + 2]               # scrambling panels follow A and B
         apply_axis_style(ax, chr(ord("C") + p))
         max_reached = 1
+        panel_ymin = 0.0                     # log panels only: bottom of the frame
 
         for k, n in enumerate(n_values):
-            start, end, time_points = spans[(p, k)]
-            _pear, subset, _radii = stack_results(results[start:end])
+            cell = cells[(float(R0_tilde), int(n))]
+            time_points = cell["time_points"]
+            traces = cell["pearson"] if observable == "pearson" else cell["distance"]
 
             # Time points past the longest walk are all-NaN columns; ignore the
             # resulting "empty slice" warnings (those points are trimmed by xlim).
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
-                mean_subset = np.nanmean(subset, axis=0)
-                std_subset = np.nanstd(subset, axis=0)
+                mean_subset = np.nanmean(traces, axis=0)
+                std_subset = np.nanstd(traces, axis=0)
+
+            if observable == "pearson":
+                # Once the walks reach the optimum only a handful are still
+                # stepping and rho is pure noise, so drop the thinly sampled tail.
+                alive = np.sum(np.isfinite(traces), axis=0)
+                thin = alive < max(5, 0.5 * traces.shape[0])
+                mean_subset = np.where(thin, np.nan, mean_subset)
+                std_subset = np.where(thin, np.nan, std_subset)
+                # Past the first non-positive mean the correlation is noise about
+                # zero and has no log; end the curve there instead of flooring it.
+                dead = np.nonzero(np.nan_to_num(mean_subset, nan=1.0)
+                                  <= PEARSON_FLOOR)[0]
+                if dead.size:
+                    mean_subset[dead[0]:] = np.nan
+                    std_subset[dead[0]:] = np.nan
+                # <log rho> would be dominated by PEARSON_FLOOR as soon as single
+                # replicates dip to rho <= 0, so plot the log of the replicate mean
+                # and carry the spread through the log as asymmetric error bars.
+                lo = np.log(np.clip(mean_subset - std_subset, PEARSON_FLOOR, None))
+                hi = np.log(np.clip(mean_subset + std_subset, PEARSON_FLOOR, None))
+                mean_subset = np.log(np.clip(mean_subset, PEARSON_FLOOR, None))
+                std_subset = np.vstack([mean_subset - lo, hi - mean_subset])
 
             finite_t = np.where(np.isfinite(mean_subset))[0]
             last = int(finite_t[-1]) if len(finite_t) else 0
@@ -576,7 +756,7 @@ def run_experiment(n_values, r0_tilde_values, phi,
                 max_reached = max(max_reached, int(time_points[last]))
 
             color = n_colors[k]
-            # Mean EMD trace plus error bars (std across replicates).
+            # Mean trace plus error bars (std across replicates).
             ax.plot(time_points, mean_subset, color=color, lw=2.0)
             # Subsample markers across the *populated* range, not the full horizon,
             # so the error bars span the visible curve rather than collapsing to a
@@ -586,7 +766,8 @@ def run_experiment(n_values, r0_tilde_values, phi,
             ax.errorbar(
                 time_points[marker_idx],
                 mean_subset[marker_idx],
-                yerr=std_subset[marker_idx],
+                yerr=(std_subset[:, marker_idx] if std_subset.ndim == 2
+                      else std_subset[marker_idx]),
                 fmt="o",
                 color=color,
                 markersize=4,
@@ -594,18 +775,35 @@ def run_experiment(n_values, r0_tilde_values, phi,
                 label=fr"$n = {int(n)}$",
             )
 
-        # Far-field theory: the radial descent is linear at the SSWM speed
-        # d<R~>/dt = -sqrt(pi/2), and the normalized scrambling tracks the
-        # normalized radius, EMD(t) ~ R~(t)/R~0 = 1 - sqrt(pi/2) * t / R~0.
-        tp_panel = spans[(p, 0)][2]
-        theory = np.clip(1.0 - (np.sqrt(np.pi / 2) / R0_tilde) * tp_panel, 0.0, None)
-        ax.plot(tp_panel, theory, color="black", lw=2.0, ls="--",
-                label="Theory (Eq. *)")
+            if observable == "pearson":
+                panel_ymin = min(panel_ymin, float(np.nanmin(mean_subset)))
+
+        if observable == "pearson":
+            # Timescale of the linear radial law: R~(t) = R~0 - t sqrt(pi/2) reaches
+            # the optimum at t = sqrt(2/pi) R~(0), the same for every n.
+            ax.axvline(np.sqrt(2.0 / np.pi) * R0_tilde, color="black", ls=":",
+                       lw=1.6, label=r"$\sqrt{2/\pi}\,\tilde{R}(0)$")
+        else:
+            # Far-field theory: the radial descent is linear at the SSWM speed
+            # d<R~>/dt = -sqrt(pi/2), and the normalized scrambling tracks the
+            # normalized radius, EMD(t) ~ R~(t)/R~0 = 1 - sqrt(pi/2) * t / R~0.
+            tp_panel = cells[(float(R0_tilde), int(n_values[0]))]["time_points"]
+            theory = np.clip(1.0 - (SQRT_HALF_PI / R0_tilde) * tp_panel, 0.0, None)
+            ax.plot(tp_panel, theory, color="black", lw=2.0, ls="--",
+                    label="Theory (Eq. *)")
 
         ax.set_xlim(0, max_reached)
-        ax.set_ylim(-0.05, 1.05)
+        if observable == "pearson":
+            # Frame runs from 0 down to the first round number below the curves.
+            tick_step = 0.5 if panel_ymin > -3.0 else 1.0
+            ymin = float(np.floor(panel_ymin / tick_step) * tick_step)
+            set_ylim_clipped(ax, ymin, 0.0, pad=0.0, step=tick_step,
+                             pad_top=0.02 * abs(ymin))
+        else:
+            set_ylim_clipped(ax, 0.0, 1.0)
         ax.set_xlabel("Time (steps)")
-        ax.set_ylabel(f"{subset_metric.upper()} (norm.)")
+        ax.set_ylabel(r"$\log \rho(t)$" if observable == "pearson"
+                      else f"{subset_metric.upper()} (norm.)")
         ax.set_title(rf"$\tilde{{R}}(0) = {R0_tilde:g}$,  $\phi = {phi:g}$")
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.legend(frameon=False, loc="best", title=None)
@@ -624,8 +822,30 @@ def run_experiment(n_values, r0_tilde_values, phi,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Radial scrambling: SSWM adaptive walk confined to a fixed angular "
-                    "wedge around the initial direction, measuring convergence of the "
-                    "initially-beneficial subset DFE to the overall DFE across n values."
+                    "wedge around the initial direction, measuring how the DFE decorrelates "
+                    "(Pearson rho, default) or how the initially-beneficial subset DFE "
+                    "converges to the overall DFE (subset distance), across n values."
+    )
+    parser.add_argument(
+        "--observable",
+        default=DEFAULT_OBSERVABLE,
+        choices=["pearson", "emd"],
+        help="Quantity plotted in the R0_tilde panels: 'pearson' for the DFE "
+             "autocorrelation rho(t) = corr(s_0, s_t) over the fixed mutation pool, "
+             "or 'emd' for the normalized subset-DFE distance (whose metric is set by "
+             "--subset-metric).",
+    )
+    parser.add_argument(
+        "--reps",
+        type=int,
+        default=DEFAULT_REPS,
+        help="Replicates per (R0_tilde, n) cell. Each (reps, sigma, phi, metric) "
+             "setting gets its own cache file under data/FGM.",
+    )
+    parser.add_argument(
+        "--refresh-cache",
+        action="store_true",
+        help="Re-run the walks even if the cache file already exists.",
     )
     parser.add_argument(
         "--subset-metric",
@@ -654,4 +874,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     n_values = [int(x) for x in args.n_values.split(",") if x.strip()]
     r0_tilde_values = [float(x) for x in args.r0_values.split(",") if x.strip()]
-    run_experiment(n_values, r0_tilde_values, args.phi, subset_metric=args.subset_metric)
+    run_experiment(n_values, r0_tilde_values, args.phi,
+                   subset_metric=args.subset_metric, observable=args.observable,
+                   reps=args.reps, refresh_cache=args.refresh_cache)
