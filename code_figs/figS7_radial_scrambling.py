@@ -3,16 +3,12 @@ import os
 import pickle
 import re
 import warnings
-import multiprocessing
 from pathlib import Path
 
-import cmasher as cmr
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
-from matplotlib.ticker import MaxNLocator
-from scipy.stats import cramervonmises_2samp, ks_2samp, wasserstein_distance
 
 # ----------------------------------------------------------------
 # 1. VISUAL STYLE CONFIGURATION
@@ -27,15 +23,13 @@ mpl.rcParams.update({
 })
 
 CMR_COLORS = sns.color_palette("CMRmap", 4)
-DEFAULT_SUBSET_DISTANCE_METRIC = "emd"
-# What the R~(0) panels show: the DFE autocorrelation rho(t) or the normalized
-# subset-DFE distance (whose metric is DEFAULT_SUBSET_DISTANCE_METRIC).
-DEFAULT_OBSERVABLE = "pearson"
 SQRT_HALF_PI = np.sqrt(np.pi / 2.0)   # |d<R~>/dt| of the far-field SSWM radial law
-PEARSON_FLOOR = 1e-3                  # clip rho to this before taking the log
-SIM_SIGMA = 0.05                      # mutation scale of the wedge simulation
-SIM_M = 5 * 10 ** 4                   # mutations in the tracked pool
-DEFAULT_REPS = 100                    # replicates per (R~(0), n) cell
+
+# The two constrained-walk sweeps behind panels C and D, generated once by
+# data/gen_data/gen_dat_fgm_constrained.py. This script only reads them.
+RADIAL_SWEEP_FILE = "fgm_wedge_sweep_rps500_sig0.05_phi0.6.pkl"
+ANGULAR_SWEEP_FILE = "fgm_shell_sweep_rps1000_sig0.05_eps0.05.pkl"
+ANGULAR_R0_TICKS = [8, 12, 16, 24, 32, 48]   # the R~(0) of the angular sweep
 
 N_PATTERN = re.compile(r"_n(\d+)_")
 # Finite-size sweep files (e.g. fgm_rps10_n4_N500_sig0.05.pkl) carry only ~10
@@ -43,9 +37,10 @@ N_PATTERN = re.compile(r"_n(\d+)_")
 # runs (fgm_rps1000_n*_sig*.pkl) have ~1000 replicates. Exclude the _N###_ sweep
 # files so the CV^2 panel uses the smooth 1000-rep data, not the noisy 10-rep one.
 NSWEEP_PATTERN = re.compile(r"_N\d+_")
-# This script's own wedge-walk caches also live in data/FGM; they hold summary
-# arrays rather than trajectories, so keep them out of the trajectory globs.
-WEDGE_PATTERN = re.compile(r"wedge")
+# The constrained-walk sweeps (wedge = radial, shell = angular) also live in
+# data/FGM; they hold summary arrays rather than trajectories, so keep them out
+# of the trajectory globs.
+CONSTRAINED_PATTERN = re.compile(r"wedge|shell")
 SIG_PATTERN = re.compile(r"sig([0-9]*\.?[0-9]+)")
 N_PERCENT_POINTS = 100
 
@@ -82,60 +77,6 @@ def set_ylim_clipped(ax, ymin, ymax, pad=0.01, step=0.2, pad_top=0.0):
     ax.spines["left"].set_bounds(ymin, ymax)
 
 
-def normalize_distance_metric(metric):
-    metric_key = metric.strip().lower().replace("-", "_").replace(" ", "_")
-    aliases = {
-        "cvm": "cvm",
-        "cramervonmises": "cvm",
-        "cramer_von_mises": "cvm",
-        "emd": "emd",
-        "earth_movers_distance": "emd",
-        "earth_mover_distance": "emd",
-        "earthmovers": "emd",
-        "wasserstein": "emd",
-        "ks": "ks",
-        "ks_2samp": "ks",
-        "kolmogorov_smirnov": "ks",
-    }
-    if metric_key not in aliases:
-        raise ValueError(f"Unsupported metric '{metric}'. Choose from cvm, emd, or ks.")
-    return aliases[metric_key]
-
-
-def distance_metric_label(metric):
-    metric_key = normalize_distance_metric(metric)
-    labels = {
-        "cvm": "CvM distance",
-        "emd": "Earth mover's distance",
-        "ks": "KS statistic",
-    }
-    return labels[metric_key]
-
-
-def normalize_observable(observable):
-    """Which quantity the R~(0) panels plot: 'pearson' (DFE autocorrelation) or
-    'distance' (normalized subset-DFE distance). The distance metric itself is a
-    separate choice, so cvm/emd/ks all alias to 'distance'."""
-    key = observable.strip().lower().replace("-", "_").replace(" ", "_")
-    aliases = {
-        "pearson": "pearson",
-        "rho": "pearson",
-        "autocorr": "pearson",
-        "autocorrelation": "pearson",
-        "distance": "distance",
-        "subset": "distance",
-        "subset_distance": "distance",
-        "emd": "distance",
-        "cvm": "distance",
-        "ks": "distance",
-    }
-    if key not in aliases:
-        raise ValueError(
-            f"Unsupported observable '{observable}'. Choose 'pearson' or 'emd'."
-        )
-    return aliases[key]
-
-
 def pearson_theory_radial(t, r0_tilde, n):
     r"""Far-field prediction for the DFE autocorrelation of a purely radial descent.
 
@@ -155,18 +96,6 @@ def pearson_theory_radial(t, r0_tilde, n):
     return (half_n + r0_tilde * r_t) / np.sqrt((half_n + r0_tilde ** 2)
                                                * (half_n + r_t ** 2))
 
-
-def compute_distance_metric(values_a, values_b, metric):
-    metric_key = normalize_distance_metric(metric)
-    if metric_key == "cvm":
-        return cramervonmises_2samp(values_a, values_b).statistic
-    if metric_key == "emd":
-        return wasserstein_distance(values_a, values_b)
-    if metric_key == "ks":
-        return ks_2samp(values_a, values_b).statistic
-    raise ValueError(f"Unsupported metric '{metric}'")
-
-
 # ----------------------------------------------------------------
 # 1b. FGM RADIUS-CV^2 PANEL (loaded from saved trajectories)
 # ----------------------------------------------------------------
@@ -176,7 +105,7 @@ def find_fgm_files(data_root):
     files = [p for p in data_root.glob("*.pkl")
              if "fgm" in p.name.lower()
              and not NSWEEP_PATTERN.search(p.name)
-             and not WEDGE_PATTERN.search(p.name)]
+             and not CONSTRAINED_PATTERN.search(p.name)]
 
     def extract_n(path):
         match = N_PATTERN.search(path.name)
@@ -352,8 +281,8 @@ def plot_fgm_radius_panel(ax):
     is then r(t)/r_ref, so the far-field ODE  d||r||/dt = -sqrt(pi/2) sigma
     collapses to a single line  r(t)/r_ref = 1 - sqrt(pi/2) t / tilde_r_0 shared
     by all n. The curves track it together and peel off (decelerate) once they
-    reach tilde_r = sqrt(n) -- larger n peeling earlier, since sqrt(n) is hit at
-    a larger radius. One curve per n, colored as in panel A."""
+    reach the crossover radius tilde_R_c = (n-1)/sqrt(2 pi) -- larger n peeling
+    earlier, since that radius is larger. One curve per n, colored as in panel A."""
     radius_by_n = load_fgm_radius_vs_time()
     slope = np.sqrt(np.pi / 2.0)
 
@@ -383,11 +312,14 @@ def plot_fgm_radius_panel(ax):
                         color=color, alpha=0.18, lw=0)
         right_edges.append(n_steps - 1)
 
-        # Peel-off marker: the step at which the mean walk reaches tilde_R = sqrt(n),
-        # where the far-field ODE stops holding and the descent decelerates.
-        crossings = np.nonzero(mean_r <= np.sqrt(n_val))[0]
+        # Peel-off marker: the step at which the mean walk reaches the crossover
+        # radius tilde_R_c = (n-1)/sqrt(2 pi), where the far-field ODE stops
+        # holding and the descent decelerates.
+        crossings = np.nonzero(mean_r <= (n_val - 1.0) / np.sqrt(2.0 * np.pi))[0]
         if crossings.size:
-            ax.axvline(t[crossings[0]], color=color, ls=":", lw=1.6, alpha=0.9)
+            k = crossings[0]
+            ax.plot(t[k], norm_mean[k], marker="+", ms=16, mew=3.0, ls="none",
+                    color=color, zorder=5)
 
     # One shared far-field line, from the common start radius r_ref; mask the part
     # below zero so the dashed line stops at the peak.
@@ -397,9 +329,10 @@ def plot_fgm_radius_panel(ax):
     theory[theory < 0] = np.nan
     theory_line, = ax.plot(t_th, theory, color="black", lw=1.5, ls="--", alpha=0.9,
                            label="Eq. *")
-    # Neutral proxy so the per-n dotted peel-off markers get one legend entry.
-    peel_proxy = mpl.lines.Line2D([], [], color="0.35", ls=":", lw=1.6,
-                                  label=r"$\langle \tilde{R} \rangle = \sqrt{n}$")
+    # Neutral proxy so the per-n peel-off markers get one legend entry.
+    peel_proxy = mpl.lines.Line2D([], [], color="0.35", marker="+", ms=16,
+                                  mew=3.0, ls="none",
+                                  label=r"$\langle \tilde{R} \rangle = \tilde{R}_c$")
 
     ax.set_xlabel("Time (steps)")
     ax.set_ylabel(r"$\langle \tilde{R}(t) \rangle / \tilde{R}(0)$")
@@ -413,404 +346,172 @@ def plot_fgm_radius_panel(ax):
     ax.add_artist(theory_leg)
     ax.legend(handles=n_handles, frameon=False, loc="upper right")
 
-
 # ----------------------------------------------------------------
-# 2. MODEL CLASSES
+# 2. 1/e COLLAPSE PANELS (decorrelation time vs the constrained-walk timescale)
 # ----------------------------------------------------------------
-class FisherModel:
-    def __init__(self, n, sigma, m, R0, seed=None):
-        self.n = int(n)
-        self.sigma = float(sigma)
-        self.m = int(m)
-        self.rng = np.random.default_rng(seed)
-        self.deltas = self.rng.normal(loc=0.0, scale=self.sigma, size=(self.m, self.n))
-        self.R0 = float(R0)
-        self.r = np.zeros(self.n)
-        self.r[0] = self.R0
-
-    def compute_fitness(self, r):
-        return np.exp(-0.5 * np.dot(r, r))
-
-    def compute_dfe(self, r):
-        w0 = self.compute_fitness(r)
-        r_new = r + self.deltas
-        r2_new = np.einsum("ij,ij->i", r_new, r_new)
-        w_new = np.exp(-0.5 * r2_new)
-        return w_new - w0
-
-    @staticmethod
-    def normalize(vec):
-        norm = np.linalg.norm(vec)
-        if norm <= 0:
-            return np.zeros_like(vec)
-        return vec / norm
-
-
-class FisherRadialWedge(FisherModel):
-    """SSWM adaptive walk confined to a fixed angular wedge around the initial
-    direction, isolating *radial* scrambling.
-
-    The wedge is defined once, by the starting position r0: it is the tube of
-    points x whose squared perpendicular distance from the fixed axis
-    rhat0 = r0 / ||r0|| satisfies
-        || x_perp ||^2  <=  sin^2(phi) * ||r0||^2,
-    where phi (in radians) sets the wedge half-width at the initial radius
-    (sin^2(phi) ||r0||^2 is the squared-perpendicular area). A mutation is
-    admissible iff the landing point r + delta stays inside this region. Among
-    the admissible AND beneficial candidates, one is chosen with probability
-    proportional to its fitness effect (the FGM SSWM rule). Because admissible
-    moves cannot wander in orientation, all progress is radial, and the walk
-    descends along rhat0 toward the peak.
-    """
-
-    def __init__(self, n, sigma, m, R0, phi, seed=None):
-        super().__init__(n, sigma, m, R0, seed=seed)
-        self.axis = FisherModel.normalize(self.r)              # rhat0 (fixed for all t)
-        self.perp_threshold = np.sin(float(phi)) ** 2 * R0 ** 2  # squared-perpendicular area
-
-    def step(self):
-        r_candidates = self.r + self.deltas
-        proj = r_candidates @ self.axis                  # parallel component along rhat0
-        perp_sq = np.einsum("ij,ij->i", r_candidates, r_candidates) - proj ** 2
-        in_wedge = perp_sq <= self.perp_threshold
-
-        dfe = self.compute_dfe(self.r)
-        beneficial = dfe > 0
-
-        valid_indices = np.nonzero(in_wedge & beneficial)[0]
-        if len(valid_indices) == 0:
-            return False
-
-        effects = dfe[valid_indices]
-        probs = effects / np.sum(effects)
-        choice = self.rng.choice(valid_indices, p=probs)
-        self.r += self.deltas[choice]
-        # In FGM, if a mutation fixes, the forward mutation flips sign.
-        self.deltas[choice] *= -1
-        return True
-
-
-# ----------------------------------------------------------------
-# 3. SIMULATION WORKER
-# ----------------------------------------------------------------
-def run_single_replicate(args):
-    seed, n, sigma, m, R0, params, max_t, time_points = args
-
-    phi = params["phi"]
-    subset_metric = normalize_distance_metric(
-        params.get("subset_metric", DEFAULT_SUBSET_DISTANCE_METRIC)
-    )
-    observable = normalize_observable(params.get("observable", DEFAULT_OBSERVABLE))
-
-    model = FisherRadialWedge(n, sigma, m, R0, phi, seed=seed)
-
-    # Static copy of the exact initial mutations to track the decorrelation of
-    # those same mutational fitness effects in time (independent of stepping).
-    initial_deltas = model.deltas.copy()
-    delta_norms_sq = np.sum(initial_deltas ** 2, axis=1)
-
-    def get_malthusian(r):
-        return -0.5 * delta_norms_sq - np.dot(initial_deltas, r)
-
-    def get_fitness_effects(r):
-        # Selection coefficient s = w(r+delta)/w(r) - 1 = expm1(malthusian).
-        # Scale-free: unlike the absolute difference w(r+delta) - w(r), this drops
-        # the global exp(-||r||^2/2) prefactor, so EMD compares DFE *shapes* across
-        # radii rather than being swamped by the exponentially varying scale.
-        return np.expm1(get_malthusian(r))
-
-    dfe0 = get_fitness_effects(model.r)
-    # The tracked subset M is fixed at t=0: the mutations initially beneficial.
-    initial_beneficial_mask = dfe0 > 0
-
-    def get_subset_distance(dfe_t):
-        if not np.any(initial_beneficial_mask):
-            return np.nan
-        tracked_dfe_t = dfe_t[initial_beneficial_mask]
-        return compute_distance_metric(tracked_dfe_t, dfe_t, subset_metric)
-
-    # Left NaN when the panels plot rho(t): the two-sample distances are the
-    # expensive part of the loop, so skip them entirely unless they are needed.
-    subset_distance0 = get_subset_distance(dfe0) if observable == "distance" else np.nan
-    std_dfe0 = np.std(dfe0)
-
-    radii = np.full(len(time_points), np.nan)
-    pearsons = np.full(len(time_points), np.nan)
-    subset_distances = np.full(len(time_points), np.nan)
-
-    radii[0] = np.linalg.norm(model.r)
-    pearsons[0] = 1.0
-    if np.isfinite(subset_distance0):
-        subset_distances[0] = 1.0
-
-    current_t_idx = 0
-    time_points_set = set(int(t) for t in time_points)
-
-    for t in range(1, max_t + 1):
-        success = model.step()
-        if not success:
-            break
-
-        if t in time_points_set:
-            current_t_idx += 1
-            radii[current_t_idx] = np.linalg.norm(model.r)
-
-            dfe_t = get_fitness_effects(model.r)
-            if std_dfe0 > 1e-12 and np.std(dfe_t) > 1e-12:
-                pearsons[current_t_idx] = np.corrcoef(dfe0, dfe_t)[0, 1]
-            if np.isfinite(subset_distance0) and subset_distance0 > 1e-12:
-                subset_distance_t = get_subset_distance(dfe_t)
-                if np.isfinite(subset_distance_t):
-                    subset_distances[current_t_idx] = subset_distance_t / subset_distance0
-
-    return pearsons, subset_distances, radii
-
-
-# ----------------------------------------------------------------
-# 4. HELPERS
-# ----------------------------------------------------------------
-def stack_results(res_list):
-    pearsons = np.array([res[0] for res in res_list], dtype=float)
-    subset_distances = np.array([res[1] for res in res_list], dtype=float)
-    radii = np.array([res[2] for res in res_list], dtype=float)
-    return pearsons, subset_distances, radii
-
-
-def radial_cache_path(reps, sigma, phi, subset_metric):
-    """One pickle per simulation setting, kept beside the other FGM walk data."""
-    return resolve_fgm_data_dir() / (
-        f"fgm_wedge_rps{reps}_sig{sigma:g}_phi{phi:g}_{subset_metric}.pkl"
-    )
-
-
-def simulate_radial_walks(n_values, r0_tilde_values, phi, reps, subset_metric,
-                          sigma=SIM_SIGMA, m=SIM_M, seed=None):
-    """Wedge-constrained SSWM walks for every (R~(0), n) cell.
-
-    Both observables are recorded per replicate -- rho(t) is nearly free once the
-    DFE has been evaluated, the two-sample distances are not -- so a single run
-    serves either panel choice.
-    """
-    base_seed = np.random.randint(0, 1_000_000) if seed is None else int(seed)
-
-    tasks = []
-    spans = {}
-    for p, R0_tilde in enumerate(r0_tilde_values):
-        R0 = R0_tilde * sigma
-        # Larger starting radius => longer radial descent; scale the horizon.
-        max_t = int(4 * R0_tilde) + 20
-        time_points = np.arange(0, max_t + 1)
-        for k, n in enumerate(n_values):
-            start = len(tasks)
-            for i in range(reps):
-                tasks.append((
-                    base_seed + 100_000 * (p + 1) + 10_000 * (k + 1) + i,
-                    int(n),
-                    sigma,
-                    m,
-                    R0,
-                    # "distance" fills in rho as well, so the cache holds both.
-                    {"phi": phi, "subset_metric": subset_metric,
-                     "observable": "distance"},
-                    max_t,
-                    time_points,
-                ))
-            spans[(float(R0_tilde), int(n))] = (start, len(tasks), time_points)
-
-    num_proc = min(multiprocessing.cpu_count(), len(tasks))
-    print(f"Simulating {len(tasks)} replicates on {num_proc} processes ...")
-    with multiprocessing.Pool(processes=num_proc) as pool:
-        results = pool.map(run_single_replicate, tasks)
-
-    cells = {}
-    for key, (start, end, time_points) in spans.items():
-        pearsons, subset_distances, radii = stack_results(results[start:end])
-        cells[key] = {"time_points": time_points, "pearson": pearsons,
-                      "distance": subset_distances, "radii": radii}
-
-    return {
-        "sigma": sigma, "m": m, "reps": reps, "phi": phi,
-        "subset_metric": subset_metric, "base_seed": base_seed,
-        "n_values": [int(n) for n in n_values],
-        "r0_tilde_values": [float(r) for r in r0_tilde_values],
-        "cells": cells,
-    }
-
-
-def load_radial_walks(n_values, r0_tilde_values, phi, reps, subset_metric,
-                      refresh=False):
-    """Cached wedge walks: simulated once, written to data/FGM, reused after."""
-    path = radial_cache_path(reps, SIM_SIGMA, phi, subset_metric)
-    if not refresh and path.exists():
-        with open(path, "rb") as handle:
-            cache = pickle.load(handle)
-        missing = [(float(r0), int(n)) for r0 in r0_tilde_values for n in n_values
-                   if (float(r0), int(n)) not in cache["cells"]]
-        if not missing:
-            print(f"Loaded wedge walks from {path}")
-            return cache
-        print(f"{path.name} is missing cells {missing}; re-simulating.")
-
-    cache = simulate_radial_walks(n_values, r0_tilde_values, phi, reps, subset_metric)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "wb") as handle:
-        pickle.dump(cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    print(f"Saved wedge walks to {path}")
+def load_sweep(filename, mode):
+    """One of the constrained-walk sweeps produced by
+    data/gen_data/gen_dat_fgm_constrained.py. The figure never simulates."""
+    path = resolve_fgm_data_dir() / filename
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Missing sweep data: {path}\n"
+            f"Generate it with:  cd data/gen_data && "
+            f"python gen_dat_fgm_constrained.py --mode {mode}"
+        )
+    with open(path, "rb") as handle:
+        cache = pickle.load(handle)
+    print(f"Loaded {mode} sweep from {path}")
     return cache
 
 
-# ----------------------------------------------------------------
-# 5. MAIN EXPERIMENT
-# ----------------------------------------------------------------
-def run_experiment(n_values, r0_tilde_values, phi,
-                   subset_metric=DEFAULT_SUBSET_DISTANCE_METRIC,
-                   observable=DEFAULT_OBSERVABLE, reps=DEFAULT_REPS,
-                   refresh_cache=False):
-    subset_metric = normalize_distance_metric(subset_metric)
-    subset_metric_label = distance_metric_label(subset_metric)
-    observable = normalize_observable(observable)
+def first_crossing(t, y, level):
+    """Interpolated first time y drops below level, NaN if it never does."""
+    below = np.nonzero(y < level)[0]
+    if below.size == 0 or below[0] == 0:
+        return np.nan
+    k = int(below[0])
+    return float(np.interp(level, [y[k], y[k - 1]], [t[k], t[k - 1]]))
 
-    sigma = SIM_SIGMA
-    m = SIM_M
 
-    print("--- Configuration (radial scrambling, wedge-constrained SSWM) ---")
-    if observable == "pearson":
-        print("Observable: DFE autocorrelation rho(t) = corr(s_0, s_t)")
-    else:
-        print(f"Observable: subset-DFE {subset_metric_label} ({subset_metric})")
-    print(f"sigma={sigma}, m={m}, reps={reps}, phi={phi} rad")
-    print(f"Panels (R0_tilde): {r0_tilde_values}")
+def mean_alive(traces, min_alive_frac=0.5):
+    """Replicate mean of rho(t), blanked where fewer than min_alive_frac of the
+    walks are still stepping (past that point the mean is a handful of survivors)."""
+    alive = np.sum(np.isfinite(traces), axis=0)
+    keep = alive >= min_alive_frac * traces.shape[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        return np.where(keep, np.nanmean(traces, axis=0), np.nan), keep
+
+
+def plot_1e_collapse_panel(ax, cache, n_values, tau_of, admissible, ylabel,
+                           legend_loc="lower right", n_boot=150):
+    r"""The time at which the DFE autocorrelation has decayed by one e-fold,
+    log rho = -1, in units of the timescale of the constraint that the walk runs
+    under -- one curve per n, swept over the starting radius R~(0).
+
+    tau_of(R~(0), n) supplies that timescale: the radial collapse time
+    tau_rs = sqrt(2/pi) R~(0) for the wedge walk, the rotational time
+    tau_as = 2 R~(0)^2 / (n - 1) for the constant-radius walk. If the constrained
+    motion is what scrambles the DFE, every curve lands on t_{1/e}/tau = 1 (the
+    dashed line) once R~(0) is large enough for the finite-n corrections, which
+    are of order n/R~(0)^2, to die out. admissible(R~(0), n) drops the cells where
+    the constraint itself, rather than the geometry, sets the answer. Error bars
+    bootstrap over replicates."""
+    cells = cache["cells"]
+    r0_values = sorted({r0 for r0, _ in cells})
+    rng = np.random.default_rng(0)
+    level = 1.0 / np.e                      # log rho = -1
+
+    n_handles = []
+    for color, n_val in zip(CMR_COLORS, n_values):
+        xs, ys, errs = [], [], []
+        for R0_tilde in r0_values:
+            cell = cells.get((float(R0_tilde), int(n_val)))
+            if cell is None or not admissible(R0_tilde, n_val):
+                continue
+            t = np.asarray(cell["time_points"], dtype=float)
+            traces = np.asarray(cell["pearson"], dtype=float)
+            mean_rho, keep = mean_alive(traces)
+            t_1e = first_crossing(t, mean_rho, level)
+            if not np.isfinite(t_1e):
+                continue
+            # Bootstrap the replicate set to get the error on the crossing time.
+            draws = []
+            for _ in range(n_boot):
+                idx = rng.integers(0, traces.shape[0], traces.shape[0])
+                boot_mean, _ = mean_alive(traces[idx])
+                draws.append(first_crossing(t, np.where(keep, boot_mean, np.nan), level))
+            tau = tau_of(R0_tilde, n_val)
+            xs.append(R0_tilde)
+            ys.append(t_1e / tau)
+            errs.append(np.nanstd(draws) / tau)
+
+        ax.errorbar(xs, ys, yerr=errs, marker="o", ms=6, lw=2.0, capsize=3,
+                    color=color)
+        # Plain line proxies so this legend reads like the ones in panels A and B,
+        # rather than carrying the marker-and-cap glyph of the errorbar artist.
+        n_handles.append(mpl.lines.Line2D([], [], color=color, lw=2.3,
+                                          label=rf"$n = {n_val}$"))
+
+    ax.axhline(1.0, color="black", ls="--", lw=1.5, zorder=1)
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$\tilde{R}(0)$")
+    ax.set_ylabel(ylabel)
+    ax.legend(handles=n_handles, frameon=False, loc=legend_loc)
+
+
+def plot_radial_collapse_panel(ax, n_values):
+    """Panel C: the wedge walk, against the radial collapse time
+    tau_rs = sqrt(2/pi) R~(0)."""
+    cache = load_sweep(RADIAL_SWEEP_FILE, "radial")
+    phi = float(cache["phi"])
+    plot_1e_collapse_panel(
+        ax, cache, n_values,
+        # The wedge admits a mutation only while sin^2(phi) R~(0)^2 > ~n; at
+        # smaller R~(0) the walks are pinned by the constraint, not by the FGM
+        # geometry, so those cells say nothing about the radial timescale.
+        tau_of=lambda r0, n: r0 / SQRT_HALF_PI,
+        admissible=lambda r0, n: r0 > np.sqrt(n) / np.sin(phi),
+        ylabel=r"$t_{1/e} \,/\, \tau_{rs}$",
+    )
+    ax.set_xlim(7, 150)
+    ax.set_ylim(0.7, 1.1)
+    ax.set_yticks(np.arange(0.7, 1.1001, 0.1))
+
+
+def plot_angular_collapse_panel(ax, n_values):
+    """Panel D: the constant-radius walk, against the rotational time
+    tau_as = 2 R~(0)^2 / (n - 1)."""
+    cache = load_sweep(ANGULAR_SWEEP_FILE, "angular")
+    plot_1e_collapse_panel(
+        ax, cache, n_values,
+        # At fixed radius rho cannot fall below (n/2)/(n/2 + R~(0)^2), the part of
+        # the DFE variance that carries no direction; one e-fold is out of reach
+        # unless R~(0)^2 > (e-1) n / 2.
+        tau_of=lambda r0, n: 2.0 * r0 ** 2 / (n - 1.0),
+        admissible=lambda r0, n: r0 ** 2 > (np.e - 1.0) * n / 2.0,
+        ylabel=r"$t_{1/e} \,/\, \tau_{as}$",
+        legend_loc="upper right",
+    )
+    ax.set_xlim(7, 56)
+    ax.set_ylim(0.9, 1.8)
+    ax.set_yticks(np.arange(0.9, 1.8001, 0.1))
+    # The sweep spans less than a decade, where the default log formatter labels
+    # every minor tick and the labels collide: label the round decades only and
+    # let the minor ticks mark the R~(0) actually simulated.
+    ax.xaxis.set_major_locator(mpl.ticker.FixedLocator([10, 20, 40]))
+    ax.xaxis.set_major_formatter(mpl.ticker.FixedFormatter(["10", "20", "40"]))
+    ax.xaxis.set_minor_locator(mpl.ticker.FixedLocator(ANGULAR_R0_TICKS))
+    ax.xaxis.set_minor_formatter(mpl.ticker.NullFormatter())
+
+
+# ----------------------------------------------------------------
+# 3. MAIN EXPERIMENT
+# ----------------------------------------------------------------
+def run_experiment(n_values):
+    print("--- figS7: radial scrambling (wedge-constrained SSWM) ---")
     print(f"Curves (n): {n_values}")
 
-    cells = load_radial_walks(n_values, r0_tilde_values, phi, reps, subset_metric,
-                              refresh=refresh_cache)["cells"]
-
     # ------------------------------
-    # Plotting: panel A = FGM radius CV^2; panel B = FGM mean radius vs time
-    # (far-field ODE test); panels C.. = one scrambling panel per R0_tilde. Laid
-    # out on a 2-column grid (a clean 2x2 for the default two R0_tilde panels).
+    # Plotting: A = FGM radius CV^2, B = FGM mean radius vs time (far-field ODE
+    # test), C = the 1/e decorrelation time of the wedge walk against tau_rs,
+    # D = the same for the constant-radius walk against tau_as.
     # ------------------------------
-    n_panels = len(r0_tilde_values)
-    total_panels = 2 + n_panels                # A: CV^2, B: radius-vs-time, C..: EMD per R0_tilde
-    ncols = 2
-    nrows = int(np.ceil(total_panels / ncols))
-    fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 4.8 * nrows), squeeze=False)
-    fig.subplots_adjust(wspace=0.28, hspace=0.45)
-    panel_axes = axes.flatten()
+    fig, axes = plt.subplots(2, 2, figsize=(12.0, 9.6))
+    fig.subplots_adjust(wspace=0.3, hspace=0.45)
 
-    # Panel A: FGM radius CV^2 vs walk progress (loaded from saved trajectories).
-    apply_axis_style(panel_axes[0], "A")
-    plot_fgm_cv2_panel(panel_axes[0])
+    apply_axis_style(axes[0, 0], "A")
+    plot_fgm_cv2_panel(axes[0, 0])
 
-    # Panel B: FGM mean non-dimensional radius vs time against the far-field ODE.
-    apply_axis_style(panel_axes[1], "B")
-    plot_fgm_radius_panel(panel_axes[1])
+    apply_axis_style(axes[0, 1], "B")
+    plot_fgm_radius_panel(axes[0, 1])
 
-    # The n-curves use cmr.emerald (matching fig4_peak_dfes), sampled over
-    # cmap_range=(0.3, 1.0) to skip the near-white low end.
-    n_colors = cmr.take_cmap_colors("cmr.emerald", len(n_values), cmap_range=(0.3, 1.0))
+    apply_axis_style(axes[1, 0], "C")
+    plot_radial_collapse_panel(axes[1, 0], n_values)
 
-    for p, R0_tilde in enumerate(r0_tilde_values):
-        ax = panel_axes[p + 2]               # scrambling panels follow A and B
-        apply_axis_style(ax, chr(ord("C") + p))
-        max_reached = 1
-        panel_ymin = 0.0                     # log panels only: bottom of the frame
-
-        for k, n in enumerate(n_values):
-            cell = cells[(float(R0_tilde), int(n))]
-            time_points = cell["time_points"]
-            traces = cell["pearson"] if observable == "pearson" else cell["distance"]
-
-            # Time points past the longest walk are all-NaN columns; ignore the
-            # resulting "empty slice" warnings (those points are trimmed by xlim).
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=RuntimeWarning)
-                mean_subset = np.nanmean(traces, axis=0)
-                std_subset = np.nanstd(traces, axis=0)
-
-            if observable == "pearson":
-                # Once the walks reach the optimum only a handful are still
-                # stepping and rho is pure noise, so drop the thinly sampled tail.
-                alive = np.sum(np.isfinite(traces), axis=0)
-                thin = alive < max(5, 0.5 * traces.shape[0])
-                mean_subset = np.where(thin, np.nan, mean_subset)
-                std_subset = np.where(thin, np.nan, std_subset)
-                # Past the first non-positive mean the correlation is noise about
-                # zero and has no log; end the curve there instead of flooring it.
-                dead = np.nonzero(np.nan_to_num(mean_subset, nan=1.0)
-                                  <= PEARSON_FLOOR)[0]
-                if dead.size:
-                    mean_subset[dead[0]:] = np.nan
-                    std_subset[dead[0]:] = np.nan
-                # <log rho> would be dominated by PEARSON_FLOOR as soon as single
-                # replicates dip to rho <= 0, so plot the log of the replicate mean
-                # and carry the spread through the log as asymmetric error bars.
-                lo = np.log(np.clip(mean_subset - std_subset, PEARSON_FLOOR, None))
-                hi = np.log(np.clip(mean_subset + std_subset, PEARSON_FLOOR, None))
-                mean_subset = np.log(np.clip(mean_subset, PEARSON_FLOOR, None))
-                std_subset = np.vstack([mean_subset - lo, hi - mean_subset])
-
-            finite_t = np.where(np.isfinite(mean_subset))[0]
-            last = int(finite_t[-1]) if len(finite_t) else 0
-            if len(finite_t):
-                max_reached = max(max_reached, int(time_points[last]))
-
-            color = n_colors[k]
-            # Mean trace plus error bars (std across replicates).
-            ax.plot(time_points, mean_subset, color=color, lw=2.0)
-            # Subsample markers across the *populated* range, not the full horizon,
-            # so the error bars span the visible curve rather than collapsing to a
-            # few points near t=0.
-            step = max(1, (last + 1) // 10)
-            marker_idx = np.arange(0, last + 1, step)
-            ax.errorbar(
-                time_points[marker_idx],
-                mean_subset[marker_idx],
-                yerr=(std_subset[:, marker_idx] if std_subset.ndim == 2
-                      else std_subset[marker_idx]),
-                fmt="o",
-                color=color,
-                markersize=4,
-                capsize=3,
-                label=fr"$n = {int(n)}$",
-            )
-
-            if observable == "pearson":
-                panel_ymin = min(panel_ymin, float(np.nanmin(mean_subset)))
-
-        if observable == "pearson":
-            # Timescale of the linear radial law: R~(t) = R~0 - t sqrt(pi/2) reaches
-            # the optimum at t = sqrt(2/pi) R~(0), the same for every n.
-            ax.axvline(np.sqrt(2.0 / np.pi) * R0_tilde, color="black", ls=":",
-                       lw=1.6, label=r"$\sqrt{2/\pi}\,\tilde{R}(0)$")
-        else:
-            # Far-field theory: the radial descent is linear at the SSWM speed
-            # d<R~>/dt = -sqrt(pi/2), and the normalized scrambling tracks the
-            # normalized radius, EMD(t) ~ R~(t)/R~0 = 1 - sqrt(pi/2) * t / R~0.
-            tp_panel = cells[(float(R0_tilde), int(n_values[0]))]["time_points"]
-            theory = np.clip(1.0 - (SQRT_HALF_PI / R0_tilde) * tp_panel, 0.0, None)
-            ax.plot(tp_panel, theory, color="black", lw=2.0, ls="--",
-                    label="Theory (Eq. *)")
-
-        ax.set_xlim(0, max_reached)
-        if observable == "pearson":
-            # Frame runs from 0 down to the first round number below the curves.
-            tick_step = 0.5 if panel_ymin > -3.0 else 1.0
-            ymin = float(np.floor(panel_ymin / tick_step) * tick_step)
-            set_ylim_clipped(ax, ymin, 0.0, pad=0.0, step=tick_step,
-                             pad_top=0.02 * abs(ymin))
-        else:
-            set_ylim_clipped(ax, 0.0, 1.0)
-        ax.set_xlabel("Time (steps)")
-        ax.set_ylabel(r"$\log \rho(t)$" if observable == "pearson"
-                      else f"{subset_metric.upper()} (norm.)")
-        ax.set_title(rf"$\tilde{{R}}(0) = {R0_tilde:g}$,  $\phi = {phi:g}$")
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-        ax.legend(frameon=False, loc="best", title=None)
-
-    # Hide any leftover axes when the panel count does not fill the grid.
-    for ax in panel_axes[total_panels:]:
-        ax.set_visible(False)
+    apply_axis_style(axes[1, 1], "D")
+    plot_angular_collapse_panel(axes[1, 1], n_values)
 
     out_dir = "../figs_paper"
     os.makedirs(out_dir, exist_ok=True)
@@ -821,59 +522,18 @@ def run_experiment(n_values, r0_tilde_values, phi,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Radial scrambling: SSWM adaptive walk confined to a fixed angular "
-                    "wedge around the initial direction, measuring how the DFE decorrelates "
-                    "(Pearson rho, default) or how the initially-beneficial subset DFE "
-                    "converges to the overall DFE (subset distance), across n values."
-    )
-    parser.add_argument(
-        "--observable",
-        default=DEFAULT_OBSERVABLE,
-        choices=["pearson", "emd"],
-        help="Quantity plotted in the R0_tilde panels: 'pearson' for the DFE "
-             "autocorrelation rho(t) = corr(s_0, s_t) over the fixed mutation pool, "
-             "or 'emd' for the normalized subset-DFE distance (whose metric is set by "
-             "--subset-metric).",
-    )
-    parser.add_argument(
-        "--reps",
-        type=int,
-        default=DEFAULT_REPS,
-        help="Replicates per (R0_tilde, n) cell. Each (reps, sigma, phi, metric) "
-             "setting gets its own cache file under data/FGM.",
-    )
-    parser.add_argument(
-        "--refresh-cache",
-        action="store_true",
-        help="Re-run the walks even if the cache file already exists.",
-    )
-    parser.add_argument(
-        "--subset-metric",
-        default=DEFAULT_SUBSET_DISTANCE_METRIC,
-        help="Distance metric for comparing the t=0 beneficial subset to the full DFE: cvm, emd, or ks.",
+        description="Radial scrambling in FGM. Panels A/B track the SSWM radial "
+                    "descent itself; panels C and D measure the time at which the "
+                    "DFE autocorrelation has decayed by one e-fold, in units of the "
+                    "radial collapse time tau_rs = sqrt(2/pi) R~(0) (wedge-constrained "
+                    "walk) and of the rotational time tau_as = 2 R~(0)^2 / (n-1) "
+                    "(constant-radius walk). The constrained-walk sweeps are "
+                    "generated by data/gen_data/gen_dat_fgm_constrained.py."
     )
     parser.add_argument(
         "--n-values",
         default="4,8,16,32",
-        help="Comma-separated dimensionalities n, overlaid as EMD curves in every panel.",
-    )
-    parser.add_argument(
-        "--r0-values",
-        default="10,40",
-        help="Comma-separated initial R0_tilde values, one panel each.",
-    )
-    parser.add_argument(
-        "--phi",
-        type=float,
-        default=0.6,
-        help="Wedge half-angle in radians, fixed at the initial radius: admissible "
-             "iff ||x_perp||^2 <= sin^2(phi) * ||r0||^2. sin^2(phi) must exceed "
-             "~n*sigma^2/R0^2 for the largest n at the smallest R0, else those "
-             "walks cannot fit any mutation in the wedge and get stuck.",
+        help="Comma-separated dimensionalities n, one curve each in every panel.",
     )
     args = parser.parse_args()
-    n_values = [int(x) for x in args.n_values.split(",") if x.strip()]
-    r0_tilde_values = [float(x) for x in args.r0_values.split(",") if x.strip()]
-    run_experiment(n_values, r0_tilde_values, args.phi,
-                   subset_metric=args.subset_metric, observable=args.observable,
-                   reps=args.reps, refresh_cache=args.refresh_cache)
+    run_experiment([int(x) for x in args.n_values.split(",") if x.strip()])

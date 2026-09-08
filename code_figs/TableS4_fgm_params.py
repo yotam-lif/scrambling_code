@@ -66,15 +66,15 @@ describes no fitted density.
     profile in n -- the loglik moves by well under a nat across neighbouring integers -- so the
     integer column should be read as the ridge's location, not as a sharp estimate.
 
-WHAT THE WALKS ACTUALLY SIMULATE AT, which is NOT quite the reported integer fit.  The walk
-drivers (``code_tmp/poster_fig5_limdi_noise.py``, ``code_tmp/poster_fig5_couce_noise.py``) take
-the CONTINUOUS heavy-tailed optimum, round its n to the nearest integer, and carry that fit's r,
-sigma and mu unchanged.  The reported columns instead come from the integer refit, where those
-three are re-maximised at the pinned n.  The two are the same optimum approached two ways: n
-agrees exactly on all four rows and r, sigma and mu differ by at most 1.4%.  They are not
-identical, though, so the walk values are tabulated alongside as ``heavy_*_walk`` rather than left
-implicit.  Quote the integer refit; it is the self-consistent fitted density.  Read a simulated
-curve against ``heavy_*_walk``, which is what produced it.
+WHAT THE WALKS ACTUALLY SIMULATE AT (``heavy_*_walk``).  These are not recomputed from the fit
+file: they are read out of the metadata of the walk cache each background's walks are stored in,
+so the column says what is on disk rather than what should be.  Since the merge into
+``cmn/cmn_walksim.py`` every walk starts from the integer refit reported beside it, so the two
+halves of the table agree exactly and the column is a check rather than a caveat.  It earns its
+place because it did not always agree: the pre-merge drivers took the CONTINUOUS optimum and
+merely rounded its n, keeping that fit's r, sigma and mu, which differed from the reported
+integer refit by up to 1.4%.  A future divergence would show up here instead of silently.
+``nan`` means no cache for that background -- run ``python code_figs/sim_walk_caches.py``.
 
     data/TableS4_fgm_params.csv
     columns: dataset, background, assay, N, s_min, s_max,
@@ -97,6 +97,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.dirname(SCRIPT_DIR)
 if REPO_DIR not in sys.path:
     sys.path.insert(0, REPO_DIR)
+import numpy as np  # noqa: E402
+from cmn import cmn_walksim  # noqa: E402
 from cmn.cmn_exper import DATA_DIR  # noqa: E402
 
 FIT_JSON = os.path.join(REPO_DIR, "data", "fig3_fgm_fits.json")
@@ -132,6 +134,29 @@ def load_fits(path=FIT_JSON):
     return entries
 
 
+def walk_parameters(fit_key):
+    """The parameters the stored walks for one background were actually simulated at.
+
+    Every transition sharing a fit_key is simulated on the same landscape -- the six clones of
+    an ancestor differ only in their observation layer -- so the first cache found answers for
+    the background.  A missing cache gives NaN rather than a fallback: quietly substituting the
+    fit file's own numbers would make the column agree by construction and check nothing.
+    """
+    empty = {"n": float("nan"), "r": float("nan"),
+             "sigma": float("nan"), "mu": float("nan")}
+    matches = [t for t in cmn_walksim.TRANSITIONS.values() if t.fit_key == fit_key]
+    if not matches:
+        return empty
+    try:
+        path = cmn_walksim.find_cache(matches[0])
+    except (FileNotFoundError, RuntimeError):
+        return empty
+    with np.load(path, allow_pickle=False) as cached:
+        model = json.loads(str(cached["metadata"].item()))["model"]
+    return {"n": int(model["n_simulation"]), "r": float(model["radius"]),
+            "sigma": float(model["sigma"]), "mu": float(model["mu"])}
+
+
 def build_rows(entries):
     """One record per background, integer-n parameters throughout.
 
@@ -145,9 +170,9 @@ def build_rows(entries):
         info = entry["dataset"]
         canonical = entry["canonical_integer_n"]["fit"]
         heavy = entry["heavy_tailed_integer_n"]["fit"]
-        # What the walk drivers do with the same file: round the continuous n, keep its
-        # r/sigma/mu.  See WHAT THE WALKS ACTUALLY SIMULATE AT in the docstring.
-        walk = entry["heavy_tailed_full_mle"]["fit"]
+        # Read back from the cache the walks are actually stored in, not recomputed from the
+        # fit file.  See WHAT THE WALKS ACTUALLY SIMULATE AT in the docstring.
+        walk = walk_parameters(key)
         rows.append({
             "key": key,
             "dataset": dataset,
@@ -167,10 +192,10 @@ def build_rows(entries):
             "heavy_sigma": float(heavy["sigma"]),
             "heavy_mu": float(heavy["mu"]),
             "heavy_loglik": float(heavy["loglik"]),
-            "heavy_n_walk": int(round(walk["n"])),
-            "heavy_r_walk": float(walk["r"]),
-            "heavy_sigma_walk": float(walk["sigma"]),
-            "heavy_mu_walk": float(walk["mu"]),
+            "heavy_n_walk": walk["n"],
+            "heavy_r_walk": walk["r"],
+            "heavy_sigma_walk": walk["sigma"],
+            "heavy_mu_walk": walk["mu"],
             "dloglik_heavy_minus_canon": float(heavy["loglik"] - canonical["loglik"]),
         })
     return rows
@@ -279,7 +304,7 @@ def main(argv=None):
 
     # The reported integer refit against what the walks were actually run at, so the gap is
     # on the record rather than something a reader has to discover by opening a cache.
-    print("\nreported integer fit vs the parameters the walk drivers simulate at:")
+    print("\nreported integer fit vs the parameters the stored walks were simulated at:")
     hdr = (f"  {'background':<14}{'n':>4}{'n_walk':>8}{'r':>9}{'r_walk':>9}{'d%':>7}"
            f"{'sigma':>10}{'sigma_walk':>12}{'d%':>7}{'mu':>8}{'mu_walk':>9}{'d%':>7}")
     print(hdr)
@@ -300,7 +325,7 @@ def main(argv=None):
     print("r       = distance to the fitness optimum; sigma = mutation scale")
     print("mu      = beta-prime shape.  BELOW 1 for both Limdi ancestors, so their mutation-size")
     print("          distribution has no finite mean and no timescale built on one is defined")
-    print("*_walk  = the continuous optimum with n rounded, which is what the walk drivers")
+    print("*_walk  = the parameters read back from the stored walk caches themselves")
     print("          simulate; the reported columns re-maximise r, sigma and mu at the")
     print("          pinned integer n instead.  Quote the reported ones")
     print("dloglik = heavy-tailed minus canonical, both maximised on the same sample")

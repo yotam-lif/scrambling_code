@@ -125,7 +125,7 @@ result.
 
 SIMULATED COLUMNS (``r_*_sim_latent`` and ``r_*_sim_noisy``), evolved rows only.  What the
 adaptive-walk model predicts for the same three subsets, from the walk caches written by
-``code_tmp/poster_fig5_limdi_noise.py`` under the SAME |s| subset rule as the measured columns
+``code_figs/sim_walk_caches.py`` under the SAME |s| subset rule as the measured columns
 beside them.  Each transition has its own cache: 500 SSWM walks in a heavy-tailed (radial
 beta-prime) FGM fitted to that row's own founder -- REL606 or REL607, from
 ``data/fig3_fgm_fits.json`` -- with a probe library of the same size as the matched gene set.
@@ -257,16 +257,18 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.dirname(SCRIPT_DIR)
 if REPO_DIR not in sys.path:
     sys.path.insert(0, REPO_DIR)
-from cmn import cmn_exper, cmn_walkcache  # noqa: E402  (shared loaders + walk-cache reader)
+from cmn import cmn_exper, cmn_walkcache, cmn_walksim  # noqa: E402  (shared loaders, walk-cache reader, walk registry)
 from cmn.cmn_exper import (  # noqa: E402
     DATA_DIR, LIMDI_ANCESTORS, LIMDI_EVOLVED, LIMDI_PANEL,
 )
 
 OUT_CSV = os.path.join(DATA_DIR, "TableS1_limdi_autocorr.csv")
-WALK_DIR = os.path.join(DATA_DIR, "FGM_HEAVY_TAILED")
-# Tag of the walk runs written for this table.  Kept distinct from the caches Figure 4
-# reads so that regenerating one cannot silently move the other.
-WALK_TAG = "tbl"
+# One cache per transition, shared with Figure 4 and located through the registry in
+# ``cmn_walksim`` rather than by filename: the stems carry the matched-gene and replicate
+# counts, and this table should not have to track either.  The cache holds a wider subset
+# ladder than the columns below report, so the rungs are selected by fraction, never by
+# position -- see ``cmn_walkcache.column_for``.
+WALK_DIR = cmn_walksim.WALK_DIR
 # Every r column is the poster-figure ladder: r on nested subsets defined by removing a fraction
 # of the ANCESTOR side only (see ANCESTOR-DEFINED NESTED SUBSETS in the docstring).  The earlier
 # ``n / autocorr / autocorr_corr`` block -- r at a fixed ``s > -0.3`` cut applied to BOTH sides,
@@ -467,11 +469,6 @@ def ancestor_exclusion_ladder(a, a_err, b, b_err, null_seed):
 # ══════════════════════════════════════════════════════════════════════════════
 # Simulated ladders -- what the fitted adaptive walk predicts for the same subsets
 # ══════════════════════════════════════════════════════════════════════════════
-def safe_label(value):
-    """The population spelling ``poster_fig5_limdi_noise.safe_label`` puts in a filename."""
-    return value.replace("+", "_plus_").replace("-", "_minus_")
-
-
 def simulated_ladder(ancestor, evolved):
     """Median latent and noisy simulated r per subset, read at the walk's own peak.
 
@@ -481,17 +478,17 @@ def simulated_ladder(ancestor, evolved):
     different subset rule is a hard error instead -- silently reporting a signed-rule
     simulation beside an |s|-rule measurement is the one failure that would not look wrong.
     """
-    pattern = (f"poster_fig5_limdi_{safe_label(ancestor)}_to_{safe_label(evolved)}_"
-               f"without_errors_rank_noise_k1_w*_e*_m*_{WALK_TAG}.npz")
+    transition = cmn_walksim.TRANSITIONS[f"limdi_{ancestor}_{evolved}"]
     try:
-        path = cmn_walkcache.locate(WALK_DIR, pattern)
+        path = cmn_walksim.find_cache(transition, WALK_DIR)
     except FileNotFoundError:
         return None
     cache = cmn_walkcache.read(path)
     cmn_walkcache.require_mode(cache, EXCLUSION_MODE, TAIL_EXCLUSIONS)
     # time=None reads each walk at its own terminal step -- see WHERE ALONG THE WALK in the
-    # docstring for why a fixed t is not available for a 0 -> 50K row.
-    return cmn_walkcache.ladder(cache, time=None)
+    # docstring for why a fixed t is not available for a 0 -> 50K row.  The cache carries a
+    # wider ladder than this table reports, so the rungs are named rather than counted.
+    return cmn_walkcache.ladder(cache, time=None, exclusions=TAIL_EXCLUSIONS)
 
 
 def make_row(dataset, transition, pairs, population, kind):
@@ -675,9 +672,7 @@ def main(argv=None):
                      if r["kind"] == "evolved" and not np.isfinite(r["r_100_sim_latent"])]
     if without_walks:
         print("\nNo walk cache found for: " + ", ".join(without_walks))
-        print("  run code_tmp/poster_fig5_limdi_noise.py with "
-              f"--exclusions {' '.join(str(f) for f in TAIL_EXCLUSIONS)} "
-              f"--exclusion-mode {EXCLUSION_MODE} --tag {WALK_TAG}")
+        print("  run  python code_figs/sim_walk_caches.py --select dataset=limdi")
 
     short = [r for r in rows if r["n_100_w"] < r["n_100"]]
     if short:

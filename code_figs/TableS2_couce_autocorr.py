@@ -98,7 +98,7 @@ scrambling, not an estimate of a corrected correlation.
 
 SIMULATED COLUMNS (``r_100_sim_*`` and ``r_98_sim_*``), transition rows only.  What the fitted
 adaptive walk predicts for the two rungs the paper reports, from the caches written by
-``code_tmp/poster_fig5_couce_noise.py`` under the SAME |s| subset rule as the measured columns.
+``code_figs/sim_walk_caches.py`` under the SAME |s| subset rule as the measured columns.
 500 SSWM walks in a heavy-tailed (radial beta-prime) FGM, with a probe library the size of the
 matched segment set drawn inside the observed early effect window.  ``_sim_latent`` is the
 model's own effects with no measurement error; ``_sim_noisy`` re-measures them with the
@@ -166,7 +166,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.dirname(SCRIPT_DIR)
 if REPO_DIR not in sys.path:
     sys.path.insert(0, REPO_DIR)
-from cmn import cmn_exper, cmn_walkcache  # noqa: E402  (shared loaders + walk-cache reader)
+from cmn import cmn_exper, cmn_walkcache, cmn_walksim  # noqa: E402  (shared loaders, walk-cache reader, walk registry)
 from cmn.cmn_exper import DATA_DIR  # noqa: E402
 
 OUT_CSV = os.path.join(DATA_DIR, "TableS2_couce_autocorr.csv")
@@ -178,9 +178,10 @@ COLUMNS = ["dataset", "transition", "kind", "delta_gen", "n_fixed_mut",
            "n_90", "cut_90", "r_90", "r_90_null",
            "sim_t", "sim_walks", "sim_walk_len"]
 
-WALK_DIR = os.path.join(DATA_DIR, "FGM_HEAVY_TAILED")
-# Tag of the walk runs written for this table; distinct from the caches Figure 4 reads.
-WALK_TAG = "tbl"
+# One cache per transition, shared with Figure 4 and located through the registry in
+# ``cmn_walksim``.  It holds a wider subset ladder than this table reports, so rungs are
+# selected by fraction rather than by position -- see ``cmn_walkcache.column_for``.
+WALK_DIR = cmn_walksim.WALK_DIR
 
 # Fractions of the EARLY side removed, LARGEST |effect| first.  0.00 keeps every matched pair,
 # so the subsets are nested.  The 2% rung is the one fig1 F and figs S3-S4 report; TableS1's
@@ -349,10 +350,9 @@ def simulated_ladder(early, late):
     have not been run; a cache simulated under a different subset rule is a hard error instead,
     since reporting it beside an |s|-rule measurement would not look wrong anywhere.
     """
-    pattern = (f"poster_fig5_couce_{early}_to_{late}_beta_prime_observed_window_"
-               f"rank_noise_k1_w*_e*_m*_{WALK_TAG}.npz")
+    transition = cmn_walksim.TRANSITIONS[f"couce_{early}_{late}"]
     try:
-        path = cmn_walkcache.locate(WALK_DIR, pattern)
+        path = cmn_walksim.find_cache(transition, WALK_DIR)
     except FileNotFoundError:
         return None
     cache = cmn_walkcache.read(path)
@@ -366,7 +366,8 @@ def simulated_ladder(early, late):
         raise RuntimeError(
             f"{os.path.basename(path)} was simulated from fit_dataset={stored!r}, "
             f"not {expected!r}")
-    return cmn_walkcache.ladder(cache, time=N_FIXED_MUT[(early, late)])
+    return cmn_walkcache.ladder(cache, time=N_FIXED_MUT[(early, late)],
+                                exclusions=TAIL_EXCLUSIONS)
 
 
 def make_row(dataset, transition, pairs, kind, delta_gen, interval=None):
@@ -542,9 +543,7 @@ def main(argv=None):
                      if r["kind"] == "evolved" and not np.isfinite(r["r_100_sim_latent"])]
     if without_walks:
         print("\nNo walk cache found for: " + ", ".join(without_walks))
-        print("  run code_tmp/poster_fig5_couce_noise.py with "
-              f"--exclusions {' '.join(str(f) for f in TAIL_EXCLUSIONS)} "
-              f"--exclusion-mode {EXCLUSION_MODE} --tag {WALK_TAG}")
+        print("  run  python code_figs/sim_walk_caches.py --select dataset=couce")
 
     simulated = [r for r in rows
                  if r["kind"] == "evolved" and np.isfinite(r["r_100_sim_noisy"])]

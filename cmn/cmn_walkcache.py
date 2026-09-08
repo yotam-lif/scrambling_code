@@ -76,15 +76,22 @@ def read(path: str) -> dict[str, object]:
             "metadata": metadata, "path": path}
 
 
-def ladder(cache: dict[str, object], time: int | None) -> dict[str, object]:
+def ladder(cache: dict[str, object], time: int | None, exclusions=None) -> dict[str, object]:
     """Median latent and noisy autocorrelation per retained subset.
 
     ``time`` is a step index, or ``None`` to read each walk at its own terminal step.
     The latent median is over walks; the noisy median is over walks x noise replicates
     pooled, which is what Figure 4 plots.
+
+    ``exclusions`` reduces the result to those fractions, in that order, looked up by value
+    through ``column_for``.  A cache carries one ladder wide enough for every consumer and no
+    two consumers want the same rungs, so a caller states the fractions it reports rather than
+    trusting that the cache happens to be ordered the way its own table is.
     """
     latent, observed = cache["latent"], cache["observed"]
     lengths = np.asarray(cache["walk_lengths"], dtype=int)
+    columns = (slice(None) if exclusions is None
+               else [column_for(cache, fraction) for fraction in exclusions])
     if time is None:
         rows = np.arange(latent.shape[0])
         latent_values = latent[rows, lengths, :]
@@ -103,16 +110,18 @@ def ladder(cache: dict[str, object], time: int | None) -> dict[str, object]:
             "time": time,
             "walks": int(np.isfinite(latent_values[:, 0]).sum()),
             "total_walks": int(latent.shape[0]),
-            "retained_fractions": list(cache["metadata"]["retained_fractions"]),
+            "retained_fractions": (list(cache["metadata"]["retained_fractions"])
+                                   if exclusions is None
+                                   else [1.0 - float(f) for f in exclusions]),
             "exclusion_mode": cache["metadata"]["exclusion_mode"],
-            "latent": np.nanmedian(latent_values, axis=0),
-            "noisy": np.nanmedian(observed_values, axis=0),
+            "latent": np.nanmedian(latent_values, axis=0)[columns],
+            "noisy": np.nanmedian(observed_values, axis=0)[columns],
             "walk_length_median": float(np.median(lengths)),
         }
 
 
 def require_mode(cache: dict[str, object], mode: str, exclusions) -> None:
-    """Fail unless the cache was simulated under the subset rule the caller reports.
+    """Fail unless the cache was simulated under the caller's rule and covers its rungs.
 
     A curve and the measured number printed beside it must mean the same thing.  The
     signed rule (drop the most deleterious fraction) and the magnitude rule (drop the
@@ -126,8 +135,28 @@ def require_mode(cache: dict[str, object], mode: str, exclusions) -> None:
             f"{os.path.basename(cache['path'])} was simulated with exclusion_mode="
             f"{stored_mode!r}, not {mode!r}; regenerate it")
     stored = [float(value) for value in metadata["tail_exclusions"]]
-    wanted = [float(value) for value in exclusions]
-    if not np.allclose(stored, wanted, atol=1.0e-12):
+    missing = [value for value in (float(v) for v in exclusions)
+               if not any(abs(value - held) <= 1.0e-12 for held in stored)]
+    if missing:
         raise RuntimeError(
-            f"{os.path.basename(cache['path'])} holds exclusions {stored}, "
-            f"not {wanted}; regenerate it")
+            f"{os.path.basename(cache['path'])} holds exclusions {stored}, which do not "
+            f"cover {missing}; regenerate it")
+
+
+def column_for(cache: dict[str, object], fraction: float) -> int:
+    """The column index holding one exclusion fraction, looked up BY VALUE.
+
+    Caches carry one ladder wide enough for every consumer, and consumers want different
+    rungs of it -- TableS1 reads 100/95/90, TableS2 100/98/95/90, Figure 4 the full library
+    plus a single cut that is 10% for Limdi and 2% for Couce.  Selecting a rung by its column
+    number is the one mistake in this pipeline that produces a plausible wrong answer instead
+    of an error: an index copied from one cache to another silently draws a different subset
+    under the old label.  So callers name the fraction and this finds it.
+    """
+    stored = [float(value) for value in cache["metadata"]["tail_exclusions"]]
+    for column, value in enumerate(stored):
+        if abs(value - float(fraction)) <= 1.0e-12:
+            return column
+    raise RuntimeError(
+        f"{os.path.basename(cache['path'])} has no {float(fraction):.0%} cut; "
+        f"it holds {stored}")

@@ -15,12 +15,9 @@ The column pairing is not decorative.  The walk in each bottom panel is simulate
 heavy-tailed FGM whose parameters were fitted to the DFE drawn directly above it, so a
 column reads as one claim: this is the landscape the fit sees, and this is what a walk on
 that landscape does to the correlation between an early and a late measurement of the same
-mutation.  The stored walks were generated from an earlier run of the same maximum
-likelihood search and differ from the fits printed in row 1 in the third significant figure
-(REL606 r = 0.382 against 0.379, REL607 0.480 against 0.485, Couce 0K 0.541 against 0.534,
-with sigma and mu likewise); each cache carries the exact numbers it used in its own
-metadata block.  That drift is the reproducibility of a multistart optimum, not a change of
-model.
+mutation.  The walk below and the curve above it are the SAME fit: both read
+data/fig3_fgm_fits.json, and each cache records the parameters it used in its own metadata
+block, so the two rows of a column cannot come to describe different landscapes.
 
 
 ROW 1 -- the fitted DFEs
@@ -52,8 +49,9 @@ Both fits use every retained effect -- no tail trimming -- so the two logliks ar
 maximised on the same sample and are directly comparable.
 
 Fits are cached in data/fig3_fgm_fits.json; pass --refit to recompute them.  The file keeps
-its name because TableS4_fgm_params.py and code_tmp/poster_fig5_couce_noise.py both read it
-by that path, and it holds one entry (couce_2K) that no panel here draws.
+its name because TableS4_fgm_params.py, cmn/cmn_walksim.py and code_tmp/poster_fig5_couce_noise.py
+all read it by that path, and it holds one entry (couce_2K) that no panel here draws but the
+2K -> 15K walk starts from.
 
 
 ROW 2 -- the simulated and measured autocorrelations
@@ -67,21 +65,12 @@ The cut follows cmn_scatter, so each panel matches its own scatter panels in fig
 S1-S4: 10% for the Limdi data, whose effects run out to |s| = 0.65, and 2% for the Couce
 data, whose effects are compact enough that a 10% cut would reach inside the bulk.  Hence
 r90 in panels D and E and r98 in panel F.  All three rank on |s| and drop the
-LARGEST-magnitude fraction, not the signed effect; the drawn column of each cache is checked
-against the ``tail_exclusions`` and ``exclusion_mode`` recorded in that cache's own metadata,
-so a dot and the curve it sits on cannot come to mean different things.  Every cache carries
-a third cut that is loaded and not shown.
+LARGEST-magnitude fraction, not the signed effect.  Every cache carries a wider ladder than
+any one panel draws, and a panel names the FRACTION it wants rather than a column number, so
+a dot and the curve it sits on cannot come to mean different things.
 
-Curves are smoothed for display with a Gaussian filter (sigma = 1.6 steps), with BOTH
-endpoints pinned to their raw values -- t = 0 because r = 1 there by construction, and the
-last step because that is where the measured dots sit and where the plateau is read off.
-This is cosmetic and rounds the corners of the steep stretch around t = 10-16.  It is
-defensible because the step-to-step wiggle it removes is Monte-Carlo noise and nothing else:
-splitting the 500 walks into two disjoint halves gives medians that disagree by 0.01-0.02 at
-exactly the steps where the kinks appear, and the rms second difference of the raw curves
-(0.005 for r100, 0.015 for r90) is BELOW what sampling noise in the median alone would
-produce (0.011 and 0.022).  The honest fix is more walks -- the noise falls as 1/sqrt(N) --
-which means regenerating the caches, not editing this script.
+Curves are smoothed for display, both endpoints pinned to their raw values; the filter and
+the argument that it is cosmetic are in ``cmn/cmn_walkpanel.py``, which draws the panels.
 
 Solid curves are the latent correlation -- the model's own effects, with no measurement
 error anywhere.  Dashed curves add rank-matched measurement noise: each simulated mutation
@@ -131,11 +120,14 @@ the median is taken over a shrinking and increasingly atypical set of survivors 
 rattle.  Panels D and E therefore stop at 15, where 446 and 496 of the 500 walks are still
 going -- and stopping both at the same step is also what makes them readable side by side.
 
-One asymmetry is inherited from the two simulation pipelines and is not a choice made here:
-Couce's probe library is ascertained on the observed 0K effect window, Limdi's on the latent
-ancestral effect clearing the -0.5 assay cut.
+Both datasets now ascertain their probe libraries the same way -- inside the measured effect
+window of the matched empirical library.  That is not cosmetic: a Pearson r over the whole
+library is anchored by its most extreme |s| probes, so admitting simulated mutations the assay
+could never have reported moves r100 hard and the cut subsets barely at all (0.117 on Couce
+r100 against 0.0002 on r90).  See ``cmn/cmn_walksim.py``.
 
-Reads cached walks from data/FGM_HEAVY_TAILED; it does not re-run them.
+Reads cached walks from data/FGM_HEAVY_TAILED; it does not re-run them.  Regenerate with
+``python code_figs/sim_walk_caches.py``.
 
 Run from anywhere:  python code_figs/fig4_autocorrelation.py
 Output:             figs_paper/fig4_autocorrelation.pdf
@@ -147,21 +139,20 @@ import json
 import os
 import sys
 import time
-import warnings
 
 import cmasher  # noqa: F401  (registers the cmr.* colormaps with matplotlib)
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
-from matplotlib.ticker import FixedLocator
-from scipy.ndimage import gaussian_filter1d
 from scipy.optimize import minimize
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
-from cmn import cmn_exper, cmn_fgm, cmn_scatter  # noqa: E402
+from cmn import (  # noqa: E402
+    cmn_exper, cmn_fgm, cmn_walkpanel, cmn_walksim,
+)
 from cmn.cmn_cauchy_fgm import (  # noqa: E402
     cauchy_fgm_dfe_logpdf, cauchy_fgm_dfe_pdf, cauchy_fgm_survival,
 )
@@ -180,11 +171,6 @@ mpl.rcParams['legend.fontsize'] = 14
 DATA_COLOR = "#666666"
 DATA_EDGE = "#4A4A4A"
 
-# Row 2's grid: light enough to read past, since it runs under curves, bands and markers
-# alike and is a reading aid rather than anything the figure claims.
-GRID_COLOR = "#EBEBEB"
-GRID_LINEWIDTH = 0.6
-
 # Row 1 draws two models over one histogram, so its palette is two bands -- exactly the
 # structure cmn_scatter's bands have, and picked the same way: two positions along a single
 # cmasher ramp rather than two independently chosen hexes, so the pair cannot drift out of
@@ -198,12 +184,10 @@ HEAVY_COLOR, CANONICAL_COLOR = (
     mpl.colors.to_hex(mpl.colormaps["cmr.fall"](position))
     for position in MODEL_POSITIONS)
 
-# Row 2 keeps the two band colours of fig1's row 2, with the same meaning: the all-pairs r in
-# the colour of the points its subset adds, the retained-subset r in the colour of the bulk it
-# covers.  Deliberately a different ramp from row 1: the two rows say different things with
-# colour -- which MODEL up top, which SUBSET below -- and reusing one palette across both would
-# invite the reader to carry a meaning from one row into the other.
-CURVE_COLORS = (cmn_scatter.EXCLUDED_COLOR, cmn_scatter.RETAINED_COLOR)
+# Row 2's palette, its grid and its marker geometry all live in ``cmn_walkpanel``, which
+# draws the panel itself.  They are deliberately a different ramp from row 1's: the two
+# rows say different things with colour -- which MODEL up top, which SUBSET below -- and
+# reusing one palette across both would invite the reader to carry a meaning between them.
 
 # ─────────────────────────────── Fit configuration ────────────────────────────────
 LOWER_CUT = -0.5             # both assays stop resolving below this
@@ -216,10 +200,13 @@ PLOT_DX = 1.0e-4
 DFE_Y_LIMITS = (1.0e-2, 1.0e2)   # shared by all three row-1 panels
 MAX_INTEGER_EVALUATIONS = 10  # ceiling on the integer-n profile search
 
-# The fit cache keeps its old name: TableS4_fgm_params.py and code_tmp/poster_fig5_couce_noise.py
-# both read it by this path, and renaming it would silently strand them on a stale copy.
+# The fit cache keeps its old name: TableS4_fgm_params.py, cmn/cmn_walksim.py and
+# code_tmp/poster_fig5_couce_noise.py all read it by this path, and renaming it would silently
+# strand them on a stale copy.
 FIT_JSON = os.path.join(_REPO_ROOT, "data", "fig3_fgm_fits.json")
-WALK_DIR = os.path.join(_REPO_ROOT, "data", "FGM_HEAVY_TAILED")
+# Caches are located through the registry rather than by filename: the stems carry the
+# matched-gene and replicate counts, and no figure should have to track either.
+WALK_DIR = cmn_walksim.WALK_DIR
 # The t = 0 isogenic controls are read from the supplementary table rather than recomputed,
 # so the stars on this figure and the numbers in that table cannot drift apart.
 LIMDI_TABLE = os.path.join(_REPO_ROOT, "data", "TableS1_limdi_autocorr.csv")
@@ -605,27 +592,22 @@ def load_or_fit(refit):
 
 
 # ══════════════════════════════ Row 2: cached walks ═══════════════════════════════
-# Display smoothing -- see the note in the module docstring on why this is cosmetic only.
-# A Gaussian kernel rather than a Savitzky-Golay fit: it has no polynomial to overshoot with
-# and gives a visibly cleaner line, at the cost of rounding the corners of the steep stretch
-# around t = 10-16 rather than tracking them.  Lower SMOOTH_SIGMA to about 1.0 to stay closer
-# to the raw medians.
-SMOOTH_SIGMA = 1.6
-
-# Measured markers: filled stars, area in points^2.  A star's points are thin, so at a given
-# nominal area it reads smaller than a blob of the same number -- hence an area well above the
-# 210 the triangles and crosses used, to keep the same visual weight on the page.  Line2D
-# takes a diameter instead, so the legend handle is sized as sqrt(area) to match the panels.
-MEASURED_MARKER_AREA = 330.0
-
+# Each panel names a transition in ``cmn_walksim.TRANSITIONS`` and the ancestral subsets it
+# draws.  Subsets are named as EXCLUDED FRACTIONS, not as column indices: the caches carry one
+# ladder wide enough for every consumer, and ``cmn_walkpanel`` resolves a fraction to whatever
+# column holds it, so a panel cannot silently draw a different subset under the old label.
+#
+# The cut follows cmn_scatter, so each panel matches its own scatter panels in fig1 and figs
+# S1-S4: 10% for the Limdi data, whose effects run out to |s| = 0.65, and 2% for the Couce
+# data, whose effects are compact enough that a 10% cut would reach inside the bulk.  Hence
+# r90 in panels D and E and r98 in panel F.
 PANELS = (
     {
-        "cache": ("poster_fig5_limdi_REL606_to_Ara_minus_1_without_errors_"
-                  "rank_noise_k1_w500_e10_m3441_absmag.npz"),
+        "transition": "limdi_REL606_Ara-1",
         "title": "ARA-1 (LB)",
         # Limdi effects run out to |s| = 0.65, so cmn_scatter drops 10%.
-        "cuts": ((0, 0.00), (2, 0.10)),
-        # These walks peak after a median of 19 steps; past 15 the median runs out of
+        "fractions": (0.00, 0.10),
+        # These walks peak after a median of about 19 steps; past 15 the median runs out of
         # surviving walks and becomes noise.
         "display_steps": 15,
         # The leftmost panel is the one a reader meets first, so it carries both keys: the
@@ -639,13 +621,9 @@ PANELS = (
                      "note": "Measured at $t = 1100$ $\\rightarrow$"}),
     },
     {
-        "cache": ("poster_fig5_limdi_REL607_to_Ara_plus_2_without_errors_"
-                  "rank_noise_k1_w500_e10_m3375_tbl.npz"),
+        "transition": "limdi_REL607_Ara+2",
         "title": "ARA+2 (LB)",
-        # Same 10% Limdi cut as panel D, but this cache's middle column is 5% where the
-        # Ara-1 cache's is 2%, so the index is not interchangeable between the two -- which
-        # is exactly what the metadata check in ``load_curves`` is there to catch.
-        "cuts": ((0, 0.00), (2, 0.10)),
+        "fractions": (0.00, 0.10),
         # 496 of the 500 walks are still going at step 15; stopping here as well as in
         # panel D also keeps the two Limdi panels on one x range.
         "display_steps": 15,
@@ -657,11 +635,10 @@ PANELS = (
                      "note": "Measured at $t = 70$ $\\rightarrow$"}),
     },
     {
-        "cache": ("poster_fig5_couce_0K_to_15K_beta_prime_observed_window_"
-                  "rank_noise_k1_w500_e10_m8429_absmag.npz"),
+        "transition": "couce_0K_15K",
         "title": "ARA+2 (DM25)",
         # Couce effects are compact, so cmn_scatter drops 2% -- see SHALLOW_MAGNITUDE_EXCLUSIONS.
-        "cuts": ((0, 0.00), (1, 0.02)),
+        "fractions": (0.00, 0.02),
         # Terminated walks are held at their peak, so all 500 contribute throughout.
         "display_steps": 25,
         # Its cut is 2% where the two Limdi panels are 10%, so it needs its own colour key.
@@ -682,25 +659,6 @@ PANELS = (
                     {"time": 9, "ladder": {"r100": 0.48, "r98": 0.25}}),
     },
 )
-
-
-def smooth(trace):
-    """Gaussian filter along the step axis, per cut, with BOTH endpoints held exact.
-
-    The kernel has no data past either end of the trace, so both endpoints are where it is
-    least trustworthy -- and both are where the figure makes a claim: t = 0 is r = 1 by
-    construction, and the last step is where the measured dots sit and where the plateau is
-    read off.
-
-    Left alone when the trace carries a NaN, which is what a cache whose walks have run out
-    of survivors looks like; the filter would spread that NaN across the whole kernel.
-    """
-    if not np.isfinite(trace).all():
-        return trace
-    smoothed = gaussian_filter1d(trace, SMOOTH_SIGMA, axis=0, mode="nearest")
-    smoothed[0] = trace[0]
-    smoothed[-1] = trace[-1]
-    return smoothed
 
 
 # ─────────────────────────────── Measured correlations ────────────────────────────
@@ -748,7 +706,7 @@ def empirical_ladder(spec, exclusions):
     ladder = {}
     for excluded in exclusions:
         kept = order[: ancestor.size - int(np.floor(excluded * ancestor.size))]
-        ladder[cut_key(excluded)] = float(
+        ladder[cmn_walkpanel.cut_key(excluded)] = float(
             np.corrcoef(ancestor[kept], evolved[kept])[0, 1])
     return ladder
 
@@ -776,7 +734,7 @@ def control_ladder(table, transition, exclusions):
     row = rows[0]
     ladder = {}
     for excluded in exclusions:
-        key = cut_key(excluded)
+        key = cmn_walkpanel.cut_key(excluded)
         column = f"r_{key[1:]}"
         if not row.get(column):
             raise SystemExit(f"{os.path.basename(table)} row {transition!r} has no "
@@ -788,8 +746,8 @@ def control_ladder(table, transition, exclusions):
 def marker_ladder(marker, exclusions):
     """One marker's ``{cut key: r}``: stated in the panel, tabulated, or measured here."""
     if "ladder" in marker:
-        missing = [cut_key(excluded) for excluded in exclusions
-                   if cut_key(excluded) not in marker["ladder"]]
+        missing = [cmn_walkpanel.cut_key(excluded) for excluded in exclusions
+                   if cmn_walkpanel.cut_key(excluded) not in marker["ladder"]]
         if missing:
             raise SystemExit(f"Marker at t={marker['time']} has no value for "
                              + ", ".join(missing))
@@ -797,62 +755,6 @@ def marker_ladder(marker, exclusions):
     if "control" in marker:
         return control_ladder(*marker["control"], exclusions)
     return empirical_ladder(marker["pair"], exclusions)
-
-
-def cut_key(excluded):
-    """``r100``/``r98``/``r90``: the retained percentage, not the dropped one."""
-    return f"r{int(round(100 * (1.0 - excluded)))}"
-
-
-# ────────────────────────────────── Cached walks ──────────────────────────────────
-def load_curves(name, last_time, cuts):
-    """Median latent and observed traces plus the observed 16-84% band.
-
-    Couce caches are ``(walks, steps, cuts)``; Limdi caches carry a leading model axis,
-    ``(models, walks, steps, cuts)``, with a single model in it.  Drop that axis so both
-    give ``(steps, 3)`` for the medians and ``(walks x noise, steps, 3)`` for the pooled
-    observations.
-
-    The columns named in ``cuts`` are checked against the ``tail_exclusions`` the cache
-    itself records.  The three caches do NOT share a cut axis -- (0, 2%, 10%) for two of
-    them and (0, 5%, 10%) for the third -- so a column index copied from one panel to
-    another would silently draw a different subset under the old label.
-    """
-    path = os.path.join(WALK_DIR, name)
-    if not os.path.exists(path):
-        raise SystemExit(f"Missing walk cache: {path}")
-    arrays = np.load(path)
-    metadata = json.loads(str(arrays["metadata"]))
-    if metadata.get("exclusion_mode") != "magnitude":
-        raise SystemExit(f"{name} was built with exclusion_mode="
-                         f"{metadata.get('exclusion_mode')!r}, expected 'magnitude'")
-    cached = metadata["tail_exclusions"]
-    for column, excluded in cuts:
-        if not np.isclose(cached[column], excluded):
-            raise SystemExit(f"{name} column {column} is a {cached[column]:.0%} cut, "
-                             f"but the panel asks for {excluded:.0%}")
-
-    latent = arrays["latent_correlations"]
-    observed = arrays["observed_correlations"]
-    if latent.ndim == 4:          # leading model axis
-        if latent.shape[0] != 1:
-            raise SystemExit(f"{name} holds {latent.shape[0]} models; expected one")
-        latent, observed = latent[0], observed[0]
-    steps = min(last_time, latent.shape[1] - 1)
-    latent = latent[:, : steps + 1, :]
-    observed = observed[:, :, : steps + 1, :]
-    pooled = observed.reshape(-1, observed.shape[-2], observed.shape[-1])
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        return {
-            "times": np.arange(steps + 1),
-            "surviving": np.isfinite(latent[:, :, 0]).sum(axis=0),
-            "walks": latent.shape[0],
-            "latent": smooth(np.nanmedian(latent, axis=0)),
-            "observed": smooth(np.nanmedian(pooled, axis=0)),
-            "lower": smooth(np.nanquantile(pooled, 0.16, axis=0)),
-            "upper": smooth(np.nanquantile(pooled, 0.84, axis=0)),
-        }
 
 
 # ══════════════════════════════════ Row 1 drawing ═════════════════════════════════
@@ -892,20 +794,6 @@ def adaptive_histogram(effects, fine_bin_width, min_count):
     return centers, density, error, counts, widths
 
 
-def style_axis(axis):
-    """The spine, tick and offset geometry every panel in this figure shares."""
-    for spine in ("top", "right"):
-        axis.spines[spine].set_visible(False)
-    axis.spines["bottom"].set_position(("outward", 10))
-    axis.spines["left"].set_position(("outward", 10))
-    axis.xaxis.set_ticks_position("bottom")
-    axis.yaxis.set_ticks_position("left")
-    for spine in axis.spines.values():
-        spine.set_linewidth(1.5)
-    axis.tick_params(axis="both", which="major", length=10, width=1.5)
-    axis.tick_params(axis="both", which="minor", length=5, width=1.6)
-
-
 def draw_dfe_panel(axis, effects, grid, canonical, heavy, config):
     xlim = config["xlim"]
     centers, density, error, counts, widths = adaptive_histogram(
@@ -922,7 +810,7 @@ def draw_dfe_panel(axis, effects, grid, canonical, heavy, config):
 
     axis.set_yscale("log")
     axis.set_xlim(*xlim)
-    style_axis(axis)
+    cmn_walkpanel.style_axis(axis)
 
 
 def parameter_block(fit, heavy):
@@ -1000,62 +888,10 @@ def place_parameter_blocks(axes, legend, blocks):
 
 
 # ══════════════════════════════════ Row 2 drawing ═════════════════════════════════
-def draw_autocorr_panel(axis, curves, ladders, last_time, cuts):
-    times = curves["times"]
-    columns = [column for column, _ in cuts]
-    keys = tuple(cut_key(excluded) for _, excluded in cuts)
-    for cut, color in zip(columns, CURVE_COLORS):
-        axis.fill_between(times, curves["lower"][:, cut], curves["upper"][:, cut],
-                          color=color, alpha=0.12, linewidth=0)
-        axis.plot(times, curves["latent"][:, cut], color=color, linewidth=2.7)
-        axis.plot(times, curves["observed"][:, cut], color=color, linewidth=2.5,
-                  linestyle=(0, (4.0, 2.4)))
-
-    # Only the drawn cuts set the y floor; the third cached cut is not on the figure.
-    drawn = np.asarray(columns)
-    floor = min(float(np.nanmin(curves["lower"][:, drawn])),
-                float(np.nanmin(curves["latent"][:, drawn])))
-    for time, ladder, note in ladders:
-        if time > last_time:
-            raise SystemExit(
-                f"Measured marker at t={time} is outside the {last_time}-step frame")
-        axis.axvline(time, color="#777777", linewidth=1.3,
-                     linestyle=(0, (2.0, 2.5)), zorder=1)
-        for key, color in zip(keys, CURVE_COLORS):
-            # clip_on stays off so a marker sitting on the frame edge is drawn whole.
-            axis.scatter([time], [ladder[key]], s=MEASURED_MARKER_AREA, marker="*",
-                         facecolor=color, edgecolor="white", linewidth=1.0,
-                         zorder=7, clip_on=False)
-        if note:
-            axis.annotate(
-                note, xy=(time, max(ladder[key] for key in keys)),
-                xytext=(-4, 16), textcoords="offset points", ha="right",
-                va="bottom", fontsize=12.5, color="#555555", annotation_clip=False)
-        floor = min(floor, min(ladder[key] for key in keys))
-    return floor
-
-
-def cut_legend(axis, cuts, **placement):
-    """Colour key: which ancestral subset each band is."""
-    return axis.legend(
-        [Line2D([], [], color=color, linewidth=2.7) for color in CURVE_COLORS],
-        [rf"$r_{{{int(round(100 * (1.0 - excluded)))}\%}}$" for _, excluded in cuts],
-        loc="lower left", frameon=False, handlelength=2.0, labelspacing=0.35,
-        **placement)
-
-
-def style_legend(axis):
-    """Style key: latent against noisy against measured.  The same in all three panels."""
-    return axis.legend(
-        [Line2D([], [], color="#555555", linewidth=2.7),
-         Line2D([], [], color="#555555", linewidth=2.5, linestyle=(0, (4.0, 2.4))),
-         Line2D([], [], marker="*", linestyle="none",
-                markersize=np.sqrt(MEASURED_MARKER_AREA),
-                markerfacecolor="#777777", markeredgecolor="white")],
-        ["Latent", "Noisy", "Measured"],
-        loc="lower left", frameon=False, handlelength=2.4, labelspacing=0.35)
-
-
+# The panel itself -- bands, curves, stars, smoothing, legends and grid -- is drawn by
+# ``cmn_walkpanel``, which the all-lineages supplement calls the same way.  What stays here is
+# the three-column arrangement: which transitions, which subsets, where the markers go, and
+# which panel carries which legend.
 def build_autocorr_row(axes):
     """Draw the three autocorrelation panels.
 
@@ -1064,38 +900,25 @@ def build_autocorr_row(axes):
     """
     floor, side_by_side = 1.0, []
     for index, (axis, panel) in enumerate(zip(axes, PANELS)):
-        curves = load_curves(panel["cache"], panel["display_steps"], panel["cuts"])
-        exclusions = tuple(excluded for _, excluded in panel["cuts"])
-        ladders = [(marker["time"], marker_ladder(marker, exclusions),
-                    marker.get("note"))
+        transition = cmn_walksim.TRANSITIONS[panel["transition"]]
+        fractions = panel["fractions"]
+        curves = cmn_walkpanel.curves(
+            cmn_walksim.find_cache(transition, WALK_DIR),
+            panel["display_steps"], fractions)
+        ladders = [(marker["time"], marker_ladder(marker, fractions), marker.get("note"))
                    for marker in panel["markers"]]
+        floor = min(floor, cmn_walkpanel.draw(axis, curves, ladders))
         last_time = int(curves["times"][-1])
-        floor = min(floor,
-                    draw_autocorr_panel(axis, curves, ladders, last_time, panel["cuts"]))
-        axis.set_title(panel["title"], pad=10)
-        axis.set_xlabel("Fixed background mutations")
-        # One shared y axis across the row, so it is named and ticked once, on D.
-        if index == 0:
-            axis.set_ylabel("Pearson autocorrelation")
-        axis.set_xlim(0, last_time)
-        spacing = 5 if last_time <= 25 else 10
-        axis.xaxis.set_major_locator(
-            FixedLocator(list(range(0, last_time + 1, spacing))))
-        style_axis(axis)
-        # A light rule at every major tick of BOTH axes, so a plateau height and the step it
-        # is reached at can be read off without tracking a value back to the spine.  Pushed
-        # behind everything the panel draws: set_axisbelow drops the whole axis layer below
-        # the artists -- which is what the filled bands need, being patches at zorder 1 --
-        # and the per-line zorder puts it behind anything that might be given a zorder of
-        # its own below that.
-        axis.set_axisbelow(True)
-        axis.grid(True, which="major", color=GRID_COLOR,
-                  linewidth=GRID_LINEWIDTH, alpha=1.0, zorder=0)
-        for gridline in axis.get_xgridlines() + axis.get_ygridlines():
-            gridline.set_zorder(0)
-        # After style_axis, not before: its set_ticks_position("left") puts the shared
-        # axis's labels back, exactly as it does in row 1.
+        # A fixed [0, 1] frame: r = 1 is the value every curve starts at and r = 0 is no
+        # correlation left, so the row is read against the two ends of the scale rather than
+        # against whatever the lowest band happened to reach.  One shared y axis across the
+        # row, so it is named and ticked once, on D.
+        cmn_walkpanel.finish_axis(
+            axis, last_time, title=panel["title"],
+            ylabel="Pearson autocorrelation" if index == 0 else None)
         if index != 0:
+            # finish_axis calls set_ticks_position("left"), which undoes the shared axis's
+            # label suppression, so the labels have to be switched off again afterwards.
             axis.tick_params(axis="y", labelleft=False)
 
         for (time, ladder, _), marker in zip(ladders, panel["markers"]):
@@ -1108,8 +931,7 @@ def build_autocorr_row(axes):
             print(f"{panel['title']} {source} at t={time}: measured "
                   + ", ".join(f"{key}={value:+.3f}" for key, value in ladder.items())
                   + "   simulated observed "
-                  + ", ".join(f"{value:+.3f}" for value in
-                              curves["observed"][time][[c for c, _ in panel["cuts"]]]))
+                  + ", ".join(f"{value:+.3f}" for value in curves["observed"][time]))
         print(f"  walks alive at t={last_time}: "
               f"{curves['surviving'][-1]}/{curves['walks']}")
 
@@ -1121,33 +943,23 @@ def build_autocorr_row(axes):
             # Re-adding the style key as an artist keeps the second ``legend`` call on the
             # same axes from replacing it.  The colour key beside it cannot be placed yet --
             # see ``place_side_legends``.
-            style = style_legend(axis)
+            style = cmn_walkpanel.style_legend(axis)
             axis.add_artist(style)
-            side_by_side.append((axis, style, panel["cuts"]))
+            side_by_side.append((axis, style, fractions))
         else:
-            cut_legend(axis, panel["cuts"])
+            cmn_walkpanel.cut_legend(axis, fractions)
 
-    # A fixed [0, 1] frame: r = 1 is the value every curve starts at and r = 0 is no
-    # correlation left, so the row is read against the two ends of the scale rather than
-    # against whatever the lowest band happened to reach.  Anything that dips below zero is
-    # therefore cut off, which is worth saying out loud rather than leaving to the eye.
+    # Anything that dips below the frame is therefore cut off, which is worth saying out loud
+    # rather than leaving to the eye.
     if floor < 0.0:
         print(f"  note: lowest drawn value is {floor:+.3f}, clipped by the [0, 1] y limits")
-    axes[0].set_ylim(0.0, 1.0)
     return side_by_side
 
 
 def place_side_legends(side_by_side):
-    """Set the colour key down just clear of the style key it sits beside.
-
-    The gap is measured, not guessed.  How wide the style key is in axes coordinates is
-    only known after a layout pass, and it moves with the font size and the panel width --
-    a hardcoded offset put "Latent / Noisy / Measured" straight through the r_100% handle.
-    """
-    for axis, style, cuts in side_by_side:
-        right = style.get_window_extent().transformed(axis.transAxes.inverted()).x1
-        cut_legend(axis, cuts, bbox_to_anchor=(right + 0.045, 0.0),
-                   bbox_transform=axis.transAxes)
+    """Set each colour key down just clear of the style key it sits beside."""
+    for axis, style, fractions in side_by_side:
+        cmn_walkpanel.place_beside(axis, style, fractions)
 
 
 # ════════════════════════════════════ Assembly ════════════════════════════════════
