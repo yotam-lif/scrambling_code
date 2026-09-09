@@ -98,11 +98,11 @@ upper bound on a ceiling, not a control -- see the FIT-VARIANT ROWS block in
 the frame and read as an assay far more reproducible than Limdi's, when it is really the only
 column whose t = 0 would not be a replicate.  Better absent than misleading.
 
-Panel F carries two sets of dots.  The right-hand set sits at 22 fixed mutations, the count
-the 0K -> 15K walk cache was built around; the left-hand set at 9 is the short 0K -> 2K leg.
-(The main text quotes roughly 8 fixed mutations for the 0-2K interval and 22 for 2K-15K, so
-the right-hand dots are the later interval rather than the cumulative total; keep the two
-consistent when the caption is written.)  The t = 9 correlations are stated in ``PANELS``
+Panel F carries two sets of dots.  The right-hand set sits at 30 fixed mutations, the 0K ->
+15K interval; the left-hand set at 9 is the short 0K -> 2K leg.
+(The main text quotes roughly 8 fixed mutations for the 0-2K interval, so the left-hand dots
+are that leg and the right-hand ones are the cumulative count by 15K; keep the two consistent
+when the caption is written.)  The t = 9 correlations are stated in ``PANELS``
 rather than recomputed here -- see the comment on that marker.
 
 Panels D and E instead put their dots at the right-hand edge, labelled with the substitution
@@ -640,7 +640,7 @@ PANELS = (
         # Couce effects are compact, so cmn_scatter drops 2% -- see SHALLOW_MAGNITUDE_EXCLUSIONS.
         "fractions": (0.00, 0.02),
         # Terminated walks are held at their peak, so all 500 contribute throughout.
-        "display_steps": 25,
+        "display_steps": 35,
         # Its cut is 2% where the two Limdi panels are 10%, so it needs its own colour key.
         "legend": "cuts",
         # The fixed-mutation count the 0K -> 15K cache was built around, plus the
@@ -655,7 +655,7 @@ PANELS = (
         # error (a real replicate scores about 1).  It correlates at r = 0.98 and would sit
         # pinned at the top of the frame, reading as an assay far more reproducible than
         # Limdi's when it is really the only column whose t = 0 is not a replicate at all.
-        "markers": ({"time": 22, "pair": ("couce", "0K", "15K")},
+        "markers": ({"time": 30, "pair": ("couce", "0K", "15K")},
                     {"time": 9, "ladder": {"r100": 0.48, "r98": 0.25}}),
     },
 )

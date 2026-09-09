@@ -128,7 +128,7 @@ def waterfall_plot_panel(ax, time_datasets, colors, time_values,
     dx = 0.03 * (xmax_g - xmin_g)
     for v in time_values:
         ax.text(xmax_g + dx, v, 0.0, f" {v}%", fontsize=16, ha="left", va="center")
-    ax.set_xlabel(r"Fitness effect $(s)$", labelpad=2)
+    ax.set_xlabel(r"Fitness effect $(\Delta)$", labelpad=2)
     ax.set_ylabel(r"$t$", labelpad=7)
 
     for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
@@ -139,16 +139,20 @@ def waterfall_plot_panel(ax, time_datasets, colors, time_values,
         ax.set_title(title, fontsize=16, pad=10)
 
 
-def extract_fgm_ridge_data(reps):
+def extract_fgm_ridge_data(reps, anchor_pct=85, num_reps=NUM_REPS_EVOL):
     combined = [[] for _ in PERCENTS]
-    for rep in reps[:NUM_REPS_EVOL]:
+    for rep in reps[:num_reps]:
         if not isinstance(rep, dict):
             continue
         walk_length = len(rep["dfes"])
-        # Re-anchor the reference position: the walk's state after 75% of the
-        # simulation becomes the new t=0%, and the remaining 75%->100% span is
-        # rescaled onto PERCENTS (so the old 75% slice is the new 0% slice).
-        start_idx = int(85 * (walk_length - 1) / 100)
+        # Re-anchor the reference position: the walk's state after ``anchor_pct``
+        # of the simulation becomes the new t=0%, and the remaining span is
+        # rescaled onto PERCENTS. FGM walks spend most of their length far from
+        # the optimum where the DFE barely moves, so the informative dynamics
+        # only show up once the tail end of the walk is stretched out. The two
+        # mutation kernels approach the optimum at different rates, hence the
+        # per-panel anchor.
+        start_idx = int(anchor_pct * (walk_length - 1) / 100)
         span = (walk_length - 1) - start_idx
         for idx, pct in enumerate(PERCENTS):
             t_idx = start_idx + int(pct * span / 100)
@@ -185,13 +189,20 @@ def extract_nk_ridge_data(nk_data):
 
 
 def load_fgm_reps():
-    for path in [
-        "../data/FGM/fgm_rps100_n4_sig0.05.pkl",
-    ]:
-        if os.path.exists(path):
-            with open(path, "rb") as f:
-                return pickle.load(f)
-    return []
+    path = "../data/FGM/fgm_rps1000_n4_sig0.05.pkl"
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"FGM data file not found: {path}")
+    with open(path, "rb") as f:
+        return pickle.load(f)
+
+
+def load_fgm_heavy_reps():
+    path = ("../data/FGM_HEAVY_TAILED/"
+            "fgm_rps1000_n4_m1000_sig0.05_heavy_tailed_mu0.45_r1.0.pkl")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Heavy-tailed FGM data file not found: {path}")
+    with open(path, "rb") as f:
+        return pickle.load(f)
 
 
 def load_pspin_data():
@@ -203,11 +214,11 @@ def load_pspin_data():
 
 
 def load_nk_single_k():
-    path = "../data/NK/N_700_K_4_repeats_10.pkl"
-    if os.path.exists(path):
-        with open(path, "rb") as f:
-            return pickle.load(f)
-    return []
+    path = "../data/NK/N_2000_K_8_repeats_100.pkl"
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"NK data file not found: {path}")
+    with open(path, "rb") as f:
+        return pickle.load(f)
 
 
 def _content_bbox(fig, pad=0.1):
@@ -236,42 +247,55 @@ def main():
     print("Loading FGM data...")
     fgm_reps = load_fgm_reps()
 
+    print("Loading heavy-tailed FGM data...")
+    fgm_heavy_reps = load_fgm_heavy_reps()
+
     print("Loading PSPIN data...")
     pspin_data = load_pspin_data()
 
     print("Loading NK data...")
     nk_data = load_nk_single_k()
 
-    fgm_datasets = extract_fgm_ridge_data(fgm_reps)
+    fgm_datasets = extract_fgm_ridge_data(fgm_reps, anchor_pct=85)
+    # Heavy-tailed walks are much shorter and settle earlier, so their tail end
+    # is already static; anchoring at the walk midpoint keeps the five slices
+    # distinct.
+    # The heavy-tailed bulk sits in a narrow window that needs fine bins, so
+    # pool more walks to keep those bins well populated.
+    fgm_heavy_datasets = extract_fgm_ridge_data(fgm_heavy_reps, anchor_pct=50,
+                                                num_reps=100)
     pspin_datasets = extract_pspin_ridge_data(pspin_data)
     nk_datasets = extract_nk_ridge_data(nk_data)
 
     fig = plt.figure(figsize=(16, 14))
-    # left margin gives the FGM panel's 3d content room to overflow its cell
+    # left margin gives the FGM panels' 3d content room to overflow their cell
     # without being clipped at the canvas edge (the tight crop can only recover
     # pixels that were actually drawn on-canvas).
-    # 2 panels on the top row, 1 centred on the bottom row: a 2x4 grid where
-    # the top panels each span 2 columns and the bottom panel spans the middle
-    # 2 columns (cols 1-2), leaving it horizontally centred.
-    gs = fig.add_gridspec(2, 4, hspace=0.30, wspace=0.30, left=0.04, right=0.90)
-    ax1 = fig.add_subplot(gs[0, 0:2], projection="3d")
-    ax2 = fig.add_subplot(gs[0, 2:4], projection="3d")
-    ax3 = fig.add_subplot(gs[1, 1:3], projection="3d")
+    gs = fig.add_gridspec(2, 2, hspace=0.30, wspace=-0.02, left=0.04, right=0.90)
+    ax1 = fig.add_subplot(gs[0, 0], projection="3d")
+    ax2 = fig.add_subplot(gs[0, 1], projection="3d")
+    ax3 = fig.add_subplot(gs[1, 0], projection="3d")
+    ax4 = fig.add_subplot(gs[1, 1], projection="3d")
 
-    waterfall_plot_panel(ax1, fgm_datasets, CMR_COLORS, PERCENTS,
-                         title="FGM", xlim=(-0.06, 0.04))
-    waterfall_plot_panel(ax2, pspin_datasets, CMR_COLORS, PERCENTS,
+    waterfall_plot_panel(ax1, pspin_datasets, CMR_COLORS, PERCENTS,
                          title="p-spin", xlim=(-15.0, 13.0))
-    waterfall_plot_panel(ax3, nk_datasets, CMR_COLORS, PERCENTS,
-                         title="NK", xlim=(-50.0, 40.0))
+    waterfall_plot_panel(ax2, nk_datasets, CMR_COLORS, PERCENTS,
+                         title="NK", xlim=(-25.0, 18.0))
+    waterfall_plot_panel(ax3, fgm_datasets, CMR_COLORS, PERCENTS,
+                         title="Canonical FGM", xlim=(-0.06, 0.04))
+    # The heavy-tailed kernel puts a long deleterious tail out to s = -1; the
+    # panel zooms on the bulk, and the finer binning keeps that bulk resolved
+    # despite the bins being laid out across the full data span.
+    waterfall_plot_panel(ax4, fgm_heavy_datasets, CMR_COLORS, PERCENTS,
+                         title="HT FGM", xlim=(-0.12, 0.06), bins=250)
 
     label_kw = dict(fontsize=18, fontweight="bold", va="bottom", ha="left")
-    for panel_label, ax in zip(["A", "B", "C"], [ax1, ax2, ax3]):
+    for panel_label, ax in zip(["A", "B", "C", "D"], [ax1, ax2, ax3, ax4]):
         ax.text2D(-0.05, 1.05, panel_label, transform=ax.transAxes, **label_kw)
 
     out_dir = os.path.join("..", "figs_paper")
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "figS13_dfe_dynamics.pdf")
+    out_path = os.path.join(out_dir, "figS9_dfe_dynamics.pdf")
     fig.savefig(out_path, format="pdf", bbox_inches=_content_bbox(fig, pad=0.2))
     print(f"Saved: {out_path}")
 
