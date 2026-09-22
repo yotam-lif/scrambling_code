@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 r"""Table S4: fitted FGM parameters for every background the paper simulates from.
 
-Four DFEs, one row each, all fitted by the same full unbinned maximum likelihood as Figure 3
-(``code_figs/fig3_fgm_fits.py``, cached in ``data/fig3_fgm_fits.json``).  This table does not
-refit anything -- it reads that cache -- so the numbers here and the curves in Figure 3 cannot
-drift apart.  Run ``python code_figs/fig3_fgm_fits.py`` first if the cache is missing an entry.
+Four DFEs, one row each, all fitted by the same full unbinned maximum likelihood as Figure 4
+(``code_figs/fig4_autocorrelation.py``, cached in ``data/fig3_fgm_fits.json``).  This table does not
+refit anything -- it reads that cache -- so the numbers here and the curves in Figure 4 cannot
+drift apart.  Run ``python code_figs/fig4_autocorrelation.py`` first if the cache is missing an entry.
 
 WHAT THE ROWS ARE, AND WHY THESE FOUR.  Every adaptive walk in the paper starts from a fitted
 background, and there are exactly four of them:
@@ -39,8 +39,8 @@ TWO MODELS, ON THE SAME SAMPLE.
                 mu = 1/2 is a radial Cauchy; mu -> infinity at fixed sigma^2 recovers the
                 canonical model.  Parameters n, r, sigma, mu.
 
-Both are conditional on the observed effect clearing ``s >= -0.5``, which is where both assays
-stop resolving deleterious effects, and both use every retained effect with no tail trimming --
+The Limdi and Couce fits are conditional on ``s >= -0.5`` and ``s >= -0.2`` respectively,
+where their assays stop resolving deleterious effects. Both use every retained effect with no tail trimming --
 so the two logliks are maximised on the same sample and ``dloglik`` compares them directly.
 Neither is convolved with the published measurement errors, which is what makes them the right
 input to a walk that RE-ADDS those errors afterwards; using an error-aware fit there would count
@@ -76,10 +76,18 @@ merely rounded its n, keeping that fit's r, sigma and mu, which differed from th
 integer refit by up to 1.4%.  A future divergence would show up here instead of silently.
 ``nan`` means no cache for that background -- run ``python code_figs/sim_walk_caches.py``.
 
+The approximate 95% confidence intervals for r, sigma and mu are observed-information
+(Wald) intervals in log-parameter coordinates, conditional on the reported integer n.
+Canonical lower limits are clipped to the support of the observed data. These describe
+local likelihood curvature; they do not account for uncertainty in choosing n.
+
     data/TableS4_fgm_params.csv
     columns: dataset, background, assay, N, s_min, s_max,
-             canon_n_cont, canon_n, canon_r, canon_sigma, canon_loglik,
-             heavy_n_cont, heavy_n, heavy_r, heavy_sigma, heavy_mu, heavy_loglik,
+             canon_n_cont, canon_n, canon_r, canon_r_ci_low, canon_r_ci_high,
+             canon_sigma, canon_sigma_ci_low, canon_sigma_ci_high, canon_loglik,
+             heavy_n_cont, heavy_n, heavy_r, heavy_r_ci_low, heavy_r_ci_high,
+             heavy_sigma, heavy_sigma_ci_low, heavy_sigma_ci_high,
+             heavy_mu, heavy_mu_ci_low, heavy_mu_ci_high, heavy_loglik,
              heavy_n_walk, heavy_r_walk, heavy_sigma_walk, heavy_mu_walk,
              dloglik_heavy_minus_canon
 
@@ -99,15 +107,19 @@ if REPO_DIR not in sys.path:
     sys.path.insert(0, REPO_DIR)
 import numpy as np  # noqa: E402
 from cmn import cmn_walksim  # noqa: E402
+from cmn import cmn_exper, cmn_fgm  # noqa: E402
+from cmn.cmn_cauchy_fgm import cauchy_fgm_dfe_logpdf, cauchy_fgm_survival  # noqa: E402
 from cmn.cmn_exper import DATA_DIR  # noqa: E402
 
 FIT_JSON = os.path.join(REPO_DIR, "data", "fig3_fgm_fits.json")
 OUT_CSV = os.path.join(DATA_DIR, "TableS4_fgm_params.csv")
 
 COLUMNS = ["dataset", "background", "assay", "N", "s_min", "s_max",
-           "canon_n_cont", "canon_n", "canon_r", "canon_sigma", "canon_loglik",
-           "heavy_n_cont", "heavy_n", "heavy_r", "heavy_sigma", "heavy_mu",
-           "heavy_loglik",
+           "canon_n_cont", "canon_n", "canon_r", "canon_r_ci_low", "canon_r_ci_high",
+           "canon_sigma", "canon_sigma_ci_low", "canon_sigma_ci_high", "canon_loglik",
+           "heavy_n_cont", "heavy_n", "heavy_r", "heavy_r_ci_low", "heavy_r_ci_high",
+           "heavy_sigma", "heavy_sigma_ci_low", "heavy_sigma_ci_high",
+           "heavy_mu", "heavy_mu_ci_low", "heavy_mu_ci_high", "heavy_loglik",
            "heavy_n_walk", "heavy_r_walk", "heavy_sigma_walk", "heavy_mu_walk",
            "dloglik_heavy_minus_canon"]
 
@@ -130,8 +142,90 @@ def load_fits(path=FIT_JSON):
     if missing:
         raise SystemExit(
             f"{path} has no fit for: {', '.join(missing)}.\n"
-            "Run  python code_figs/fig3_fgm_fits.py  to add them.")
+            "Run  python code_figs/fig4_autocorrelation.py  to add them.")
     return entries
+
+
+def retained_effects(key, cut):
+    """Reload exactly the effects used in the cached Figure 4 fit."""
+    if key.startswith("limdi_"):
+        effects = cmn_exper.limdi_gene_series(key.removeprefix("limdi_")).to_numpy(float)
+    else:
+        effects = cmn_exper.load_couce_segment_series(key.removeprefix("couce_")).to_numpy(float)
+    return effects[np.isfinite(effects) & (effects >= cut)]
+
+
+def parameter_intervals(effects, cut, fit, heavy):
+    """Local 95% Wald intervals from observed information with integer n held fixed.
+
+    Work in log(r, sigma[, mu]) so limits stay positive. The central-difference Hessian
+    includes mixed derivatives, and its inverse retains parameter covariances.
+    """
+    names = ("r", "sigma", "mu") if heavy else ("r", "sigma")
+    center = np.log([fit[name] for name in names])
+    step = 1.0e-4
+    n = fit["n"]
+
+    def objective(theta):
+        params = dict(zip(names, np.exp(theta)))
+        if heavy:
+            log_density = cauchy_fgm_dfe_logpdf(
+                effects, n=n, r=params["r"], sigma=params["sigma"], mu=params["mu"])
+            survival = cauchy_fgm_survival(
+                cut, n=n, r=params["r"], sigma=params["sigma"], mu=params["mu"])
+        else:
+            log_density = cmn_fgm.fgm_fitness_dfe_logpdf(
+                effects, n=n, r=params["r"], sigma=params["sigma"])
+            survival = cmn_fgm.fgm_fitness_survival_many_eps(
+                cut, n=n, r=params["r"], sigma=params["sigma"], eps=np.array([0.0]))[0]
+        if np.any(~np.isfinite(log_density)) or not np.isfinite(survival) or survival <= 0:
+            raise ValueError("nonfinite likelihood while calculating confidence intervals")
+        return float(-np.sum(log_density) + len(effects) * np.log(survival))
+
+    # A stale fit cache would give intervals around the wrong point or sample.
+    at_fit = objective(center)
+    if abs(at_fit + fit["loglik"]) > 1.0e-3:
+        raise ValueError(f"cached fit and current effects disagree: {-at_fit} vs {fit['loglik']}")
+
+    basis = np.eye(len(names)) * step
+    hessian = np.empty((len(names), len(names)))
+    for i in range(len(names)):
+        hessian[i, i] = (objective(center + basis[i]) - 2 * at_fit
+                         + objective(center - basis[i])) / step**2
+        for j in range(i):
+            hessian[i, j] = hessian[j, i] = (
+                objective(center + basis[i] + basis[j])
+                - objective(center + basis[i] - basis[j])
+                - objective(center - basis[i] + basis[j])
+                + objective(center - basis[i] - basis[j])) / (4 * step**2)
+    eigenvalues = np.linalg.eigvalsh(hessian)
+    if eigenvalues[0] <= 0:
+        raise ValueError(f"observed information is not positive definite: {eigenvalues}")
+    errors = np.sqrt(np.diag(np.linalg.inv(hessian)))
+    intervals = {name: tuple(np.exp(center[i] + sign * 1.959963984540054 * errors[i])
+                              for sign in (-1, 1)) for i, name in enumerate(names)}
+    if not heavy:
+        # The canonical density has a parameter-dependent support. A symmetric Wald
+        # interval can cross the observed maximum-effect boundary, particularly for r.
+        # Report only values where every observed effect has finite likelihood.
+        for i, name in enumerate(names):
+            lower, upper = intervals[name]
+            trial = center.copy()
+            trial[i] = np.log(lower)
+            try:
+                objective(trial)
+            except ValueError:
+                infeasible, feasible = trial[i], center[i]
+                for _ in range(50):
+                    trial[i] = (infeasible + feasible) / 2
+                    try:
+                        objective(trial)
+                    except ValueError:
+                        infeasible = trial[i]
+                    else:
+                        feasible = trial[i]
+                intervals[name] = (float(np.exp(feasible)), upper)
+    return intervals
 
 
 def walk_parameters(fit_key):
@@ -170,6 +264,12 @@ def build_rows(entries):
         info = entry["dataset"]
         canonical = entry["canonical_integer_n"]["fit"]
         heavy = entry["heavy_tailed_integer_n"]["fit"]
+        cut = float(info["observed_lower_cut"])
+        effects = retained_effects(key, cut)
+        if effects.size != int(info["N"]):
+            raise ValueError(f"{key}: cached N={info['N']} differs from current N={effects.size}")
+        canon_ci = parameter_intervals(effects, cut, canonical, heavy=False)
+        heavy_ci = parameter_intervals(effects, cut, heavy, heavy=True)
         # Read back from the cache the walks are actually stored in, not recomputed from the
         # fit file.  See WHAT THE WALKS ACTUALLY SIMULATE AT in the docstring.
         walk = walk_parameters(key)
@@ -184,13 +284,23 @@ def build_rows(entries):
             "canon_n_cont": float(entry["canonical_full_mle"]["fit"]["n"]),
             "canon_n": int(round(canonical["n"])),
             "canon_r": float(canonical["r"]),
+            "canon_r_ci_low": canon_ci["r"][0],
+            "canon_r_ci_high": canon_ci["r"][1],
             "canon_sigma": float(canonical["sigma"]),
+            "canon_sigma_ci_low": canon_ci["sigma"][0],
+            "canon_sigma_ci_high": canon_ci["sigma"][1],
             "canon_loglik": float(canonical["loglik"]),
             "heavy_n_cont": float(entry["heavy_tailed_full_mle"]["fit"]["n"]),
             "heavy_n": int(round(heavy["n"])),
             "heavy_r": float(heavy["r"]),
+            "heavy_r_ci_low": heavy_ci["r"][0],
+            "heavy_r_ci_high": heavy_ci["r"][1],
             "heavy_sigma": float(heavy["sigma"]),
+            "heavy_sigma_ci_low": heavy_ci["sigma"][0],
+            "heavy_sigma_ci_high": heavy_ci["sigma"][1],
             "heavy_mu": float(heavy["mu"]),
+            "heavy_mu_ci_low": heavy_ci["mu"][0],
+            "heavy_mu_ci_high": heavy_ci["mu"][1],
             "heavy_loglik": float(heavy["loglik"]),
             "heavy_n_walk": walk["n"],
             "heavy_r_walk": walk["r"],
@@ -204,33 +314,33 @@ def build_rows(entries):
 def write_table(rows, out_csv):
     os.makedirs(os.path.dirname(os.path.abspath(out_csv)), exist_ok=True)
     with open(out_csv, "w", newline="") as fh:
-        writer = csv.writer(fh)
+        writer = csv.writer(fh, lineterminator="\n")
         writer.writerow(COLUMNS)
         for row in rows:
-            writer.writerow([
-                row["dataset"], row["background"], row["assay"], row["N"],
-                f"{row['s_min']:.4g}", f"{row['s_max']:.4g}",
-                f"{row['canon_n_cont']:.4g}", row["canon_n"],
-                f"{row['canon_r']:.4g}", f"{row['canon_sigma']:.4g}",
-                f"{row['canon_loglik']:.7g}",
-                f"{row['heavy_n_cont']:.4g}", row["heavy_n"],
-                f"{row['heavy_r']:.4g}", f"{row['heavy_sigma']:.4g}",
-                f"{row['heavy_mu']:.4g}", f"{row['heavy_loglik']:.7g}",
-                row["heavy_n_walk"], f"{row['heavy_r_walk']:.4g}",
-                f"{row['heavy_sigma_walk']:.4g}", f"{row['heavy_mu_walk']:.4g}",
-                f"{row['dloglik_heavy_minus_canon']:.6g}"])
+            writer.writerow([f"{row[column]:.8g}" if isinstance(row[column], float)
+                             else row[column] for column in COLUMNS])
 
 
 def latex_table(rows):
-    """A PNAS-style tabular for the SI, matching the hand-written tables in sections_si."""
+    """A compact two-model-per-background tabular with all continuous-parameter CIs."""
+    def estimate(row, prefix, name, digits):
+        if name == "mu" and prefix == "canon":
+            return "--"
+        value = row[f"{prefix}_{name}"]
+        low = row[f"{prefix}_{name}_ci_low"]
+        high = row[f"{prefix}_{name}_ci_high"]
+        return (rf"\shortstack{{${value:.{digits}f}$\\"
+                rf"$[{low:.{digits}f}, {high:.{digits}f}]$}}")
+
     lines = [
         r"\begin{table}[htbp]",
         r"    \centering",
+        r"    \scriptsize",
         r"    \caption{",
         r"        \textbf{Fitted FGM parameters for every background simulated in this work}.",
         r"        Full unbinned maximum-likelihood fits of the canonical (isotropic Gaussian)",
         r"        and heavy-tailed (beta-prime radial) FGM to each measured DFE, conditional on",
-        r"        $s \geq -0.5$ and with no measurement-error convolution.",
+        r"        $s \geq -0.5$ (Limdi) or $s \geq -0.2$ (Couce), with no measurement-error convolution.",
         r"        \emph{$N$}: effects above the cut.",
         r"        \emph{$n$}: phenotypic dimension, the better of the two integer neighbours of",
         r"        the continuous optimum, with the remaining parameters re-maximised there.",
@@ -238,25 +348,27 @@ def latex_table(rows):
         r"        \emph{$\mu$}: beta-prime shape, with $\mu \to \infty$ recovering the",
         r"        canonical model.",
         r"        \emph{$\Delta \ell$}: heavy-tailed minus canonical log-likelihood, both",
-        r"        maximised on the same sample.",
+        r"        maximised on the same sample. Brackets are approximate 95\% observed-information",
+        r"        confidence intervals conditional on the reported integer $n$; canonical lower",
+        r"        limits are clipped to the observed-data support. $n$ uncertainty is not included.",
         r"    }",
         r"    \label{tab:fgm-params}",
-        r"    \begin{tabular}{lllrrrrrrr}",
+        r"    \begin{tabular}{lllrlrrrrr}",
         r"        \toprule",
-        r"        & & & & \multicolumn{2}{c}{Canonical} & \multicolumn{3}{c}{Heavy-tailed} & \\",
-        r"        \cmidrule(lr){5-6} \cmidrule(lr){7-9}",
-        r"        Data & Background & Medium & $N$ & $n$ & $r$ & $n$ & $r$ & $\mu$"
-        r" & $\Delta \ell$ \\",
+        r"        Data & Background & Medium & $N$ & Model & $n$ & $r$ & $\sigma$"
+        r" & $\mu$ & $\Delta\ell$ \\",
         r"        \midrule",
     ]
     for row in rows:
-        lines.append(
-            f"        {row['dataset']} & {row['background']} & {row['assay']} & "
-            f"${row['N']}$ & "
-            f"${row['canon_n']}$ & ${row['canon_r']:.3f}$ & "
-            f"${row['heavy_n']}$ & ${row['heavy_r']:.3f}$ & "
-            f"${row['heavy_mu']:.3f}$ & "
-            f"${row['dloglik_heavy_minus_canon']:+.0f}$ \\\\")
+        for prefix, label in (("canon", "Canonical"), ("heavy", "Heavy-tailed")):
+            lines.append(
+                f"        {row['dataset']} & {row['background']} & {row['assay']} & "
+                f"${row['N']}$ & {label} & ${row[f'{prefix}_n']}$ & "
+                f"{estimate(row, prefix, 'r', 5)} & "
+                f"{estimate(row, prefix, 'sigma', 4)} & "
+                f"{estimate(row, prefix, 'mu', 3)} & "
+                + (f"${row['dloglik_heavy_minus_canon']:+.0f}$" if prefix == "heavy" else "--")
+                + r" \\")
     lines += [r"        \bottomrule", r"    \end{tabular}", r"\end{table}"]
     return "\n".join(lines)
 
@@ -274,7 +386,7 @@ def main(argv=None):
     rows = build_rows(load_fits())
     write_table(rows, args.out)
 
-    print("\nFGM fits, integer n, conditional on s >= -0.5, no error convolution")
+    print("\nFGM fits, integer n, assay-specific lower cuts, no error convolution")
     print("parentheses give the continuous-n optimum the integer was profiled around")
     header = (f"{'data':<7}{'background':<14}{'medium':<7}{'N':>7}"
               f"{'canon n':>12}{'r':>8}{'sigma':>9}{'loglik':>11}"
@@ -289,6 +401,17 @@ def main(argv=None):
               f"{row['heavy_r']:>8.3f}{row['heavy_sigma']:>9.5f}{row['heavy_mu']:>8.3f}"
               f"{row['heavy_loglik']:>11.1f}"
               f"{row['dloglik_heavy_minus_canon']:>+10.1f}")
+
+    print("\nApproximate 95% confidence intervals (observed information, conditional on integer n):")
+    for row in rows:
+        for prefix, label in (("canon", "canonical"), ("heavy", "heavy-tailed")):
+            intervals = "  ".join(
+                f"{name} [{row[f'{prefix}_{name}_ci_low']:.5g}, "
+                f"{row[f'{prefix}_{name}_ci_high']:.5g}]"
+                for name in (("r", "sigma", "mu") if prefix == "heavy" else ("r", "sigma")))
+            print(f"  {row['background']:<14} {label:<12} {intervals}")
+    print("  Canonical lower limits are clipped to the observed-data support;")
+    print("  these local intervals do not include uncertainty in n.")
 
     # The one comparison in this table that is a claim rather than a description: the same
     # lineage 2,000 generations apart, so the fitted radius should have fallen.

@@ -1,15 +1,15 @@
 r"""Figure 4: ancestral DFEs and the autocorrelation of the walks that leave them.
 
-Six panels on a 2 x 3 grid.  Every COLUMN is one ancestor: its whole measured DFE on top,
-and below it the DFE autocorrelation along an adaptive walk started from that same ancestor.
+Five panels on a 2 x 3 grid.  The prediction-pipeline schematic spans the first column.
+Each remaining column pairs an ancestral DFE with the autocorrelation of walks started
+from that ancestor.
 
-    A  REL606 (LB)   -- Limdi ancestor, 3488 genes above the cut.
-    B  REL607 (LB)   -- Limdi ancestor, 3497 genes above the cut.
+    A  Prediction pipeline -- figs_paper/prediction_pipeline_schematic.svg.
+    B  REL606 (LB)   -- Limdi ancestor, 3488 genes above the cut.
     C  REL607 (DM25) -- Couce 0K ancestor, 13258 segments above the cut.
 
     D  ARA-1  (LB)   -- Limdi REL606 -> Ara-1 at 50K, assayed in LB.
-    E  ARA+2  (LB)   -- Limdi REL607 -> Ara+2 at 50K, assayed in LB.
-    F  ARA+2  (DM25) -- Couce Ara+2, 0K -> 15K, assayed in DM25.
+    E  ARA+2  (DM25) -- Couce Ara+2, 0K -> 15K, assayed in DM25.
 
 The column pairing is not decorative.  The walk in each bottom panel is simulated in the
 heavy-tailed FGM whose parameters were fitted to the DFE drawn directly above it, so a
@@ -22,8 +22,8 @@ block, so the two rows of a column cannot come to describe different landscapes.
 
 ROW 1 -- the fitted DFEs
 ------------------------
-The three panels share a y axis, so only the leftmost carries tick labels and only the
-leftmost carries the legend; the fitted values are repeated in every panel.
+The two panels share a y axis, so only the first carries tick labels and the legend;
+the fitted values are repeated in both panels.
 
 Each panel spans the deleterious tail, the bulk and the beneficial tail at once.  A
 single bin width cannot do that -- the bulk needs bins the deep tail would leave empty --
@@ -42,16 +42,18 @@ prediction for the pooled histogram it is drawn against.
                  T ~ BetaPrime(n/2, mu).  mu = 1/2 recovers a radial Cauchy; the
                  canonical model is the mu -> infinity limit at fixed sigma^2.
 
-Both likelihoods are conditional on the observed effect clearing LOWER_CUT = -0.5, which
-is where both assays stop resolving deleterious effects.
+Both likelihoods are conditional on the observed effect clearing the dataset's own lower cut,
+below which that assay reports essentially no effects: LB_LOWER_CUT = -0.5 for the Limdi (LB)
+data and DM25_LOWER_CUT = -0.2 for the Couce (DM25) data.  The DM25 effects stop near -0.2,
+so conditioning them on -0.5 would tell the model that nothing lies in between.
 
 Both fits use every retained effect -- no tail trimming -- so the two logliks are
 maximised on the same sample and are directly comparable.
 
 Fits are cached in data/fig3_fgm_fits.json; pass --refit to recompute them.  The file keeps
 its name because TableS4_fgm_params.py, cmn/cmn_walksim.py and code_tmp/poster_fig5_couce_noise.py
-all read it by that path, and it holds one entry (couce_2K) that no panel here draws but the
-2K -> 15K walk starts from.
+all read it by that path.  It still holds the unplotted REL607 (LB) and couce_2K fits;
+the 2K -> 15K walk starts from the latter.
 
 
 ROW 2 -- the simulated and measured autocorrelations
@@ -64,7 +66,7 @@ defined once from the noisy ancestral measurement and then held fixed.
 The cut follows cmn_scatter, so each panel matches its own scatter panels in fig1 and figs
 S1-S4: 10% for the Limdi data, whose effects run out to |s| = 0.65, and 2% for the Couce
 data, whose effects are compact enough that a 10% cut would reach inside the bulk.  Hence
-r90 in panels D and E and r98 in panel F.  All three rank on |s| and drop the
+r90 in panel D and r98 in panel E.  Both rank on |s| and drop the
 LARGEST-magnitude fraction, not the signed effect.  Every cache carries a wider ladder than
 any one panel draws, and a panel names the FRACTION it wants rather than a column number, so
 a dot and the curve it sits on cannot come to mean different things.
@@ -81,15 +83,15 @@ correlations.
 
 Where the markers sit
 ---------------------
-Panels D and E carry a t = 0 marker, F does not.  The t = 0 marker is the ISOGENIC CONTROL:
+Panel D carries a t = 0 marker, E does not.  The t = 0 marker is the ISOGENIC CONTROL:
 the same genotype assayed twice, so nothing has fixed between the two measurements and the
 only thing separating them is the assay itself.  It is the ceiling the panel's curves start
 from -- the simulation asserts r = 1 at t = 0, and the control says what the measurement can
-actually deliver there.  Both are read straight out of TableS1 (``REL606 green -> red`` and
-``REL607 green -> red``) rather than recomputed, on the same |s|-ranked ladder as every other
-marker, so the figure and that table cannot drift apart.
+actually deliver there.  It is read straight out of TableS1 (``REL606 green -> red``) rather
+than recomputed, on the same |s|-ranked ladder as every other marker, so the figure and that
+table cannot drift apart.
 
-Panel F has no such row to draw.  The Couce release publishes no replicate of a timepoint;
+Panel E has no such row to draw.  The Couce release publishes no replicate of a timepoint;
 its only same-background pair is ``fitted1`` against ``fitted2``, two fits of the SAME five
 read counts.  Their disagreement is 0.29x the published per-segment error where a genuine
 replicate scores about 1 (Limdi's green/red channels give 1.5-1.8), so their r = 0.98 is an
@@ -98,27 +100,25 @@ upper bound on a ceiling, not a control -- see the FIT-VARIANT ROWS block in
 the frame and read as an assay far more reproducible than Limdi's, when it is really the only
 column whose t = 0 would not be a replicate.  Better absent than misleading.
 
-Panel F carries two sets of dots.  The right-hand set sits at 30 fixed mutations, the 0K ->
+Panel E carries two sets of dots.  The right-hand set sits at 30 fixed mutations, the 0K ->
 15K interval; the left-hand set at 9 is the short 0K -> 2K leg.
 (The main text quotes roughly 8 fixed mutations for the 0-2K interval, so the left-hand dots
 are that leg and the right-hand ones are the cumulative count by 15K; keep the two consistent
 when the caption is written.)  The t = 9 correlations are stated in ``PANELS``
 rather than recomputed here -- see the comment on that marker.
 
-Panels D and E instead put their dots at the right-hand edge, labelled with the substitution
+Panel D instead puts its dots at the right-hand edge, labelled with the substitution
 count they really correspond to, so that their position is not read as a claim about how many
 mutations fixed.  Ara-1 is a point-mutator carrying of order 1100 mutations by 50K, almost
-all of them hitchhikers that SSWM would never fix; Ara+2 is a non-mutator and carries about
-70.  Neither number is a step count.  Fifteen steps is inside the range over which both
-simulated walks reach their plateau, so those dots are plateau references placed where the
-curves have levelled off.
+all of them hitchhikers that SSWM would never fix.  That number is not a step count.
+Fifteen steps is inside the range over which the simulated walks reach their plateau, so
+the dots are plateau references placed where the curves have levelled off.
 
 The panels stop at different times.  The Couce cache holds a walk at its peak once it runs
 out of beneficial mutations, so all 500 walks contribute at every step.  The Limdi caches
 write NaN instead, and those walks peak after a median of about 19 steps, so beyond about 15
 the median is taken over a shrinking and increasingly atypical set of survivors and starts to
-rattle.  Panels D and E therefore stop at 15, where 446 and 496 of the 500 walks are still
-going -- and stopping both at the same step is also what makes them readable side by side.
+rattle.  Panel D therefore stops at 15, where most of the 500 walks are still going.
 
 Both datasets now ascertain their probe libraries the same way -- inside the measured effect
 window of the matched empirical library.  That is not cosmetic: a Pearson r over the whole
@@ -137,10 +137,13 @@ import argparse
 import csv
 import json
 import os
+import subprocess
 import sys
 import time
+from io import BytesIO
 
 import cmasher  # noqa: F401  (registers the cmr.* colormaps with matplotlib)
+import fitz
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -166,7 +169,7 @@ mpl.rcParams['axes.labelsize'] = 16
 mpl.rcParams['axes.titlesize'] = 16
 mpl.rcParams['xtick.labelsize'] = 16
 mpl.rcParams['ytick.labelsize'] = 16
-mpl.rcParams['legend.fontsize'] = 14
+mpl.rcParams['legend.fontsize'] = 16
 
 DATA_COLOR = "#666666"
 DATA_EDGE = "#4A4A4A"
@@ -190,14 +193,15 @@ HEAVY_COLOR, CANONICAL_COLOR = (
 # reusing one palette across both would invite the reader to carry a meaning between them.
 
 # ─────────────────────────────── Fit configuration ────────────────────────────────
-LOWER_CUT = -0.5             # both assays stop resolving below this
+LB_LOWER_CUT = -0.5          # the LB assay stops resolving below this
+DM25_LOWER_CUT = -0.2        # the DM25 assay stops resolving below this
 N_BOUNDS = (2.0, 500.0)
 R_BOUNDS = (1.0e-5, 5.0)
 C_BOUNDS = (1.0e-6, 0.2)     # C = n sigma^2
 A_BOUNDS = (1.0e-5, 0.2)     # A = r sigma
 MU_BOUNDS = (0.10, 5.0)
 PLOT_DX = 1.0e-4
-DFE_Y_LIMITS = (1.0e-2, 1.0e2)   # shared by all three row-1 panels
+DFE_Y_LIMITS = (1.0e-2, 1.0e2)   # shared by both DFE panels
 MAX_INTEGER_EVALUATIONS = 10  # ceiling on the integer-n profile search
 
 # The fit cache keeps its old name: TableS4_fgm_params.py, cmn/cmn_walksim.py and
@@ -207,29 +211,38 @@ FIT_JSON = os.path.join(_REPO_ROOT, "data", "fig3_fgm_fits.json")
 # Caches are located through the registry rather than by filename: the stems carry the
 # matched-gene and replicate counts, and no figure should have to track either.
 WALK_DIR = cmn_walksim.WALK_DIR
-# The t = 0 isogenic controls are read from the supplementary table rather than recomputed,
-# so the stars on this figure and the numbers in that table cannot drift apart.
+# The t = 0 isogenic control is read from the supplementary table rather than recomputed,
+# so its star and the numbers in that table cannot drift apart.
 LIMDI_TABLE = os.path.join(_REPO_ROOT, "data", "TableS1_limdi_autocorr.csv")
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
+SCHEMATIC_SVG = os.path.join(OUT_DIR, "prediction_pipeline_schematic.svg")
+SCHEMATIC_PDF = os.path.join(OUT_DIR, "fig4_schematic.pdf")
 
 
 # ─────────────────────────────────── Data loading ─────────────────────────────────
 def limdi_effects(population="REL607"):
     effects = cmn_exper.limdi_gene_series(population).to_numpy(float)
-    return effects[np.isfinite(effects) & (effects >= LOWER_CUT)]
+    return effects[np.isfinite(effects)]
 
 
 def couce_effects(timepoint="0K"):
     effects = cmn_exper.load_couce_segment_series(timepoint).to_numpy(float)
-    return effects[np.isfinite(effects) & (effects >= LOWER_CUT)]
+    return effects[np.isfinite(effects)]
 
 
-PLOTTED = ("limdi_REL606", "limdi_REL607", "couce_0K")
+def retained_effects(config):
+    """The effects a dataset is fitted and drawn on: everything above its own cut."""
+    effects = config["load"]()
+    return effects[effects >= config["lower_cut"]]
+
+
+PLOTTED = ("limdi_REL606", "couce_0K")
 
 DATASETS = {
     "limdi_REL607": {
         "title": "Limdi REL607 ancestor",
         "load": limdi_effects,
+        "lower_cut": LB_LOWER_CUT,
         "panel_title": "REL607 (LB)",
         "xlim": (-0.52, 0.106),
         "fine_bin_width": 0.0025,
@@ -238,6 +251,7 @@ DATASETS = {
     "couce_0K": {
         "title": "Couce 0K ancestor",
         "load": couce_effects,
+        "lower_cut": DM25_LOWER_CUT,
         "panel_title": "REL607 (DM25)",
         "xlim": (-0.245, 0.102),
         "fine_bin_width": 0.0020,
@@ -248,6 +262,7 @@ DATASETS = {
     "limdi_REL606": {
         "title": "Limdi REL606 ancestor",
         "load": lambda: limdi_effects("REL606"),
+        "lower_cut": LB_LOWER_CUT,
         "panel_title": "REL606 (LB)",
         "xlim": (-0.52, 0.106),
         "fine_bin_width": 0.0025,
@@ -262,6 +277,7 @@ DATASETS = {
     "couce_2K": {
         "title": "Couce 2K background",
         "load": lambda: couce_effects("2K"),
+        "lower_cut": DM25_LOWER_CUT,
         "panel_title": "ARA+2 2K (DM25)",
         "xlim": (-0.245, 0.102),
         "fine_bin_width": 0.0020,
@@ -274,13 +290,13 @@ DATASETS = {
 class CanonicalLikelihood:
     """Exact conditional Gaussian-mutation FGM likelihood, no error convolution."""
 
-    def __init__(self, effects):
+    def __init__(self, effects, lower_cut):
         self.effects = np.asarray(effects, dtype=float)
+        self.lower_cut = float(lower_cut)
 
-    @staticmethod
-    def survival(n, r, sigma):
+    def survival(self, n, r, sigma):
         return float(cmn_fgm.fgm_fitness_survival_many_eps(
-            LOWER_CUT, n=n, sigma=sigma, r=r, eps=np.array([0.0]))[0])
+            self.lower_cut, n=n, sigma=sigma, r=r, eps=np.array([0.0]))[0])
 
     def loglik(self, n, r, sigma):
         log_density = cmn_fgm.fgm_fitness_dfe_logpdf(
@@ -299,13 +315,13 @@ class CanonicalLikelihood:
 class HeavyLikelihood:
     """Exact conditional beta-prime radial FGM likelihood, no error convolution."""
 
-    def __init__(self, effects):
+    def __init__(self, effects, lower_cut):
         self.effects = np.asarray(effects, dtype=float)
+        self.lower_cut = float(lower_cut)
 
-    @staticmethod
-    def survival(n, r, sigma, mu):
+    def survival(self, n, r, sigma, mu):
         return float(cauchy_fgm_survival(
-            LOWER_CUT, n=n, sigma=sigma, r=r, eps=0.0, mu=mu))
+            self.lower_cut, n=n, sigma=sigma, r=r, eps=0.0, mu=mu))
 
     def loglik(self, n, r, sigma, mu):
         log_density = cauchy_fgm_dfe_logpdf(
@@ -486,19 +502,20 @@ def integer_n_fit(likelihood, continuous, heavy, label):
 
 
 def fit_dataset(label, config):
-    effects = config["load"]()
-    print(f"{label}: N={effects.size} "
+    effects = retained_effects(config)
+    cut = config["lower_cut"]
+    print(f"{label}: N={effects.size} above cut {cut} "
           f"range=({effects.min():.4f}, {effects.max():.4f})", flush=True)
 
     canonical_fit, canonical_diagnostics = multistart_interior(
-        CanonicalLikelihood(effects), CANONICAL_STARTS,
+        CanonicalLikelihood(effects, cut), CANONICAL_STARTS,
         heavy=False, label=f"{label} canonical")
     # Seed the heavy search with the canonical solution as well as the fixed starts.
     heavy_starts = list(HEAVY_STARTS) + [(
         canonical_fit["n"], canonical_fit["C_n_sigma2"],
         max(canonical_fit["A_r_sigma"], A_BOUNDS[0]), 0.25)]
     heavy_fit, heavy_diagnostics = multistart_interior(
-        HeavyLikelihood(effects), heavy_starts, heavy=True,
+        HeavyLikelihood(effects, cut), heavy_starts, heavy=True,
         label=f"{label} heavy-tailed")
 
     print(f"  canonical    n={canonical_fit['n']:.3f}  r={canonical_fit['r']:.4f}  "
@@ -510,10 +527,10 @@ def fit_dataset(label, config):
     # n is a dimension count, so the reported fit is the better of its two integer
     # neighbours, with the remaining parameters re-maximised at each.
     canonical_integer = integer_n_fit(
-        CanonicalLikelihood(effects), canonical_fit, heavy=False,
+        CanonicalLikelihood(effects, cut), canonical_fit, heavy=False,
         label=f"{label} canonical")
     heavy_integer = integer_n_fit(
-        HeavyLikelihood(effects), heavy_fit, heavy=True,
+        HeavyLikelihood(effects, cut), heavy_fit, heavy=True,
         label=f"{label} heavy-tailed")
 
     # Both models are maximised on the same sample, so their logliks compare directly.
@@ -534,7 +551,7 @@ def fit_dataset(label, config):
         "dataset": {
             "name": config["title"],
             "N": int(effects.size),
-            "observed_lower_cut": LOWER_CUT,
+            "observed_lower_cut": cut,
             "minimum": float(effects.min()),
             "maximum": float(effects.max()),
         },
@@ -562,8 +579,12 @@ def load_or_fit(refit):
         with open(FIT_JSON, encoding="utf-8") as handle:
             stored = json.load(handle)
     entries = dict(stored.get("datasets", {})) if (stored and not refit) else {}
+    # An entry fitted under a different cut is stale, so changing one dataset's cut refits
+    # that dataset alone.
     missing = [label for label in DATASETS
-               if label not in entries or "canonical_integer_n" not in entries[label]]
+               if label not in entries or "canonical_integer_n" not in entries[label]
+               or entries[label]["dataset"].get("observed_lower_cut")
+               != DATASETS[label]["lower_cut"]]
     if not missing:
         print(f"Loaded cached fits from {FIT_JSON}")
         return stored
@@ -578,7 +599,8 @@ def load_or_fit(refit):
                      "full unbinned MLE, no measurement-error convolution"),
         "likelihood": {
             "measurement_error_convolution": False,
-            "conditional_on_s_at_least": LOWER_CUT,
+            "conditional_on_s_at_least": {label: config["lower_cut"]
+                                          for label, config in DATASETS.items()},
             "lower_tail_trim": None,
         },
         "datasets": entries,
@@ -600,7 +622,7 @@ def load_or_fit(refit):
 # The cut follows cmn_scatter, so each panel matches its own scatter panels in fig1 and figs
 # S1-S4: 10% for the Limdi data, whose effects run out to |s| = 0.65, and 2% for the Couce
 # data, whose effects are compact enough that a 10% cut would reach inside the bulk.  Hence
-# r90 in panels D and E and r98 in panel F.
+# r90 in panel D and r98 in panel E.
 PANELS = (
     {
         "transition": "limdi_REL606_Ara-1",
@@ -610,8 +632,8 @@ PANELS = (
         # These walks peak after a median of about 19 steps; past 15 the median runs out of
         # surviving walks and becomes noise.
         "display_steps": 15,
-        # The leftmost panel is the one a reader meets first, so it carries both keys: the
-        # style key for the whole row in the corner, its own colour key beside it.
+        # The first autocorrelation panel carries both keys: the shared style key in the
+        # corner and its own colour key beside it.
         "legend": "both",
         # A plateau reference, not a substitution count -- see the module docstring.  The
         # note says so on the face of the figure, since the marker's position would
@@ -619,20 +641,6 @@ PANELS = (
         "markers": ({"time": 0, "control": (LIMDI_TABLE, "REL606 green -> red")},
                     {"time": 15, "pair": ("limdi", "REL606", "Ara-1"),
                      "note": "Measured at $t = 1100$ $\\rightarrow$"}),
-    },
-    {
-        "transition": "limdi_REL607_Ara+2",
-        "title": "ARA+2 (LB)",
-        "fractions": (0.00, 0.10),
-        # 496 of the 500 walks are still going at step 15; stopping here as well as in
-        # panel D also keeps the two Limdi panels on one x range.
-        "display_steps": 15,
-        "legend": "cuts",
-        # Ara+2 is a non-mutator and carries about 70 mutations by 50K -- three fewer orders
-        # of magnitude than Ara-1's hitchhiker load, and still not a step count.
-        "markers": ({"time": 0, "control": (LIMDI_TABLE, "REL607 green -> red")},
-                    {"time": 15, "pair": ("limdi", "REL607", "Ara+2"),
-                     "note": "Measured at $t = 70$ $\\rightarrow$"}),
     },
     {
         "transition": "couce_0K_15K",
@@ -649,7 +657,7 @@ PANELS = (
         # the same ranked-|s| ladder, so they carry the same meaning as the ones
         # ``empirical_ladder`` returns, and they are keyed by retained fraction to
         # match this panel's cuts (r100 and r98).
-        # NO t = 0 marker here, unlike D and E.  The Couce release publishes no replicate
+        # NO t = 0 marker here, unlike D.  The Couce release publishes no replicate
         # of a timepoint; its only same-background pair is fitted1 against fitted2, two fits
         # of the SAME read counts, whose disagreement is 0.29x the published per-segment
         # error (a real replicate scores about 1).  It correlates at r = 0.98 and would sit
@@ -805,7 +813,8 @@ def draw_dfe_panel(axis, effects, grid, canonical, heavy, config):
                   elinewidth=0.8, capsize=0, alpha=0.9, zorder=5)
 
     shown = (grid >= xlim[0]) & (grid <= xlim[1])
-    axis.plot(grid[shown], canonical[shown], color=CANONICAL_COLOR, lw=2.4, zorder=3)
+    axis.plot(grid[shown], canonical[shown], color=CANONICAL_COLOR,
+              lw=2.4, linestyle=":", alpha=0.8, zorder=3)
     axis.plot(grid[shown], heavy[shown], color=HEAVY_COLOR, lw=2.6, zorder=4)
 
     axis.set_yscale("log")
@@ -823,7 +832,7 @@ def parameter_block(fit, heavy):
 
 
 def build_dfe_row(axes, payload):
-    """Draw the three ancestral DFEs.
+    """Draw the two ancestral DFEs.
 
     Returns the row's one legend and the per-panel fits, because the fitted-value blocks
     are positioned relative to where that legend ends and so cannot be placed until the
@@ -835,14 +844,14 @@ def build_dfe_row(axes, payload):
     for axis, label in zip(axes, PLOTTED):
         config = DATASETS[label]
         entry = payload["datasets"][label]
-        effects = config["load"]()
+        effects = retained_effects(config)
         canonical_fit = entry["canonical_integer_n"]["fit"]
         heavy_fit = entry["heavy_tailed_integer_n"]["fit"]
 
-        canonical = CanonicalLikelihood(effects).pdf(
+        canonical = CanonicalLikelihood(effects, config["lower_cut"]).pdf(
             grid, n=canonical_fit["n"], r=canonical_fit["r"],
             sigma=canonical_fit["sigma"])
-        heavy = HeavyLikelihood(effects).pdf(
+        heavy = HeavyLikelihood(effects, config["lower_cut"]).pdf(
             grid, n=heavy_fit["n"], r=heavy_fit["r"], sigma=heavy_fit["sigma"],
             mu=heavy_fit["mu"])
 
@@ -864,12 +873,12 @@ def build_dfe_row(axes, payload):
     # in the colour of the curve they belong to, so the blocks need no headings.
     legend = axes[0].legend(
         [Line2D([], [], color=HEAVY_COLOR, lw=2.6),
-         Line2D([], [], color=CANONICAL_COLOR, lw=2.4),
+         Line2D([], [], color=CANONICAL_COLOR, lw=2.4, linestyle=":", alpha=0.8),
          Line2D([], [], marker="o", linestyle="none", ms=4.2, mfc=DATA_COLOR,
                 mec=DATA_EDGE)],
-        ["HT", "Canonical", "Data"],
+        ["Heavy-tailed", "Gaussian", "Data"],
         loc="upper left", bbox_to_anchor=(0.012, 0.99), frameon=False,
-        fontsize=14, handlelength=2.0, labelspacing=0.42,
+        fontsize=16, handlelength=2.0, labelspacing=0.42,
         handletextpad=0.7, borderpad=0.0)
     return legend, blocks
 
@@ -890,10 +899,10 @@ def place_parameter_blocks(axes, legend, blocks):
 # ══════════════════════════════════ Row 2 drawing ═════════════════════════════════
 # The panel itself -- bands, curves, stars, smoothing, legends and grid -- is drawn by
 # ``cmn_walkpanel``, which the all-lineages supplement calls the same way.  What stays here is
-# the three-column arrangement: which transitions, which subsets, where the markers go, and
+# the two-column arrangement: which transitions, which subsets, where the markers go, and
 # which panel carries which legend.
 def build_autocorr_row(axes):
-    """Draw the three autocorrelation panels.
+    """Draw the two autocorrelation panels.
 
     Returns the panels that carry two legends, for ``place_side_legends`` to finish once
     the figure has been laid out.
@@ -937,13 +946,17 @@ def build_autocorr_row(axes):
 
         # Every panel names its own subsets, because 10% and 2% are different cuts and
         # cannot share a label.  The style key -- what solid, dashed and the stars mean,
-        # which is the same in all three -- is stated once, in D, with D's colour key
+        # which is the same in both -- is stated once, in D, with D's colour key
         # immediately to its right.
         if panel["legend"] == "both":
             # Re-adding the style key as an artist keeps the second ``legend`` call on the
             # same axes from replacing it.  The colour key beside it cannot be placed yet --
             # see ``place_side_legends``.
             style = cmn_walkpanel.style_legend(axis)
+            for label, text in zip(
+                    ("Simulations", "Simulations (added noise)", "Measured"),
+                    style.get_texts()):
+                text.set_text(label)
             axis.add_artist(style)
             side_by_side.append((axis, style, fractions))
         else:
@@ -963,23 +976,29 @@ def place_side_legends(side_by_side):
 
 
 # ════════════════════════════════════ Assembly ════════════════════════════════════
-def build(payload, path):
-    figure = plt.figure(figsize=(15.0, 12.1))
-    # The rows are laid out separately -- each runs its own scale across its three panels,
-    # and row 2 gives each panel its own step range -- but with only one set of y tick
-    # labels per row they take the same wspace, so the columns line up down the figure.
-    outer = figure.add_gridspec(2, 1, hspace=0.36, height_ratios=(1.0, 0.98))
-    dfe_grid = outer[0].subgridspec(1, 3, wspace=0.13)
-    walk_grid = outer[1].subgridspec(1, 3, wspace=0.13)
+def schematic_pdf():
+    """Keep the vector PDF faithful to the Inkscape-authored SVG."""
+    if (not os.path.exists(SCHEMATIC_PDF)
+            or os.path.getmtime(SCHEMATIC_PDF) < os.path.getmtime(SCHEMATIC_SVG)):
+        subprocess.run([
+            "inkscape", SCHEMATIC_SVG, "--export-type=pdf",
+            f"--export-filename={SCHEMATIC_PDF}"], check=True)
+    return fitz.open(SCHEMATIC_PDF)
 
-    dfe_axes = []
-    for column in range(3):
-        dfe_axes.append(figure.add_subplot(
-            dfe_grid[0, column], sharey=dfe_axes[0] if dfe_axes else None))
-    walk_axes = []
-    for column in range(3):
-        walk_axes.append(figure.add_subplot(
-            walk_grid[0, column], sharey=walk_axes[0] if walk_axes else None))
+
+def build(payload, path):
+    figure = plt.figure(figsize=(21.0, 15.0))
+    grid = figure.add_gridspec(
+        2, 5, hspace=0.36, wspace=0, height_ratios=(1.0, 0.98),
+        width_ratios=(1.1, 0.22, 1.0, 0.10, 1.0),
+        left=0.035, right=0.97, bottom=0.085, top=0.91)
+    schematic_axis = figure.add_subplot(grid[:, 0])
+    schematic_axis.set_axis_off()
+    schematic_axis.set_title("Prediction pipeline", pad=10)
+    dfe_axes = [figure.add_subplot(grid[0, 2])]
+    dfe_axes.append(figure.add_subplot(grid[0, 4], sharey=dfe_axes[0]))
+    walk_axes = [figure.add_subplot(grid[1, 2])]
+    walk_axes.append(figure.add_subplot(grid[1, 4], sharey=walk_axes[0]))
 
     legend, blocks = build_dfe_row(dfe_axes, payload)
     side_by_side = build_autocorr_row(walk_axes)
@@ -990,17 +1009,38 @@ def build(payload, path):
     place_parameter_blocks(dfe_axes, legend, blocks)
     place_side_legends(side_by_side)
 
-    # Sit the letters above the frame, level with the titles, so all six share one offset
-    # from their panel -- A no longer has to dodge the 10^2 tick label, and D sits directly
-    # under A.
-    for axes, tags in ((dfe_axes, "ABC"), (walk_axes, "DEF")):
+    # A belongs to the full-height schematic; the plotted panels read B/C above D/E.
+    schematic_letter_y = 1 + 0.035 * (
+        dfe_axes[0].get_position().height / schematic_axis.get_position().height)
+    schematic_axis.text(-0.075, schematic_letter_y, "A",
+                        transform=schematic_axis.transAxes,
+                        ha="left", va="bottom", fontsize=18, fontweight="heavy")
+    for axes, tags in ((dfe_axes, "BC"), (walk_axes, "DE")):
         for axis, tag in zip(axes, tags):
             axis.text(-0.075, 1.035, tag, transform=axis.transAxes, ha="left",
                       va="bottom", fontsize=18, fontweight="heavy")
 
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    figure.savefig(path, format="pdf", bbox_inches="tight")
+    # Inkscape renders the SVG faithfully as vector PDF; PyMuPDF places it in the
+    # spanning cell.  The fixed page size maps axes bounds directly to PDF points.
+    bounds = schematic_axis.get_position()
+    plot_pdf = BytesIO()
+    figure.savefig(plot_pdf, format="pdf")
     plt.close(figure)
+    plot_pdf.seek(0)
+    assembled = fitz.open(stream=plot_pdf.read(), filetype="pdf")
+    schematic = schematic_pdf()
+    page = assembled[0]
+    vertical_bleed = 0.015 * bounds.height
+    destination = fitz.Rect(
+        bounds.x0 * page.rect.width,
+        (1 - bounds.y1 - vertical_bleed) * page.rect.height,
+        bounds.x1 * page.rect.width,
+        (1 - bounds.y0 + vertical_bleed) * page.rect.height)
+    page.show_pdf_page(destination, schematic, 0, keep_proportion=True)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    assembled.save(path, garbage=4, deflate=True)
+    schematic.close()
+    assembled.close()
     print(f"Saved: {path}")
 
 

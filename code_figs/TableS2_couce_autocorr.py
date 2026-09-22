@@ -107,7 +107,7 @@ published per-segment errors assigned by effect rank, and is the like-for-like c
     EACH TRANSITION IS SIMULATED FROM ITS OWN EARLY BACKGROUND.  0K -> 2K and 0K -> 15K start
     from the 0K MLE; 2K -> 15K starts from the 2K MLE (``couce_2K`` in
     ``data/fig3_fgm_fits.json``), because by 2K the population is on a different part of the
-    landscape -- the fitted radius has fallen from r = 0.54 to r = 0.43 -- and starting that
+    landscape -- the fitted radius has fallen from r = 0.53 to r = 0.43 -- and starting that
     walk at 0K would ask the model to re-traverse 2,000 generations it has already covered.
     2K is the only background in either dataset that is fitted as well as being an endpoint,
     which makes that pair the one direct check that the fitted radius falls as fitness rises.
