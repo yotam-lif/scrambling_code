@@ -4,7 +4,7 @@ Five panels on a 2 x 3 grid.  The prediction-pipeline schematic spans the first 
 Each remaining column pairs an ancestral DFE with the autocorrelation of walks started
 from that ancestor.
 
-    A  Prediction pipeline -- figs_paper/prediction_pipeline_schematic.svg.
+    A  Prediction pipeline -- code_figs/fig4_prediction_pipeline_schematic.svg.
     B  REL606 (LB)   -- Limdi ancestor, 3488 genes above the cut.
     C  REL607 (DM25) -- Couce 0K ancestor, 13258 segments above the cut.
 
@@ -215,7 +215,7 @@ WALK_DIR = cmn_walksim.WALK_DIR
 # so its star and the numbers in that table cannot drift apart.
 LIMDI_TABLE = os.path.join(_REPO_ROOT, "data", "TableS1_limdi_autocorr.csv")
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
-SCHEMATIC_SVG = os.path.join(OUT_DIR, "prediction_pipeline_schematic.svg")
+SCHEMATIC_SVG = os.path.join(_REPO_ROOT, "code_figs", "fig4_prediction_pipeline_schematic.svg")
 SCHEMATIC_PDF = os.path.join(OUT_DIR, "fig4_schematic.pdf")
 
 
@@ -893,7 +893,7 @@ def place_parameter_blocks(axes, legend, blocks):
             axis.text(0.040 + 0.285 * offset, below - 0.035,
                       parameter_block(fit, heavy=is_heavy),
                       transform=axis.transAxes, ha="left", va="top",
-                      fontsize=13.5, linespacing=1.35, color=colour)
+                      fontsize=16, linespacing=1.35, color=colour)
 
 
 # ══════════════════════════════════ Row 2 drawing ═════════════════════════════════
@@ -991,7 +991,7 @@ def build(payload, path):
     grid = figure.add_gridspec(
         2, 5, hspace=0.36, wspace=0, height_ratios=(1.0, 0.98),
         width_ratios=(1.1, 0.22, 1.0, 0.10, 1.0),
-        left=0.035, right=0.97, bottom=0.085, top=0.91)
+        left=0.035, right=0.97, bottom=0.085, top=0.955)
     schematic_axis = figure.add_subplot(grid[:, 0])
     schematic_axis.set_axis_off()
     schematic_axis.set_title("Prediction pipeline", pad=10)
