@@ -1,0 +1,3539 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="185.4mm"
+   height="170.1mm"
+   viewBox="0 0 1030 945"
+   font-family="Arial, Helvetica, sans-serif"
+   version="1.1"
+   id="fig1-overview"
+   sodipodi:docname="fig1_overview.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview176"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.6796392"
+     inkscape:cx="281.01273"
+     inkscape:cy="342.6331"
+     inkscape:window-width="2560"
+     inkscape:window-height="1382"
+     inkscape:window-x="0"
+     inkscape:window-y="30"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="genomes" />
+  <title
+     id="title1">Transposon insertion libraries and experimental datasets</title>
+  <desc
+     id="desc1">Matched gene disruptions across evolution above two datasets. LB and DM25 dataset schematics sit side by side in the lower row. Dotted vertical guides connect each generation tick to its sampled bacteria, behind the icons. Growth and assay media illustrate selection against disruptions of amino-acid synthesis.</desc>
+  <defs
+     id="defs9">
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect10"
+       is_visible="true"
+       lpeversion="1" />
+    <marker
+       style="overflow:visible"
+       id="Triangle"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path206" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="ArrowTriangleStylized"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Stylized triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="m 6,0 c -3,1 -7,3 -9,5 0,0 0,-4 2,-5 -2,-1 -2,-5 -2,-5 2,2 6,4 9,5 z"
+         id="path4" />
+    </marker>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect155"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect154"
+       is_visible="true"
+       lpeversion="1" />
+    <linearGradient
+       id="linearGradient150"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#2f3439;stop-opacity:1;"
+         offset="0.01904763"
+         id="stop150" />
+      <stop
+         style="stop-color:#2f3439;stop-opacity:0;"
+         offset="0.93333334"
+         id="stop151" />
+    </linearGradient>
+    <marker
+       id="arrow"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto">
+      <path
+         d="M1,1 L9,5 L1,9 Z"
+         fill="#69747e"
+         id="path1" />
+    </marker>
+    <linearGradient
+       id="mutation-rainbow"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="0%">
+      <stop
+         offset="0"
+         stop-color="#7064c1"
+         id="stop1" />
+      <stop
+         offset=".2"
+         stop-color="#3c94d5"
+         id="stop2" />
+      <stop
+         offset=".4"
+         stop-color="#59bca0"
+         id="stop3" />
+      <stop
+         offset=".6"
+         stop-color="#edcc68"
+         id="stop4" />
+      <stop
+         offset=".8"
+         stop-color="#e88256"
+         id="stop5" />
+      <stop
+         offset="1"
+         stop-color="#bb5267"
+         id="stop6" />
+    </linearGradient>
+    <linearGradient
+       id="fitness-scale"
+       x1="1350.3434"
+       y1="89.59904"
+       x2="1350.3434"
+       y2="38.174878"
+       gradientTransform="matrix(0.36299408,0,0,2.7548658,12.521435,-3.460448e-6)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#be3f49"
+         id="stop7" />
+      <stop
+         offset=".5"
+         stop-color="#e4e6df"
+         id="stop8" />
+      <stop
+         offset="1"
+         stop-color="#268453"
+         id="stop9" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient137"
+       x1="826.45002"
+       y1="325.45002"
+       x2="841.54998"
+       y2="325.45002"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.8099192,0,0,1.8195922,-675.44005,-267.28658)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient141"
+       x1="-54.049977"
+       y1="-6.0499772"
+       x2="-39.950023"
+       y2="-6.0499772"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3029493,0,0,1.3029538,8.2279178,9.1208013)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient142"
+       x1="12.950023"
+       y1="-0.049977234"
+       x2="27.049977"
+       y2="-0.049977234"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3029493,0,0,1.3029538,27.834064,3.7741594)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient143"
+       x1="12.950023"
+       y1="-0.049977234"
+       x2="27.049977"
+       y2="-0.049977234"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3029494,0,0,1.3029511,25.710595,6.7853112)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient144"
+       x1="12.950023"
+       y1="-0.049977234"
+       x2="27.049977"
+       y2="-0.049977234"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3029493,0,0,1.3029538,24.075041,7.2739393)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient145"
+       x1="12.950023"
+       y1="-0.049977234"
+       x2="27.049977"
+       y2="-0.049977234"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3029539,0,0,1.3029492,21.492738,8.2206265)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient146"
+       x1="-54.049977"
+       y1="-6.0499772"
+       x2="-39.950023"
+       y2="-6.0499772"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3029493,0,0,1.3029538,7.3103752,8.8324191)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient147"
+       x1="-54.049977"
+       y1="-6.0499772"
+       x2="-39.950023"
+       y2="-6.0499772"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3029493,0,0,1.3029538,8.4573032,7.6854914)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient148"
+       x1="-54.049977"
+       y1="-6.0499772"
+       x2="-39.950023"
+       y2="-6.0499772"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3029493,0,0,1.3029538,7.9985322,8.2032591)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient149"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.3626595,0,0,1.3626655,-352.99872,-400.41677)"
+       x1="826.45002"
+       y1="325.45002"
+       x2="841.54998"
+       y2="325.45002" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient150"
+       id="linearGradient151"
+       x1="590.59845"
+       y1="300.66208"
+       x2="414.55093"
+       y2="300.66208"
+       gradientUnits="userSpaceOnUse" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect155-1"
+       is_visible="true"
+       lpeversion="1" />
+    <linearGradient
+       id="evolution-white-black"
+       gradientUnits="userSpaceOnUse"
+       x1="414"
+       y1="300.662"
+       x2="586"
+       y2="300.662">
+      <stop
+         offset="0"
+         stop-color="#ffffff"
+         id="stop10" />
+      <stop
+         offset="1"
+         stop-color="#000000"
+         id="stop11" />
+    </linearGradient>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect10-5"
+       is_visible="true"
+       lpeversion="1" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#mutation-rainbow"
+       id="linearGradient1"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.8229751,0,0,1.8291619,-878.33984,-270.47474)"
+       x1="826.45002"
+       y1="325.45002"
+       x2="841.54998"
+       y2="325.45002" />
+  </defs>
+  <g
+     id="panel-a"
+     inkscape:groupmode="layer"
+     inkscape:label="A · Matched disruptions across evolution">
+    <g
+       transform="translate(-43,-38) scale(1.08)"
+       id="g108">
+      <g
+         id="heading"
+         inkscape:groupmode="layer"
+         inkscape:label="Library heading" />
+      <g
+         id="ancestral-library"
+         inkscape:groupmode="layer"
+         inkscape:label="Ancestral clump">
+        <g
+           id="ancestor-mutant-1"
+           transform="translate(169,114)">
+          <rect
+             x="-99"
+             y="-43"
+             width="198"
+             height="86"
+             rx="43"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="2.2"
+             id="rect10" />
+          <rect
+             x="-94"
+             y="-38"
+             width="188"
+             height="76"
+             rx="38"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="1.1"
+             id="rect11" />
+          <g
+             transform="translate(-10,-1) scale(.84)"
+             id="g20">
+            <path
+               d="M-17,-26 C-4,-3 -36,23 -47,1"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path12" />
+            <path
+               d="M-47,1 C-59,-24 -4,-42 12,-21"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path13" />
+            <path
+               d="M12,-21 C27,0 3,17 -10,5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path14" />
+            <path
+               d="M-10,5 C-30,-18 39,-37 56,-15"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path15" />
+            <path
+               d="M56,-15 C78,16 26,30 20,7"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path16" />
+            <path
+               d="M20,7 C11,-16 -15,31 -45,17"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path17" />
+            <path
+               d="M-45,17 C-69,5 -44,-14 -62,-5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path18" />
+            <path
+               d="M-62.0,-5.0 C-71.03,-19.19 -66.3774,-29.3122 -57.105998,-34.412516 M-46.894202,-37.764284 C-35.576,-39.4934 -22.59,-35.89 -17.0,-26.0"
+               fill="none"
+               stroke="#3975bd"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path19" />
+          </g>
+          <path
+             d="M-45,58 H27"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path11" />
+          <path
+             d="M-9,53 V63"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path20" />
+          <path
+             d="M-9,58 H-41.0"
+             stroke="#be3f49"
+             stroke-width="3"
+             fill="none"
+             id="path21" />
+          <circle
+             cx="-41.0"
+             cy="58"
+             r="4.6"
+             fill="#be3f49"
+             stroke="#ffffff"
+             stroke-width="0.9"
+             id="circle21" />
+        </g>
+        <g
+           id="ancestor-mutant-2"
+           transform="translate(327,135)">
+          <rect
+             x="-99"
+             y="-43"
+             width="198"
+             height="86"
+             rx="43"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="2.2"
+             id="rect22" />
+          <rect
+             x="-94"
+             y="-38"
+             width="188"
+             height="76"
+             rx="38"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="1.1"
+             id="rect23" />
+          <g
+             transform="translate(-10,-1) scale(.84)"
+             id="g32">
+            <path
+               d="M-62,-5 C-83,-38 -30,-49 -17,-26"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path23" />
+            <path
+               d="M-17,-26 C-4,-3 -36,23 -47,1"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path24" />
+            <path
+               d="M12,-21 C27,0 3,17 -10,5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path26" />
+            <path
+               d="M-10,5 C-30,-18 39,-37 56,-15"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path27" />
+            <path
+               d="M56,-15 C78,16 26,30 20,7"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path28" />
+            <path
+               d="M20,7 C11,-16 -15,31 -45,17"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path29" />
+            <path
+               d="M-45,17 C-69,5 -44,-14 -62,-5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path30" />
+            <path
+               d="M-47.0,1.0 C-52.16,-9.75 -44.9317,-19.2057 -33.742842,-24.822876 M-21.845558,-29.000924 C-8.9711,-31.8489 5.12,-30.03 12.0,-21.0"
+               fill="none"
+               stroke="#d4b34e"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path31" />
+          </g>
+          <path
+             d="M-45,58 H27"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path22" />
+          <path
+             d="M-9,53 V63"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path25" />
+          <path
+             d="M-9,58 H-21.0"
+             stroke="#d6a7a7"
+             stroke-width="3"
+             fill="none"
+             id="path32" />
+          <circle
+             cx="-21.0"
+             cy="58"
+             r="4.6"
+             fill="#d6a7a7"
+             stroke="#ffffff"
+             stroke-width="0.9"
+             id="circle32" />
+        </g>
+        <g
+           id="ancestor-mutant-3"
+           transform="translate(159,206) translate(0,22)">
+          <rect
+             x="-99"
+             y="-43"
+             width="198"
+             height="86"
+             rx="43"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="2.2"
+             id="rect34" />
+          <rect
+             x="-94"
+             y="-38"
+             width="188"
+             height="76"
+             rx="38"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="1.1"
+             id="rect35" />
+          <g
+             transform="translate(-10,-1) scale(.84)"
+             id="g44">
+            <path
+               d="M-62,-5 C-83,-38 -30,-49 -17,-26"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path35" />
+            <path
+               d="M-17,-26 C-4,-3 -36,23 -47,1"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path36" />
+            <path
+               d="M-47,1 C-59,-24 -4,-42 12,-21"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path37" />
+            <path
+               d="M12,-21 C27,0 3,17 -10,5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path38" />
+            <path
+               d="M56,-15 C78,16 26,30 20,7"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path40" />
+            <path
+               d="M20,7 C11,-16 -15,31 -45,17"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path41" />
+            <path
+               d="M-45,17 C-69,5 -44,-14 -62,-5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path42" />
+            <path
+               d="M-10.0,5.0 C-18.6,-4.89 -10.7439,-14.0404 2.357813,-19.509441 M16.436087,-23.579059 C31.7652,-26.3391 48.69,-24.46 56.0,-15.0"
+               fill="none"
+               stroke="#e17c2c"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path43" />
+          </g>
+          <path
+             d="M-45,58 H27"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path33" />
+          <path
+             d="M-9,53 V63"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path34" />
+          <path
+             d="M-9,58 H-1.0"
+             stroke="#b4cebc"
+             stroke-width="3"
+             fill="none"
+             id="path39" />
+          <circle
+             cx="-1.0"
+             cy="58"
+             r="4.6"
+             fill="#b4cebc"
+             stroke="#ffffff"
+             stroke-width="0.9"
+             id="circle39" />
+        </g>
+        <g
+           id="ancestor-mutant-4"
+           transform="translate(317,227) translate(0,22)">
+          <rect
+             x="-99"
+             y="-43"
+             width="198"
+             height="86"
+             rx="43"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="2.2"
+             id="rect46" />
+          <rect
+             x="-94"
+             y="-38"
+             width="188"
+             height="76"
+             rx="38"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="1.1"
+             id="rect47" />
+          <g
+             transform="translate(-10,-1) scale(.84)"
+             id="g56">
+            <path
+               d="M-62,-5 C-83,-38 -30,-49 -17,-26"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path47" />
+            <path
+               d="M-17,-26 C-4,-3 -36,23 -47,1"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path48" />
+            <path
+               d="M-47,1 C-59,-24 -4,-42 12,-21"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path49" />
+            <path
+               d="M12,-21 C27,0 3,17 -10,5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path50" />
+            <path
+               d="M-10,5 C-30,-18 39,-37 56,-15"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path51" />
+            <path
+               d="M56,-15 C78,16 26,30 20,7"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path52" />
+            <path
+               d="M-45,17 C-69,5 -44,-14 -62,-5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path54" />
+            <path
+               d="M20.0,7.0 C16.13,-2.89 9.1167,0.163 -0.006309,5.743583 M-9.552391,11.638717 C-19.9396,17.7611 -32.1,23.02 -45.0,17.0"
+               fill="none"
+               stroke="#80659e"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path55" />
+          </g>
+          <path
+             d="M-45,58 H27"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path44" />
+          <path
+             d="M-9,53 V63"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path45" />
+          <path
+             d="M-9,58 H-32.0"
+             stroke="#c96e73"
+             stroke-width="3"
+             fill="none"
+             id="path46" />
+          <circle
+             cx="-32.0"
+             cy="58"
+             r="4.6"
+             fill="#c96e73"
+             stroke="#ffffff"
+             stroke-width="0.9"
+             id="circle46" />
+        </g>
+      </g>
+      <g
+         id="evolved-library"
+         inkscape:groupmode="layer"
+         inkscape:label="Evolved clump">
+        <g
+           id="evolved-mutant-1"
+           transform="translate(677,114)">
+          <rect
+             x="-99"
+             y="-43"
+             width="198"
+             height="86"
+             rx="43"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="2.2"
+             id="rect58" />
+          <rect
+             x="-94"
+             y="-38"
+             width="188"
+             height="76"
+             rx="38"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="1.1"
+             id="rect59" />
+          <g
+             transform="translate(-10,-1) scale(.84)"
+             id="g70">
+            <path
+               d="M-17,-26 C-4,-3 -36,23 -47,1"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path60" />
+            <path
+               d="M-47,1 C-59,-24 -4,-42 12,-21"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path61" />
+            <path
+               d="M12,-21 C27,0 3,17 -10,5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path62" />
+            <path
+               d="M-10,5 C-30,-18 39,-37 56,-15"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path63" />
+            <path
+               d="M56,-15 C78,16 26,30 20,7"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path64" />
+            <path
+               d="M20,7 C11,-16 -15,31 -45,17"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path65" />
+            <path
+               d="M-45,17 C-69,5 -44,-14 -62,-5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path66" />
+            <path
+               d="M-62.0,-5.0 C-71.03,-19.19 -66.3774,-29.3122 -57.105998,-34.412516 M-46.894202,-37.764284 C-35.576,-39.4934 -22.59,-35.89 -17.0,-26.0"
+               fill="none"
+               stroke="#3975bd"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path67" />
+            <path
+               d="m -53.240085,1.0370128 8.46917,8.4691989 -8.46917,8.4692013 -8.46917,-8.4692013 z"
+               fill="url(#mutation-rainbow)"
+               stroke="#ffffff"
+               stroke-width="1.43324"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path69"
+               style="fill:url(#linearGradient148)" />
+            <path
+               d="m 47.551816,8.8721005 8.4692,8.4691725 -8.4692,8.46917 -8.4692,-8.46917 z"
+               fill="url(#mutation-rainbow)"
+               stroke="#ffffff"
+               stroke-width="1.43324"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path70"
+               style="fill:url(#linearGradient145)" />
+          </g>
+          <path
+             d="M-45,58 H27"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path53" />
+          <path
+             d="M-9,53 V63"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path56" />
+          <path
+             d="M-9,58 H-20.0"
+             stroke="#d7adab"
+             stroke-width="3"
+             fill="none"
+             id="path57" />
+          <circle
+             cx="-20.0"
+             cy="58"
+             r="4.6"
+             fill="#d7adab"
+             stroke="#ffffff"
+             stroke-width="0.9"
+             id="circle57" />
+        </g>
+        <g
+           id="evolved-mutant-2"
+           transform="translate(835,135)">
+          <rect
+             x="-99"
+             y="-43"
+             width="198"
+             height="86"
+             rx="43"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="2.2"
+             id="rect72" />
+          <rect
+             x="-94"
+             y="-38"
+             width="188"
+             height="76"
+             rx="38"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="1.1"
+             id="rect73" />
+          <g
+             transform="translate(-10,-1) scale(.84)"
+             id="g84">
+            <path
+               d="M-62,-5 C-83,-38 -30,-49 -17,-26"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path73" />
+            <path
+               d="M-17,-26 C-4,-3 -36,23 -47,1"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path74" />
+            <path
+               d="M12,-21 C27,0 3,17 -10,5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path76" />
+            <path
+               d="M-10,5 C-30,-18 39,-37 56,-15"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path77" />
+            <path
+               d="M56,-15 C78,16 26,30 20,7"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path78" />
+            <path
+               d="M20,7 C11,-16 -15,31 -45,17"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path79" />
+            <path
+               d="M-45,17 C-69,5 -44,-14 -62,-5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path80" />
+            <path
+               d="M-47.0,1.0 C-52.16,-9.75 -44.9317,-19.2057 -33.742842,-24.822876 M-21.845558,-29.000924 C-8.9711,-31.8489 5.12,-30.03 12.0,-21.0"
+               fill="none"
+               stroke="#d4b34e"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path81" />
+            <path
+               d="m -53.0107,1.954555 8.46917,8.469199 -8.46917,8.469201 -8.46917,-8.469201 z"
+               fill="url(#mutation-rainbow)"
+               stroke="#ffffff"
+               stroke-width="1.43324"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path83"
+               style="fill:url(#linearGradient141)" />
+            <path
+               d="m 53.893051,4.4256364 8.46917,8.4692006 -8.46917,8.4692 -8.46917,-8.4692 z"
+               fill="url(#mutation-rainbow)"
+               stroke="#ffffff"
+               stroke-width="1.43324"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path84"
+               style="fill:url(#linearGradient142)" />
+          </g>
+          <path
+             d="M-45,58 H27"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path58" />
+          <path
+             d="M-9,53 V63"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path59" />
+          <path
+             d="M-9,58 H-38.0"
+             stroke="#c24f57"
+             stroke-width="3"
+             fill="none"
+             id="path68" />
+          <circle
+             cx="-38.0"
+             cy="58"
+             r="4.6"
+             fill="#c24f57"
+             stroke="#ffffff"
+             stroke-width="0.9"
+             id="circle68" />
+        </g>
+        <g
+           id="evolved-mutant-3"
+           transform="translate(667,206) translate(0,22)">
+          <rect
+             x="-99"
+             y="-43"
+             width="198"
+             height="86"
+             rx="43"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="2.2"
+             id="rect86" />
+          <rect
+             x="-94"
+             y="-38"
+             width="188"
+             height="76"
+             rx="38"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="1.1"
+             id="rect87" />
+          <g
+             transform="translate(-10,-1) scale(.84)"
+             id="g98">
+            <path
+               d="M-62,-5 C-83,-38 -30,-49 -17,-26"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path87" />
+            <path
+               d="M-17,-26 C-4,-3 -36,23 -47,1"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path88" />
+            <path
+               d="M-47,1 C-59,-24 -4,-42 12,-21"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path89" />
+            <path
+               d="M12,-21 C27,0 3,17 -10,5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path90" />
+            <path
+               d="M56,-15 C78,16 26,30 20,7"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path92" />
+            <path
+               d="M20,7 C11,-16 -15,31 -45,17"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path93" />
+            <path
+               d="M-45,17 C-69,5 -44,-14 -62,-5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path94" />
+            <path
+               d="M-10.0,5.0 C-18.6,-4.89 -10.7439,-14.0404 2.357813,-19.509441 M16.436087,-23.579059 C31.7652,-26.3391 48.69,-24.46 56.0,-15.0"
+               fill="none"
+               stroke="#e17c2c"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path95" />
+            <path
+               d="m -52.781314,0.51924532 8.46917,8.46920008 -8.46917,8.4692006 -8.46917,-8.4692006 z"
+               fill="url(#mutation-rainbow)"
+               stroke="#ffffff"
+               stroke-width="1.43324"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path97"
+               style="fill:url(#linearGradient147)" />
+            <path
+               d="m 50.134028,7.9254163 8.46917,8.4692007 -8.46917,8.469199 -8.46917,-8.469199 z"
+               fill="url(#mutation-rainbow)"
+               stroke="#ffffff"
+               stroke-width="1.43324"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path98"
+               style="fill:url(#linearGradient144)" />
+          </g>
+          <path
+             d="M-45,58 H27"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path71" />
+          <path
+             d="M-9,53 V63"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path72" />
+          <path
+             d="M-9,58 H-24.0"
+             stroke="#d29899"
+             stroke-width="3"
+             fill="none"
+             id="path75" />
+          <circle
+             cx="-24.0"
+             cy="58"
+             r="4.6"
+             fill="#d29899"
+             stroke="#ffffff"
+             stroke-width="0.9"
+             id="circle75" />
+        </g>
+        <g
+           id="evolved-mutant-4"
+           transform="translate(825,227) translate(0,22)">
+          <rect
+             x="-99"
+             y="-43"
+             width="198"
+             height="86"
+             rx="43"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="2.2"
+             id="rect100" />
+          <rect
+             x="-94"
+             y="-38"
+             width="188"
+             height="76"
+             rx="38"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="1.1"
+             id="rect101" />
+          <g
+             transform="translate(-10,-1) scale(.84)"
+             id="g112">
+            <path
+               d="M-62,-5 C-83,-38 -30,-49 -17,-26"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path101" />
+            <path
+               d="M-17,-26 C-4,-3 -36,23 -47,1"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path102" />
+            <path
+               d="M-47,1 C-59,-24 -4,-42 12,-21"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path103" />
+            <path
+               d="M12,-21 C27,0 3,17 -10,5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path104" />
+            <path
+               d="M-10,5 C-30,-18 39,-37 56,-15"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path105" />
+            <path
+               d="M56,-15 C78,16 26,30 20,7"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path106" />
+            <path
+               d="M-45,17 C-69,5 -44,-14 -62,-5"
+               fill="none"
+               stroke="#6d8ca5"
+               stroke-width="2.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path108" />
+            <path
+               d="M20.0,7.0 C16.13,-2.89 9.1167,0.163 -0.006309,5.743583 M-9.552391,11.638717 C-19.9396,17.7611 -32.1,23.02 -45.0,17.0"
+               fill="none"
+               stroke="#80659e"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path109" />
+            <path
+               d="m -53.928242,1.6661731 8.46917,8.4691999 -8.46917,8.469201 -8.46917,-8.469201 z"
+               fill="url(#mutation-rainbow)"
+               stroke="#ffffff"
+               stroke-width="1.43324"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path111"
+               style="fill:url(#linearGradient146)" />
+            <path
+               d="M 51.769584,7.4367869 60.238755,15.90597 51.769584,24.375152 43.300413,15.90597 Z"
+               fill="url(#mutation-rainbow)"
+               stroke="#ffffff"
+               stroke-width="1.43324"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               id="path112"
+               style="fill:url(#linearGradient143)" />
+          </g>
+          <path
+             d="M-45,58 H27"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path82" />
+          <path
+             d="M-9,53 V63"
+             stroke="#333b43"
+             stroke-width="1"
+             fill="none"
+             id="path85" />
+          <path
+             d="M-9,58 H21"
+             stroke="#328a5c"
+             stroke-width="3"
+             fill="none"
+             id="path86" />
+          <circle
+             cx="21"
+             cy="58"
+             r="4.6"
+             fill="#328a5c"
+             stroke="#ffffff"
+             stroke-width="0.9"
+             id="circle86" />
+        </g>
+      </g>
+      <g
+         id="fitness-key"
+         inkscape:groupmode="layer"
+         inkscape:label="Fitness effect color scale">
+        <rect
+           x="503.52136"
+           y="106"
+           width="17"
+           height="140"
+           rx="2"
+           fill="url(#fitness-scale)"
+           stroke="none"
+           stroke-width="0"
+           id="rect114"
+           style="fill:url(#fitness-scale);stroke:#000000;stroke-width:1.66667;stroke-dasharray:none;stroke-opacity:1" />
+        <text
+           transform="rotate(-90)"
+           text-anchor="middle"
+           font-size="17px"
+           fill="#69747e"
+           id="text114"
+           x="-176"
+           y="542.27747"
+           style="font-size:14.5176px"><tspan
+             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.5176px;font-family:Sans;-inkscape-font-specification:Sans"
+             id="tspan139">Fitness effect (s)</tspan></text>
+        <text
+           x="-91.390556"
+           y="519.84357"
+           font-size="15px"
+           text-anchor="middle"
+           fill="#69747e"
+           id="text115"
+           transform="rotate(-90)"
+           style="font-size:23.5185px;fill:#000000;fill-opacity:1;stroke-width:0;stroke-dasharray:none"><tspan
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:23.5185px;font-family:Sans;-inkscape-font-specification:Sans;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0;stroke-dasharray:none;stroke-opacity:1"
+             id="tspan155">+</tspan></text>
+        <text
+           x="260.40369"
+           y="-504.82776"
+           font-size="15px"
+           text-anchor="middle"
+           fill="#69747e"
+           id="text117"
+           transform="rotate(90)"
+           style="font-size:23.5185px;stroke-width:0;stroke-dasharray:none"><tspan
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:23.5185px;font-family:Sans;-inkscape-font-specification:Sans;fill:#000000;fill-opacity:1;stroke:#000000;stroke-opacity:1"
+             id="tspan156">−</tspan></text>
+        <path
+           d="M 487.3354,106 V 246"
+           stroke="#333b43"
+           stroke-width="1.2"
+           fill="none"
+           id="path91" />
+        <path
+           d="m 481.3354,176 h 12"
+           stroke="#333b43"
+           stroke-width="1.2"
+           fill="none"
+           id="path96" />
+        <path
+           d="m 487.3354,176 v 35"
+           stroke="#c96e73"
+           stroke-width="3"
+           fill="none"
+           id="path99" />
+        <circle
+           cx="487.33545"
+           cy="211"
+           r="4.5999999"
+           fill="#c96e73"
+           stroke="#ffffff"
+           stroke-width="0.9"
+           id="circle99" />
+        <text
+           transform="rotate(-90,316.58601,-140.58601)"
+           font-size="14.8px"
+           text-anchor="middle"
+           fill="#69747e"
+           font-style="italic"
+           id="text99"
+           style="font-size:14.5176px;white-space:pre;inline-size:242.95;display:inline"
+           xml:space="preserve"><tspan
+             x="0"
+             y="13.502489"
+             id="tspan2"><tspan
+               style="font-style:normal;font-weight:bold;font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan1">Inesrtion effect indicator</tspan></tspan></text>
+      </g>
+      <g
+         id="genomes"
+         inkscape:groupmode="layer"
+         inkscape:label="Current background genomes">
+        <rect
+           x="120"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d9e0e6"
+           stroke="none"
+           stroke-width="0"
+           id="rect118"
+           transform="translate(0,38) " />
+        <rect
+           x="152"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#3975bd"
+           stroke="none"
+           stroke-width="0"
+           id="rect119"
+           transform="translate(0,38) " />
+        <rect
+           x="184"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d9e0e6"
+           stroke="none"
+           stroke-width="0"
+           id="rect120"
+           transform="translate(0,38) " />
+        <rect
+           x="216"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d4b34e"
+           stroke="none"
+           stroke-width="0"
+           id="rect121"
+           transform="translate(0,38) " />
+        <rect
+           x="248"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#e17c2c"
+           stroke="none"
+           stroke-width="0"
+           id="rect122"
+           transform="translate(0,38) " />
+        <rect
+           x="280"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d9e0e6"
+           stroke="none"
+           stroke-width="0"
+           id="rect123"
+           transform="translate(0,38) " />
+        <rect
+           x="312"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d9e0e6"
+           stroke="none"
+           stroke-width="0"
+           id="rect124"
+           transform="translate(0,38) " />
+        <rect
+           x="344"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#80659e"
+           stroke="none"
+           stroke-width="0"
+           id="rect125"
+           transform="translate(0,38) " />
+        <text
+           id="text125"
+           x="246"
+           y="332"
+           font-size="11.7593px"
+           text-anchor="middle"
+           fill="#333b43"
+           font-style="italic"
+           transform="translate(0,38)"><tspan
+             x="246"
+             y="332"
+             id="tspan99"
+             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:'Sans Italic'">Ancestral genotype</tspan></text>
+        <rect
+           x="628"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d9e0e6"
+           stroke="none"
+           stroke-width="0"
+           id="rect126"
+           transform="translate(0,38) " />
+        <rect
+           x="660"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#3975bd"
+           stroke="none"
+           stroke-width="0"
+           id="rect127"
+           transform="translate(0,38) " />
+        <rect
+           x="692"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d9e0e6"
+           stroke="none"
+           stroke-width="0"
+           id="rect128"
+           transform="translate(0,38) " />
+        <rect
+           x="724"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d4b34e"
+           stroke="none"
+           stroke-width="0"
+           id="rect129"
+           transform="translate(0,38) " />
+        <rect
+           x="756"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#e17c2c"
+           stroke="none"
+           stroke-width="0"
+           id="rect130"
+           transform="translate(0,38) " />
+        <rect
+           x="788"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d9e0e6"
+           stroke="none"
+           stroke-width="0"
+           id="rect131"
+           transform="translate(0,38) " />
+        <rect
+           x="820"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#d9e0e6"
+           stroke="none"
+           stroke-width="0"
+           id="rect132"
+           transform="translate(0,38) " />
+        <path
+           d="m 834.03267,325.9006 12.66943,12.73715 -12.66943,12.73715 -12.66945,-12.73715 z"
+           fill="url(#mutation-rainbow)"
+           stroke="#ffffff"
+           stroke-width="1.99623"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           id="path132"
+           style="fill:url(#linearGradient137)" />
+        <path
+           d="m 642.0215,325.83214 12.76081,12.80414 -12.76081,12.80413 -12.76084,-12.80413 z"
+           fill="url(#mutation-rainbow)"
+           stroke="#ffffff"
+           stroke-width="2.00868"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           id="path132-7"
+           style="fill:url(#linearGradient1)" />
+        <rect
+           x="852"
+           y="286.66199"
+           width="28"
+           height="28"
+           rx="2"
+           fill="#80659e"
+           stroke="none"
+           stroke-width="0"
+           id="rect133"
+           transform="translate(0,38) " />
+        <text
+           id="text133"
+           x="754"
+           y="332"
+           font-size="11.7593px"
+           text-anchor="middle"
+           fill="#333b43"
+           font-style="italic"
+           transform="translate(0,38)"><tspan
+             x="754"
+             y="332"
+             id="tspan100"
+             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:'Sans Italic'">Evolved genotype</tspan></text>
+        <path
+           id="path133"
+           d="M414,298.162 H572 V293.662 L586,300.662 572,307.662 V303.162 H414 Z"
+           fill="url(#evolution-white-black)"
+           stroke="none"
+           transform="translate(0,38) " />
+        <text
+           x="500"
+           y="289.48145"
+           font-size="18px"
+           text-anchor="middle"
+           fill="#69747e"
+           id="text134"
+           transform="translate(0,38) "><tspan
+             style="font-style:italic"
+             id="tspan141" /></text>
+        <path
+           d="m 783.45944,43.812266 9.53862,9.538658 -9.53862,9.538658 -9.53863,-9.538658 z"
+           fill="url(#mutation-rainbow)"
+           stroke="#ffffff"
+           stroke-width="1.49892"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           id="path132-6"
+           style="fill:url(#linearGradient149)" />
+        <text
+           id="text125-8"
+           x="190"
+           y="369"
+           font-size="15.679px"
+           text-anchor="middle"
+           fill="#333b43"
+           font-style="normal"
+           transform="translate(0,27.111796)"
+           style="font-size:14.5176px;white-space:pre;inline-size:378.439;display:inline"
+           xml:space="preserve"><tspan
+             x="190"
+             y="369"
+             id="tspan6"><tspan
+               style="font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan5">Assay fitness effects of 
+</tspan></tspan><tspan
+             x="190"
+             y="387.31507"
+             id="tspan9"><tspan
+               style="font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan8">insertions in ancestor</tspan></tspan></text>
+        <path
+           id="path154"
+           d="m 302,404.1118 h 95"
+           fill="none"
+           stroke="#2f3439"
+           stroke-width="1.65"
+           stroke-dasharray="1, 1"
+           marker-end="url(#ArrowTriangleStylized)" />
+        <path
+           id="path154-1"
+           d="m 603,404.1118 h 95"
+           fill="none"
+           stroke="#2f3439"
+           stroke-width="1.65"
+           stroke-dasharray="1, 1"
+           marker-end="url(#ArrowTriangleStylized)" />
+        <text
+           id="text125-8-4"
+           x="500"
+           y="369"
+           font-size="15.679px"
+           text-anchor="middle"
+           fill="#333b43"
+           font-style="normal"
+           transform="translate(8.1661527,29.833847)"
+           style="font-size:14.5176px;white-space:pre;inline-size:380.163;display:inline"
+           xml:space="preserve"><tspan
+             x="500"
+             y="369"
+             id="tspan11"><tspan
+               style="font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan10">Background mutations 
+</tspan></tspan><tspan
+             x="500"
+             y="387.31507"
+             id="tspan13"><tspan
+               style="font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan12">fix during evolution</tspan></tspan></text>
+        <text
+           id="text125-8-4-2"
+           x="810"
+           y="369"
+           font-size="15.679px"
+           text-anchor="middle"
+           fill="#333b43"
+           font-style="normal"
+           transform="translate(0,29.833847)"
+           style="font-size:14.5176px;white-space:pre;inline-size:228.811;display:inline"
+           xml:space="preserve"><tspan
+             x="810"
+             y="369"
+             id="tspan15"><tspan
+   style="font-family:Sans;-inkscape-font-specification:Sans"
+   id="tspan14">Assay again in changed</tspan><tspan
+   y="369"
+   id="tspan16"> </tspan></tspan><tspan
+             x="810"
+             y="387.31507"
+             id="tspan18"><tspan
+               style="font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan17">evolved background</tspan></tspan></text>
+        <text
+           id="text125-8-4-5"
+           x="503.71161"
+           y="327.84003"
+           font-size="15.679px"
+           text-anchor="middle"
+           fill="#333b43"
+           font-style="normal"
+           style="font-size:14.5176px"><tspan
+             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.5176px;font-family:Sans;-inkscape-font-specification:Sans"
+             id="tspan22">Evolution</tspan></text>
+      </g>
+      <g
+         id="key"
+         inkscape:groupmode="layer"
+         inkscape:label="Visual key">
+        <text
+           id="text136"
+           x="796"
+           y="59"
+           font-size="15.679px"
+           text-anchor="start"
+           fill="#69747e"
+           font-style="italic"
+           style="font-size:14.5176px;white-space:pre;inline-size:224.069;display:inline"
+           xml:space="preserve"><tspan
+             x="796"
+             y="59"
+             id="tspan20"><tspan
+               style="font-weight:bold;font-family:Sans;-inkscape-font-specification:'Sans Italic'"
+               id="tspan19">Fixed background 
+</tspan></tspan><tspan
+             x="796"
+             y="77.279789"
+             id="tspan23"><tspan
+               style="font-weight:bold;font-family:Sans;-inkscape-font-specification:'Sans Italic'"
+               id="tspan21">mutation</tspan></tspan></text>
+      </g>
+    </g>
+    <text
+       x="19"
+       y="30"
+       font-size="18px"
+       fill="#22292f"
+       text-anchor="start"
+       font-weight="heavy"
+       id="text108"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Sans;-inkscape-font-specification:'Sans Bold'"
+         id="tspan25">A</tspan></text>
+    <g
+       id="genome-continuation-marks"
+       transform="translate(1020,0)">
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.4383px;font-family:Sans;-inkscape-font-specification:Sans;writing-mode:lr-tb;direction:ltr;white-space:pre;inline-size:50.4795;display:inline;fill:#202020;stroke:#000000;stroke-width:1.11111;stroke-dasharray:none;stroke-dashoffset:0"
+         x="-995.54547"
+         y="341.52029"
+         id="text34"
+         transform="translate(29.39815,-11.75926)"><tspan
+           x="-995.54547"
+           y="341.52029"
+           id="tspan24">...</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.4383px;font-family:Sans;-inkscape-font-specification:Sans;writing-mode:lr-tb;direction:ltr;white-space:pre;inline-size:50.4795;display:inline;fill:#202020;stroke:#000000;stroke-width:1.11111;stroke-dasharray:none;stroke-dashoffset:0"
+         x="-995.54547"
+         y="341.52029"
+         id="text34-7"
+         transform="translate(338.07501,-11.835979)"><tspan
+           x="-995.54547"
+           y="341.52029"
+           id="tspan34">...</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.4383px;font-family:Sans;-inkscape-font-specification:Sans;writing-mode:lr-tb;direction:ltr;white-space:pre;inline-size:50.4795;display:inline;fill:#202020;stroke:#000000;stroke-width:1.11111;stroke-dasharray:none;stroke-dashoffset:0"
+         x="-995.54547"
+         y="341.52029"
+         id="text34-0"
+         transform="translate(576.28375,-12.111806)"><tspan
+           x="-995.54547"
+           y="341.52029"
+           id="tspan35">...</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.4383px;font-family:Sans;-inkscape-font-specification:Sans;writing-mode:lr-tb;direction:ltr;white-space:pre;inline-size:50.4795;display:inline;fill:#202020;stroke:#000000;stroke-width:1.11111;stroke-dasharray:none;stroke-dashoffset:0"
+         x="-995.54547"
+         y="341.52029"
+         id="text34-05"
+         transform="translate(885.24706,-12.021033)"><tspan
+           x="-995.54547"
+           y="341.52029"
+           id="tspan36">...</tspan></text>
+    </g>
+  </g>
+  <path
+     id="panel-row-separator"
+     d="M 69.801554,433.24076 H 963.26971"
+     fill="none"
+     stroke="#8c9eac"
+     stroke-width="1.14"
+     stroke-dasharray="4 5"
+     stroke-linecap="butt"
+     style="stroke-dasharray:1.14, 1.14;stroke-dashoffset:0" />
+  <g
+     id="panel-b"
+     transform="translate(0,440)"
+     inkscape:groupmode="layer"
+     inkscape:label="B · Couce datasets">
+    <text
+       x="19"
+       y="30"
+       font-size="18px"
+       fill="#22292f"
+       text-anchor="start"
+       font-weight="heavy"
+       id="text109"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Sans;-inkscape-font-specification:'Sans Bold'"
+         id="tspan26">B</tspan></text>
+    <g
+       id="lb-dataset"
+       transform="translate(38,0)">
+      <g
+         id="lb-generation-guides">
+        <path
+           id="lb-generation-guides-0"
+           d="M37.2037,425.624995 V133.124995"
+           fill="none"
+           stroke="#a6afb6"
+           stroke-width="1.2"
+           stroke-dasharray="1 4"
+           stroke-linecap="round" />
+        <path
+           id="lb-generation-guides-1"
+           d="M190,425.624995 V65.624995"
+           fill="none"
+           stroke="#a6afb6"
+           stroke-width="1.2"
+           stroke-dasharray="1 4"
+           stroke-linecap="round" />
+      </g>
+      <text
+         x="222.06018"
+         y="30"
+         font-size="19.5988"
+         fill="#333b43"
+         text-anchor="middle"
+         font-weight="normal"
+         id="text111"
+         style="font-weight:normal;font-size:17.6389px"><tspan
+           style="font-style:normal;font-weight:bold;font-size:17.6389px;font-family:Sans"
+           id="tspan3">LB dataset</tspan></text>
+      <text
+         x="19.421291"
+         y="63.722256"
+         font-size="14px"
+         fill="#69747e"
+         text-anchor="start"
+         id="text112" />
+      <g
+         id="fan-rel606"
+         transform="translate(-58.7963,-79.375005)">
+        <path
+           d="M120,212.5 L145,145.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path113" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,145)"
+           id="g115">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect113" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect115" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path115" />
+        </g>
+        <text
+           x="276.7963"
+           y="150.3"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text116">ARA-1</text>
+        <path
+           d="M120,212.5 L145,172.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path116" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,172)"
+           id="g117">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect116" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect117" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path117" />
+        </g>
+        <text
+           x="276.7963"
+           y="177.3"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text118">ARA-2</text>
+        <path
+           d="M120,212.5 L145,199.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path118" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,199)"
+           id="g135">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect134" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect135" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path135" />
+        </g>
+        <text
+           x="276.7963"
+           y="204.3"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text135">ARA-3</text>
+        <path
+           d="M120,212.5 L145,226.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path136" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,226)"
+           id="g137">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect136" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect137" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path137" />
+        </g>
+        <text
+           x="276.7963"
+           y="231.3"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text137">ARA-4</text>
+        <path
+           d="M120,212.5 L145,253.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path138" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,253)"
+           id="g139">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect138" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect139" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path139" />
+        </g>
+        <text
+           x="276.7963"
+           y="258.29999"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text139">ARA-5</text>
+        <path
+           d="M120,212.5 L145,280.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path140" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,280)"
+           id="g141">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect140" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect141" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path141" />
+        </g>
+        <text
+           x="276.7963"
+           y="285.29999"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text141">ARA-6</text>
+        <g
+           transform="matrix(1.175,0,0,1.25,96,212.5)"
+           id="g143">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect142" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect143" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path143" />
+        </g>
+        <text
+           x="96"
+           y="246.5"
+           font-size="17px"
+           fill="#333b43"
+           text-anchor="middle"
+           id="text143"
+           stroke="#ffffff"
+           stroke-width="5"
+           stroke-linejoin="round"
+           paint-order="stroke fill">REL606</text>
+      </g>
+      <g
+         id="fan-rel607"
+         transform="translate(-58.7963,-79.375005)">
+        <path
+           d="M120,392.5 L145,325.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path144" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,325)"
+           id="g145">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect144" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect145" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path145" />
+        </g>
+        <text
+           x="276.7963"
+           y="330.29999"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text145">ARA+1</text>
+        <path
+           d="M120,392.5 L145,352.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path146" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,352)"
+           id="g147">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect146" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect147" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path147" />
+        </g>
+        <text
+           x="276.7963"
+           y="357.29999"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text147">ARA+2</text>
+        <path
+           d="M120,392.5 L145,379.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path148" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,379)"
+           id="g149">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect148" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect149" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path149" />
+        </g>
+        <text
+           x="276.7963"
+           y="384.29999"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text149">ARA+3</text>
+        <path
+           d="M120,392.5 L145,406.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path150" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,406)"
+           id="g151">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect150" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect151" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path151" />
+        </g>
+        <text
+           x="276.7963"
+           y="411.29999"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text151">ARA+4</text>
+        <path
+           d="M120,392.5 L145,433.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path152" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,433)"
+           id="g155">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect152" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect153" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path155" />
+        </g>
+        <text
+           x="276.7963"
+           y="438.29999"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text155">ARA+5</text>
+        <path
+           d="M120,392.5 L145,460.0 H229.7963"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path156" />
+        <g
+           transform="matrix(0.95,0,0,1,248.7963,460)"
+           id="g157">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect156" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect157" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path157" />
+        </g>
+        <text
+           x="276.7963"
+           y="465.29999"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text157">ARA+6</text>
+        <g
+           transform="matrix(1.175,0,0,1.25,96,392.5)"
+           id="g159">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect158" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect159" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path159" />
+        </g>
+        <text
+           x="96"
+           y="426.5"
+           font-size="17px"
+           fill="#333b43"
+           text-anchor="middle"
+           id="text159"
+           stroke="#ffffff"
+           stroke-width="5"
+           stroke-linejoin="round"
+           paint-order="stroke fill">REL607</text>
+      </g>
+      <g
+         id="g163"
+         transform="translate(-58.7963,-79.375005)">
+        <path
+           d="M96,505 H248.7963"
+           fill="none"
+           stroke="#333b43"
+           stroke-width="1.3"
+           id="path160" />
+        <path
+           d="m 96,505 v 7"
+           fill="none"
+           stroke="#333b43"
+           stroke-width="1.3"
+           id="path161" />
+        <text
+           x="96"
+           y="534"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="middle"
+           id="text161">0</text>
+        <path
+           d="M248.7963,505 v7"
+           fill="none"
+           stroke="#333b43"
+           stroke-width="1.3"
+           id="path162" />
+        <text
+           x="248.7963"
+           y="534"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="middle"
+           id="text162">50K</text>
+        <text
+           x="172.39815"
+           y="561"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="middle"
+           id="text163">Generations</text>
+      </g>
+      <g
+         id="media-pair-133">
+        <text
+           x="338"
+           y="77.125"
+           font-size="15px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text3"><tspan
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+             id="tspan206">Growth</tspan></text>
+        <text
+           x="434"
+           y="77.125"
+           font-size="15px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text4"><tspan
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+             id="tspan207">Assay</tspan></text>
+        <g
+           transform="translate(338,133.125)"
+           id="flask-lb-133-338">
+          <path
+             d="M-8,-30 V-13 L-24,23 Q-27,30 -18,30 H18 Q27,30 24,23 L8,-13 V-30"
+             fill="#f5f9fc"
+             stroke="none"
+             id="path5" />
+          <path
+             d="M-15,4 Q0,8 15,4 L23,23 Q25,28 18,28 H-18 Q-25,28 -23,23 Z"
+             fill="#e5bd55"
+             fill-opacity=".82"
+             id="path6" />
+          <path
+             d="M-15,4 Q0,8 15,4"
+             fill="none"
+             stroke="#c79a32"
+             stroke-width="1"
+             id="path7" />
+          <path
+             d="M-8,-30 V-13 L-24,23 Q-27,30 -18,30 H18 Q27,30 24,23 L8,-13 V-30"
+             fill="none"
+             stroke="#7098b3"
+             stroke-width="1.7"
+             stroke-linejoin="round"
+             id="path8" />
+          <rect
+             x="-10"
+             y="-33"
+             width="20"
+             height="4"
+             rx="1.3"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.4"
+             id="rect8" />
+          <path
+             d="M-4,-23 V-12 L-18,19"
+             fill="none"
+             stroke="#ffffff"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path9" />
+          <circle
+             cx="-7"
+             cy="15"
+             r="1.5"
+             fill="#ffffff"
+             fill-opacity=".6"
+             id="circle9" />
+          <circle
+             cx="6"
+             cy="21"
+             r="2"
+             fill="#ffffff"
+             fill-opacity=".6"
+             id="circle10" />
+          <circle
+             cx="2"
+             cy="12"
+             r="1.2"
+             fill="#ffffff"
+             fill-opacity=".6"
+             id="circle11" />
+          <text
+             x="0"
+             y="51"
+             font-size="15px"
+             text-anchor="middle"
+             fill="#333b43"
+             id="text11"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan28">LB</tspan></text>
+        </g>
+        <g
+           transform="translate(434,133.125)"
+           id="flask-dm25-133-434">
+          <path
+             d="M-8,-30 V-13 L-24,23 Q-27,30 -18,30 H18 Q27,30 24,23 L8,-13 V-30"
+             fill="#f5f9fc"
+             stroke="none"
+             id="path100" />
+          <path
+             d="M-15,4 Q0,8 15,4 L23,23 Q25,28 18,28 H-18 Q-25,28 -23,23 Z"
+             fill="#80b6d9"
+             fill-opacity=".82"
+             id="path107" />
+          <path
+             d="M-15,4 Q0,8 15,4"
+             fill="none"
+             stroke="#5993bc"
+             stroke-width="1"
+             id="path110" />
+          <path
+             d="M-8,-30 V-13 L-24,23 Q-27,30 -18,30 H18 Q27,30 24,23 L8,-13 V-30"
+             fill="none"
+             stroke="#7098b3"
+             stroke-width="1.7"
+             stroke-linejoin="round"
+             id="path114" />
+          <rect
+             x="-10"
+             y="-33"
+             width="20"
+             height="4"
+             rx="1.3"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.4"
+             id="rect154" />
+          <path
+             d="M-4,-23 V-12 L-18,19"
+             fill="none"
+             stroke="#ffffff"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path158" />
+          <circle
+             cx="5"
+             cy="20"
+             r="1.5"
+             fill="#ffffff"
+             fill-opacity=".6"
+             id="circle158" />
+          <text
+             x="0"
+             y="51"
+             font-size="15px"
+             text-anchor="middle"
+             fill="#333b43"
+             id="text158"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan27">DM25</tspan></text>
+        </g>
+        <path
+           d="M369,133.125 H399"
+           fill="none"
+           stroke="#69747e"
+           stroke-width="1.4"
+           id="path163"
+           style="stroke-width:1.11111115;stroke-dasharray:none" />
+        <path
+           d="m 369.06255,321.13951 h 30"
+           fill="none"
+           stroke="#69747e"
+           stroke-width="1.4"
+           id="path163-2"
+           style="marker-end:url(#Triangle);stroke-width:1.11111115;stroke-dasharray:none" />
+        <path
+           d="M398,129.625 L404,133.125 398,136.625 Z"
+           fill="#69747e"
+           id="path164"
+           style="stroke-width:1.11111115;stroke-dasharray:none" />
+      </g>
+      <g
+         id="lb-amino-acid-selection">
+        <text
+           x="386"
+           y="225"
+           font-size="14px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text181"
+           style="white-space:pre;inline-size:169.554;display:inline"
+           xml:space="preserve"><tspan
+             x="386"
+             y="225"
+             id="tspan38"><tspan
+   style="font-style:italic;font-family:Sans;-inkscape-font-specification:'Sans Italic'"
+   id="tspan37">Disrupted amino-acid</tspan><tspan
+   y="225"
+   id="tspan39"> </tspan></tspan><tspan
+             x="386"
+             y="242.66206"
+             id="tspan41"><tspan
+               style="font-style:italic;font-family:Sans;-inkscape-font-specification:'Sans Italic'"
+               id="tspan40">synthesis genes</tspan></tspan></text>
+        <text
+           x="386"
+           y="244"
+           font-size="14px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text182" />
+        <text
+           x="338"
+           y="272"
+           font-size="12.5"
+           text-anchor="middle"
+           fill="#9b7628"
+           id="text183">AA supplied</text>
+        <text
+           x="434"
+           y="272"
+           font-size="12.5"
+           text-anchor="middle"
+           fill="#69747e"
+           id="text184">AA absent</text>
+        <g
+           transform="translate(338,297)"
+           id="g185">
+          <rect
+             x="-19"
+             y="-10"
+             width="38"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.4"
+             id="rect184" />
+          <path
+             d="M-11,1 C-14,-7 -2,-8 -3,0 C-5,7 -11,5 -8,0 C-3,-6 9,-6 11,0 C14,7 3,7 3,1"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="1.2"
+             id="path184" />
+          <path
+             d="M-11,1 C-12,-2 -11,-4 -9,-5 M-4,-5 Q-2,-3 -3,0"
+             fill="none"
+             stroke="#e17c2c"
+             stroke-width="2.8"
+             stroke-linecap="round"
+             id="path185" />
+        </g>
+        <path
+           d="M338,311 V320 M338,320 L324,330 M338,320 L352,330"
+           fill="none"
+           stroke="#7098b3"
+           stroke-width="1.2"
+           id="path186" />
+        <g
+           transform="translate(317,343)"
+           id="g188">
+          <rect
+             x="-19"
+             y="-10"
+             width="38"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.4"
+             id="rect186" />
+          <path
+             d="M-11,1 C-14,-7 -2,-8 -3,0 C-5,7 -11,5 -8,0 C-3,-6 9,-6 11,0 C14,7 3,7 3,1"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="1.2"
+             id="path187" />
+          <path
+             d="M-11,1 C-12,-2 -11,-4 -9,-5 M-4,-5 Q-2,-3 -3,0"
+             fill="none"
+             stroke="#e17c2c"
+             stroke-width="2.8"
+             stroke-linecap="round"
+             id="path188" />
+        </g>
+        <g
+           transform="translate(359,343)"
+           id="g190">
+          <rect
+             x="-19"
+             y="-10"
+             width="38"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.4"
+             id="rect188" />
+          <path
+             d="M-11,1 C-14,-7 -2,-8 -3,0 C-5,7 -11,5 -8,0 C-3,-6 9,-6 11,0 C14,7 3,7 3,1"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="1.2"
+             id="path189" />
+          <path
+             d="M-11,1 C-12,-2 -11,-4 -9,-5 M-4,-5 Q-2,-3 -3,0"
+             fill="none"
+             stroke="#e17c2c"
+             stroke-width="2.8"
+             stroke-linecap="round"
+             id="path190" />
+        </g>
+        <path
+           d="M311,284 l3,5 h-6 Z"
+           fill="#d4b34e"
+           id="path191" />
+        <path
+           d="M366,289 l3,5 h-6 Z"
+           fill="#d4b34e"
+           id="path192" />
+        <path
+           d="m 307.08676,310 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path193" />
+        <path
+           d="m 352.61875,314.67047 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path194" />
+        <path
+           d="m 362.66449,301.7067 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path194-1" />
+        <path
+           d="m 325.88312,313.75215 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path194-0" />
+        <path
+           d="m 315.31468,299.02294 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path194-10" />
+        <path
+           d="m 311.40379,361.38814 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path194-08" />
+        <path
+           d="m 372.31237,357.24067 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path194-9" />
+        <path
+           d="m 366.22275,324.89916 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path194-05" />
+        <path
+           d="m 310.07033,323.39649 3,5 h -6 z"
+           fill="#d4b34e"
+           id="path194-11" />
+        <path
+           d="M338,360 l3,5 h-6 Z"
+           fill="#d4b34e"
+           id="path195" />
+        <g
+           transform="translate(434,321)"
+           id="g198">
+          <rect
+             x="-19"
+             y="-10"
+             width="38"
+             height="20"
+             rx="10"
+             fill="#eef0f2"
+             stroke="#a6aeb5"
+             stroke-width="1.4"
+             id="rect195" />
+          <path
+             d="M-11,1 C-14,-7 -2,-8 -3,0 C-5,7 -11,5 -8,0 C-3,-6 9,-6 11,0 C14,7 3,7 3,1"
+             fill="none"
+             stroke="#a6aeb5"
+             stroke-width="1.2"
+             id="path196" />
+          <path
+             d="M-11,1 C-12,-2 -11,-4 -9,-5 M-4,-5 Q-2,-3 -3,0"
+             fill="none"
+             stroke="#e17c2c"
+             stroke-width="2.8"
+             stroke-linecap="round"
+             id="path197" />
+          <path
+             d="M-8,-7 L8,7 M-8,7 L8,-7"
+             fill="none"
+             stroke="#a45b62"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path198" />
+        </g>
+        <text
+           x="338"
+           y="385"
+           font-size="13px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text198"><tspan
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+             id="tspan29">Growth</tspan></text>
+        <text
+           x="434"
+           y="385"
+           font-size="13px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text199"
+           style="white-space:pre;inline-size:78.4444;display:inline"
+           xml:space="preserve"><tspan
+             x="434"
+             y="385"
+             id="tspan43"><tspan
+   style="font-family:Sans;-inkscape-font-specification:Sans"
+   id="tspan42">Highly</tspan><tspan
+   y="385"
+   id="tspan44"> </tspan></tspan><tspan
+             x="434"
+             y="401.40049"
+             id="tspan46"><tspan
+               style="font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan45">deleterious</tspan></tspan></text>
+      </g>
+    </g>
+    <g
+       id="dm25-dataset"
+       transform="translate(548,0)">
+      <g
+         id="dm25-generation-guides">
+        <path
+           id="dm25-generation-guides-0"
+           d="M37.2037,425.624995 V210.57084"
+           fill="none"
+           stroke="#a6afb6"
+           stroke-width="1.2"
+           stroke-dasharray="1 4"
+           stroke-linecap="round" />
+        <path
+           id="dm25-generation-guides-1"
+           d="M110,425.624995 V170.07084"
+           fill="none"
+           stroke="#a6afb6"
+           stroke-width="1.2"
+           stroke-dasharray="1 4"
+           stroke-linecap="round" />
+        <path
+           id="dm25-generation-guides-2"
+           d="M190,425.624995 V170.07084"
+           fill="none"
+           stroke="#a6afb6"
+           stroke-width="1.2"
+           stroke-dasharray="1 4"
+           stroke-linecap="round" />
+      </g>
+      <text
+         x="225"
+         y="30"
+         font-size="19.5988"
+         fill="#333b43"
+         text-anchor="middle"
+         font-weight="normal"
+         id="text164"
+         style="font-weight:normal;font-size:17.6389px"><tspan
+           style="font-style:normal;font-weight:bold;font-size:17.6389px;font-family:Sans"
+           id="tspan4">DM25 dataset</tspan></text>
+      <g
+         id="dm25-lineage"
+         transform="translate(0,-410)">
+        <path
+           d="M37.2037,620.57084 L110,580.07084 H142 M158,580.07084 H190"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           id="path146-2" />
+        <g
+           transform="matrix(0.95,0,0,1,190,580.07084)"
+           id="g147-5">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect146-0" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect147-2" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path147-8" />
+        </g>
+        <text
+           x="218"
+           y="585.37085"
+           font-size="16px"
+           fill="#333b43"
+           text-anchor="start"
+           id="text147-3">ARA+2</text>
+        <g
+           transform="matrix(1.175,0,0,1.25,37.2037,620.57084)"
+           id="g159-5">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect158-9" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect159-2" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path159-6" />
+        </g>
+        <text
+           x="37.2037"
+           y="654.57086"
+           font-size="17px"
+           fill="#333b43"
+           text-anchor="middle"
+           id="text159-2"
+           stroke="#ffffff"
+           stroke-width="5"
+           stroke-linejoin="round"
+           paint-order="stroke fill">REL607</text>
+        <g
+           transform="matrix(0.95,0,0,1,110,580.07084)"
+           id="g147-5-7">
+          <rect
+             x="-20"
+             y="-10"
+             width="40"
+             height="20"
+             rx="10"
+             fill="#f5f9fc"
+             stroke="#7098b3"
+             stroke-width="1.35"
+             id="rect146-0-2" />
+          <rect
+             x="-17.799999"
+             y="-7.8000002"
+             width="35.599998"
+             height="15.6"
+             rx="7.8000002"
+             fill="none"
+             stroke="#bfd2df"
+             stroke-width="0.65"
+             id="rect147-2-3" />
+          <path
+             d="m -11,0 c -4,-8 8,-7 7,-1 -1,6 -8,5 -6,0 3,-5 13,-5 13,0 0,6 -7,5 -6,1 2,-5 14,-4 15,0 2,5 -7,6 -7,2 -1,-4 -10,5 -15,1 -4,-2 -1,-6 -1,-3"
+             fill="none"
+             stroke="#6d8ca5"
+             stroke-width="0.9"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             id="path147-8-0" />
+        </g>
+        <path
+           d="M145,584.07084 l5,-8 M151,584.07084 l5,-8"
+           fill="none"
+           stroke="#8c9eac"
+           stroke-width="1.2"
+           id="path3" />
+      </g>
+      <g
+         id="dm25-generation-axis"
+         transform="translate(0,-250.638895)">
+        <g
+           id="g176"
+           transform="">
+          <path
+             d="M37.2037,676.26389 H142 M158,676.26389 H190"
+             fill="none"
+             stroke="#333b43"
+             stroke-width="1.3"
+             id="path172" />
+          <path
+             d="M37.2037,676.26389 v7"
+             fill="none"
+             stroke="#333b43"
+             stroke-width="1.3"
+             id="path173" />
+          <text
+             x="37.2037"
+             y="705.26389"
+             font-size="16px"
+             fill="#333b43"
+             text-anchor="middle"
+             id="text173">0</text>
+          <path
+             d="M110,676.26389 v7"
+             fill="none"
+             stroke="#333b43"
+             stroke-width="1.3"
+             id="path174" />
+          <text
+             x="110"
+             y="705.26389"
+             font-size="16px"
+             fill="#333b43"
+             text-anchor="middle"
+             id="text174">2K</text>
+          <path
+             d="M190,676.26389 v7"
+             fill="none"
+             stroke="#333b43"
+             stroke-width="1.3"
+             id="path175" />
+          <text
+             x="190"
+             y="705.26389"
+             font-size="16px"
+             fill="#333b43"
+             text-anchor="middle"
+             id="text175">15K</text>
+          <text
+             x="113.60185"
+             y="732.26389"
+             font-size="16px"
+             fill="#333b43"
+             text-anchor="middle"
+             id="text176">Generations</text>
+          <path
+             d="M145,680.26389 l5,-8 M151,680.26389 l5,-8"
+             fill="none"
+             stroke="#333b43"
+             stroke-width="1.2"
+             id="path2" />
+        </g>
+      </g>
+      <g
+         id="dm25-media"
+         transform="translate(0,-487.44584)">
+        <g
+           id="media-pair-620">
+          <text
+             x="338"
+             y="564.57086"
+             font-size="15px"
+             text-anchor="middle"
+             fill="#333b43"
+             id="text165"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan32">Growth</tspan></text>
+          <text
+             x="434"
+             y="564.57086"
+             font-size="15px"
+             text-anchor="middle"
+             fill="#333b43"
+             id="text166"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+               id="tspan33">Assay</tspan></text>
+          <g
+             transform="translate(338,620.57084)"
+             id="flask-dm25-620-338">
+            <path
+               d="M-8,-30 V-13 L-24,23 Q-27,30 -18,30 H18 Q27,30 24,23 L8,-13 V-30"
+               fill="#f5f9fc"
+               stroke="none"
+               id="path166" />
+            <path
+               d="M-15,4 Q0,8 15,4 L23,23 Q25,28 18,28 H-18 Q-25,28 -23,23 Z"
+               fill="#80b6d9"
+               fill-opacity=".82"
+               id="path167" />
+            <path
+               d="M-15,4 Q0,8 15,4"
+               fill="none"
+               stroke="#5993bc"
+               stroke-width="1"
+               id="path168" />
+            <path
+               d="M-8,-30 V-13 L-24,23 Q-27,30 -18,30 H18 Q27,30 24,23 L8,-13 V-30"
+               fill="none"
+               stroke="#7098b3"
+               stroke-width="1.7"
+               stroke-linejoin="round"
+               id="path169" />
+            <rect
+               x="-10"
+               y="-33"
+               width="20"
+               height="4"
+               rx="1.3"
+               fill="#f5f9fc"
+               stroke="#7098b3"
+               stroke-width="1.4"
+               id="rect169" />
+            <path
+               d="M-4,-23 V-12 L-18,19"
+               fill="none"
+               stroke="#ffffff"
+               stroke-width="2"
+               stroke-linecap="round"
+               id="path170" />
+            <circle
+               cx="5"
+               cy="20"
+               r="1.5"
+               fill="#ffffff"
+               fill-opacity=".6"
+               id="circle170" />
+            <text
+               x="0"
+               y="51"
+               font-size="15px"
+               text-anchor="middle"
+               fill="#333b43"
+               id="text170"><tspan
+                 style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+                 id="tspan30">DM25</tspan></text>
+          </g>
+          <g
+             transform="translate(434,620.57084)"
+             id="flask-dm25-620-434">
+            <path
+               d="M-8,-30 V-13 L-24,23 Q-27,30 -18,30 H18 Q27,30 24,23 L8,-13 V-30"
+               fill="#f5f9fc"
+               stroke="none"
+               id="path171" />
+            <path
+               d="M-15,4 Q0,8 15,4 L23,23 Q25,28 18,28 H-18 Q-25,28 -23,23 Z"
+               fill="#80b6d9"
+               fill-opacity=".82"
+               id="path176" />
+            <path
+               d="M-15,4 Q0,8 15,4"
+               fill="none"
+               stroke="#5993bc"
+               stroke-width="1"
+               id="path177" />
+            <path
+               d="M-8,-30 V-13 L-24,23 Q-27,30 -18,30 H18 Q27,30 24,23 L8,-13 V-30"
+               fill="none"
+               stroke="#7098b3"
+               stroke-width="1.7"
+               stroke-linejoin="round"
+               id="path178" />
+            <rect
+               x="-10"
+               y="-33"
+               width="20"
+               height="4"
+               rx="1.3"
+               fill="#f5f9fc"
+               stroke="#7098b3"
+               stroke-width="1.4"
+               id="rect178" />
+            <path
+               d="M-4,-23 V-12 L-18,19"
+               fill="none"
+               stroke="#ffffff"
+               stroke-width="2"
+               stroke-linecap="round"
+               id="path179" />
+            <circle
+               cx="5"
+               cy="20"
+               r="1.5"
+               fill="#ffffff"
+               fill-opacity=".6"
+               id="circle179" />
+            <text
+               x="0"
+               y="51"
+               font-size="15px"
+               text-anchor="middle"
+               fill="#333b43"
+               id="text179"><tspan
+                 style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
+                 id="tspan31">DM25</tspan></text>
+          </g>
+          <path
+             d="M369,620.57084 H399"
+             fill="none"
+             stroke="#69747e"
+             stroke-width="1.4"
+             id="path180" />
+          <path
+             d="M398,617.07084 L404,620.57084 398,624.07084 Z"
+             fill="#69747e"
+             id="path181" />
+          <text
+             x="338"
+             y="696.57086"
+             font-size="12.5px"
+             text-anchor="middle"
+             fill="#69747e"
+             id="text-dm25-growth-aa-absent">AA absent</text>
+        </g>
+      </g>
+      <g
+         id="dm25-amino-acid-selection"
+         transform="translate(0,-438.21753)">
+        <g
+           transform="translate(338,759.21753)"
+           id="g203">
+          <rect
+             x="-19"
+             y="-10"
+             width="38"
+             height="20"
+             rx="10"
+             fill="#eef0f2"
+             stroke="#a6aeb5"
+             stroke-width="1.4"
+             id="rect201" />
+          <path
+             d="m -11,1 c -3,-8 9,-9 8,-1 -2,7 -8,5 -5,0 5,-6 17,-6 19,0 3,7 -8,7 -8,1"
+             fill="none"
+             stroke="#a6aeb5"
+             stroke-width="1.2"
+             id="path201" />
+          <path
+             d="m -11,1 c -1,-3 0,-5 2,-6 m 5,0 q 2,2 1,5"
+             fill="none"
+             stroke="#e17c2c"
+             stroke-width="2.8"
+             stroke-linecap="round"
+             id="path202" />
+          <path
+             d="M -8,-7 8,7 M -8,7 8,-7"
+             fill="none"
+             stroke="#a45b62"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path203" />
+        </g>
+        <path
+           d="m 368,759.21753 h 36"
+           fill="none"
+           stroke="#a6aeb5"
+           stroke-width="1.2"
+           stroke-dasharray="3, 3"
+           id="path204" />
+        <circle
+           cx="434"
+           cy="759.21765"
+           r="13"
+           fill="none"
+           stroke="#a6aeb5"
+           stroke-width="1.2"
+           stroke-dasharray="3, 3"
+           id="circle204" />
+        <text
+           x="338"
+           y="791.21765"
+           font-size="12.5px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text204">No growth</text>
+        <text
+           x="434"
+           y="791.21765"
+           font-size="12.5px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text205">Not assayed</text>
+        <text
+           x="386"
+           y="784"
+           font-size="12.5px"
+           text-anchor="middle"
+           fill="#333b43"
+           id="text206" />
+      </g>
+      <text
+         x="386"
+         y="225"
+         font-size="14px"
+         text-anchor="middle"
+         fill="#333b43"
+         id="text181-0"
+         style="white-space:pre;inline-size:169.554;display:inline"
+         xml:space="preserve"><tspan
+           x="386"
+           y="225"
+           id="tspan48"><tspan
+   style="font-style:italic;font-family:Sans;-inkscape-font-specification:'Sans Italic'"
+   id="tspan47">Disrupted amino-acid</tspan><tspan
+   y="225"
+   id="tspan49"> </tspan></tspan><tspan
+           x="386"
+           y="242.66206"
+           id="tspan51"><tspan
+             style="font-style:italic;font-family:Sans;-inkscape-font-specification:'Sans Italic'"
+             id="tspan50">synthesis genes</tspan></tspan></text>
+    </g>
+  </g>
+</svg>

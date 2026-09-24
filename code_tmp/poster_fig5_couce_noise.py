@@ -54,7 +54,7 @@ FIT_PATH = os.path.join(
 # and ``FIT_PATH`` above are the same optimum to seven digits, so which one a 0K walk
 # reads does not matter; 2K exists only here.
 FIG3_FIT_PATH = os.path.join(REPO_ROOT, "data", "fig3_fgm_fits.json")
-DATA_DIR = os.path.join(REPO_ROOT, "data", "FGM_HEAVY_TAILED")
+DATA_DIR = os.path.join(REPO_ROOT, "data", "sim", "FGM_HT")
 FIG_DIR = _OUT_TMP
 
 CACHE_VERSION = 3

@@ -46,7 +46,7 @@ Couce et al. are not in this table: their library has essentially no lethal tail
 ~38000 below -0.3; see cmn/cmn_exper.py), so there is no initial tail to condition on.  This is a
 Limdi-only analysis.  EXCLUDED populations (Ara-2, Ara+4) are kept and flagged, as in TableS1.
 
-    data/Table_tail_autocorr.csv
+    data/exper/Table_tail_autocorr.csv
     columns: dataset, transition, n_fixed_mut, n_tail, tail_autocorr, tail_autocorr_corr,
              tail_corr_vs_ceiling, frac_reverted, excluded
 

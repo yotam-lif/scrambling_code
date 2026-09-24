@@ -27,11 +27,11 @@ are the only choice that keeps the t_0 = 0% anchor meaningful.
 
 Data and cache
 --------------
-Built from the stored adaptive walks: data/NK/N_500_K_*_repeats_10.pkl (which carry the DFE at
+Built from the stored adaptive walks: data/sim/NK/N_500_K_*_repeats_10.pkl (which carry the DFE at
 every step, so the NK walks are read, not replayed) and the pure p-spin runs (which carry J and
 the flip sequence, so each walk is replayed through cmn_pspin's incremental updates) --
-data/PSPIN/N500_P{2,3}_pure_repeats10.pkl, plus data/PSPIN/N300_P4_pure_repeats5/ for p=4, one
-pickle per replicate because a single N=300 p=4 landscape is ~9 GB and must be streamed alone. The aggregated per-anchor curves are cached in data/cache/figS6_nk_pspin_cache.pkl;
+data/sim/PSPIN/N500_P{2,3}_pure_repeats10.pkl, plus data/sim/PSPIN/N300_P4_pure_repeats5/ for p=4, one
+pickle per replicate because a single N=300 p=4 landscape is ~9 GB and must be streamed alone. The aggregated per-anchor curves are cached in data/sim/cache/figS6_nk_pspin_cache.pkl;
 delete it or pass --refresh to rebuild.
 """
 
@@ -101,20 +101,20 @@ mpl.rcParams.update({
 # NK: N=500, several K; connectivity = K. The stored walks carry their own DFE history.
 NK_N = 500
 K_VALUES = [4, 8, 16, 32, 64]
-NK_FILES = {k: f"../data/NK/N_{NK_N}_K_{k}_repeats_10.pkl" for k in K_VALUES}
+NK_FILES = {k: f"../data/sim/NK/N_{NK_N}_K_{k}_repeats_10.pkl" for k in K_VALUES}
 K_COLORS = dict(zip(K_VALUES, sns.color_palette("viridis", len(K_VALUES))))
 
 # Pure p-spin: connectivity = p-1. The stored walks are replayed through cmn_pspin.
 PSPIN = {2: 500, 3: 500, 4: 300}     # p -> N of the stored run
 # A path is either a single pickle holding a list of walks, or a directory holding one pickle per
 # replicate (p=4, whose ~9 GB landscapes have to be loaded and freed one at a time).
-PSPIN_FILES = {2: "../data/PSPIN/N500_P2_pure_repeats10.pkl",
-               3: "../data/PSPIN/N500_P3_pure_repeats10.pkl",
-               4: "../data/PSPIN/N300_P4_pure_repeats5"}
+PSPIN_FILES = {2: "../data/sim/PSPIN/N500_P2_pure_repeats10.pkl",
+               3: "../data/sim/PSPIN/N500_P3_pure_repeats10.pkl",
+               4: "../data/sim/PSPIN/N300_P4_pure_repeats5"}
 P_COLORS = dict(zip(sorted(PSPIN), sns.color_palette("CMRmap", len(PSPIN) + 1)))
 
 # Aggregated per-anchor curves, keyed by model, size, connectivity, replicates and anchor set.
-CACHE_PATH = "../data/cache/figS6_nk_pspin_cache.pkl"
+CACHE_PATH = "../data/sim/cache/figS6_nk_pspin_cache.pkl"
 N_REPEATS = 10
 # p=4 was run with fewer replicates than the rest (each landscape is ~9 GB).
 PSPIN_REPEATS = {2: N_REPEATS, 3: N_REPEATS, 4: 5}
@@ -240,7 +240,7 @@ def _anchor_curves(walks):
 def _nk_walks(k, n_repeats):
     """(sig_hist, dfe_hist) per stored NK walk. The DFE at every step is stored, not recomputed.
 
-    The DFEs in data/NK/ are intensive (fitness = mean of f_i over loci), unlike the p-spin's
+    The DFEs in data/sim/NK/ are intensive (fitness = mean of f_i over loci), unlike the p-spin's
     extensive ones -- except N_500_K_64_repeats_10.pkl, generated after cmn_nk switched to the
     extensive convention, whose effects are ~N times larger than its siblings'. A Pearson
     correlation is invariant to either constant factor, so this figure is unaffected; anything

@@ -64,7 +64,7 @@ def normalize(p: np.ndarray, ds: float) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 DEFAULT_PSPIN_R_DIR = (
-    Path(__file__).resolve().parents[1] / "data" / "pspin_R_solver"
+    Path(__file__).resolve().parents[1] / "data" / "sim" / "cache" / "pspin_R_solver"
 )
 
 DEFAULT_PSPIN_R_TAU_CFG = {

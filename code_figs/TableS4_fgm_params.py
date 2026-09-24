@@ -81,7 +81,7 @@ The approximate 95% confidence intervals for r, sigma and mu are observed-inform
 Canonical lower limits are clipped to the support of the observed data. These describe
 local likelihood curvature; they do not account for uncertainty in choosing n.
 
-    data/TableS4_fgm_params.csv
+    data/exper/TableS4_fgm_params.csv
     columns: dataset, background, assay, N, s_min, s_max,
              canon_n_cont, canon_n, canon_r, canon_r_ci_low, canon_r_ci_high,
              canon_sigma, canon_sigma_ci_low, canon_sigma_ci_high, canon_loglik,

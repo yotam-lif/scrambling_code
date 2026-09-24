@@ -184,7 +184,7 @@ errors to BOTH endpoints and then rebuild the ancestor-ranked 100/98/95/90 subse
 simulation.  This is a forward expectation under no scrambling, not a disattenuated version of
 the experimental correlation.
 
-    data/TableS3_ascensao_autocorr.csv
+    data/exper/TableS3_ascensao_autocorr.csv
     columns: experiment, media, description, comparison, n_100, r_100, r_100_null, r_100_w,
              n_98, cut_98, r_98, r_98_null, n_95, cut_95, r_95, r_95_null,
              n_90, cut_90, r_90, r_90_null, f98, f95, f90
@@ -194,7 +194,7 @@ medium of THREE different experiments here -- E_SLR's 24 h cycle, E_PQT's 5-8 h 
 8-day repeat -- so the medium alone would collapse three regimes into one label, and the regime
 alone would not say that E_GHI's carbon source is different.
 
-Requires the cache built by ``data/data_ascensao_2/build_monoculture_from_repo.py``.
+Requires the cache built by ``data/exper/data_ascensao_2/build_monoculture_from_repo.py``.
 
 Run:
     python code_figs/TableS3_ascensao_autocorr.py

@@ -235,7 +235,7 @@ def plot_kde(ax, samples, color, label, bw_method, offset=0.0,
 # cmn/cmn_bayes.py (`python cmn/cmn_bayes.py alpha`) and cached in
 # data/floor_alpha_by_param.json.
 # α=0 marks a persistent (N-independent) floor; α>0 a floor that vanishes.
-ALPHA_CACHE_PATH = os.path.join(REPO_DIR, "data", "cache", "floor_alpha_by_param.json")
+ALPHA_CACHE_PATH = os.path.join(REPO_DIR, "data", "sim", "cache", "floor_alpha_by_param.json")
 _ALPHA_CACHE = None
 _PARAM_SYMBOL = {"FGM": "n", "NK": "K", "PSPIN": "p"}
 
@@ -312,8 +312,8 @@ def load_fgm_data():
     fgm_data = {}
     for n_val in fgm_ns:
         for path in [
-            f"../data/FGM/fgm_rps1000_n{n_val}_sig0.05_m2000.pkl",
-            f"../data/FGM/fgm_rps1000_n{n_val}_sig0.05.pkl",
+            f"../data/sim/FGM/fgm_rps1000_n{n_val}_sig0.05_m2000.pkl",
+            f"../data/sim/FGM/fgm_rps1000_n{n_val}_sig0.05.pkl",
         ]:
             if os.path.exists(path):
                 with open(path, "rb") as f:
@@ -337,9 +337,9 @@ def load_fgm_data():
 
 def load_pspin_data():
     file_paths = {
-        1: "../data/PSPIN/N400_P1_pure_repeats10.pkl",
-        2: "../data/PSPIN/N400_P2_pure_repeats10.pkl",
-        3: "../data/PSPIN/N400_P3_pure_repeats10.pkl",
+        1: "../data/sim/PSPIN/N400_P1_pure_repeats10.pkl",
+        2: "../data/sim/PSPIN/N400_P2_pure_repeats10.pkl",
+        3: "../data/sim/PSPIN/N400_P3_pure_repeats10.pkl",
     }
     pspin_data = {}
     for order, path in file_paths.items():
@@ -351,7 +351,7 @@ def load_pspin_data():
 
 
 def load_nk_data():
-    res_directory = "../data/NK"
+    res_directory = "../data/sim/NK"
     k_values = [4, 8, 16, 32]
     data_arr = []
     for k in k_values:

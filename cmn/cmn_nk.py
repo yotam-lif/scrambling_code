@@ -69,7 +69,7 @@ class NK:
 
         NOTE: this previously returned the *mean* (fit_sum / N), an intensive
         quantity ~N times smaller. Any dataset pickled under that older convention
-        (e.g. the existing files in data/NK/) stores intensive effects and must be
+        (e.g. the existing files in data/sim/NK/) stores intensive effects and must be
         multiplied by N before being compared with the p-spin.
 
         Parameters

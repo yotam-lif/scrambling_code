@@ -126,7 +126,7 @@ library is anchored by its most extreme |s| probes, so admitting simulated mutat
 could never have reported moves r100 hard and the cut subsets barely at all (0.117 on Couce
 r100 against 0.0002 on r90).  See ``cmn/cmn_walksim.py``.
 
-Reads cached walks from data/FGM_HEAVY_TAILED; it does not re-run them.  Regenerate with
+Reads cached walks from data/sim/FGM_HT; it does not re-run them.  Regenerate with
 ``python code_figs/sim_walk_caches.py``.
 
 Run from anywhere:  python code_figs/fig4_autocorrelation.py
@@ -213,9 +213,9 @@ FIT_JSON = os.path.join(_REPO_ROOT, "data", "fig3_fgm_fits.json")
 WALK_DIR = cmn_walksim.WALK_DIR
 # The t = 0 isogenic control is read from the supplementary table rather than recomputed,
 # so its star and the numbers in that table cannot drift apart.
-LIMDI_TABLE = os.path.join(_REPO_ROOT, "data", "TableS1_limdi_autocorr.csv")
+LIMDI_TABLE = os.path.join(_REPO_ROOT, "data", "exper", "TableS1_limdi_autocorr.csv")
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
-SCHEMATIC_SVG = os.path.join(_REPO_ROOT, "code_figs", "fig4_prediction_pipeline_schematic.svg")
+SCHEMATIC_SVG = os.path.join(_REPO_ROOT, "code_figs", "ext_svg/fig4_prediction_pipeline_schematic.svg")
 SCHEMATIC_PDF = os.path.join(OUT_DIR, "fig4_schematic.pdf")
 
 

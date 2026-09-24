@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 REPO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(REPO_DIR, "data")
+DATA_DIR = os.path.join(REPO_DIR, "data", "exper")
 ASENCAO_DIR = os.path.join(DATA_DIR, "data_ascensao_2")
 COUCE_DIR = os.path.join(DATA_DIR, "data_couce")
 LIMDI_DIR = os.path.join(
@@ -155,7 +155,7 @@ def load_asencao_errors(exp, background):
     The published per-gene standard error from the authors' data release
     (github.com/joaoascensao/S-L-REL606-BarSeq), aligned row-for-row to
     :func:`load_asencao_array` (NaN where the effect is unmeasured).  These ``*_std.npy`` arrays
-    are built by ``data/data_ascensao_2/build_stds_from_repo.py``; the value-match that fixes
+    are built by ``data/exper/data_ascensao_2/build_stds_from_repo.py``; the value-match that fixes
     the strain mapping (each experiment's files are S/L/R in order) is verified there.
     """
     path = os.path.join(ASENCAO_DIR, exp, f"{background}_std.npy")
@@ -171,7 +171,7 @@ def load_asencao_errors(exp, background):
 # structure.  The release also publishes each biological replicate fit on its own, and replicate 1
 # vs replicate 2 of one strain in one experiment is a pure technical control: same genotype, same
 # library, same condition, nothing between the two numbers but assay noise.  Those tables are
-# cached as tidy CSVs by ``data/data_ascensao_2/build_monoculture_from_repo.py``.
+# cached as tidy CSVs by ``data/exper/data_ascensao_2/build_monoculture_from_repo.py``.
 #
 # Rows are keyed on ``gene_ID`` (ECB_#####), NOT on gene_symbol and never on row position.  The
 # build script verifies that gene_ID is unique and non-null in every file and that the
@@ -269,7 +269,7 @@ def asencao_mono_series(letter, rep=None, errors=False):
     path = os.path.join(ASENCAO_MONO_DIR, f"{name}.csv")
     if not os.path.exists(path):
         raise FileNotFoundError(
-            f"{path} missing -- run data/data_ascensao_2/build_monoculture_from_repo.py")
+            f"{path} missing -- run data/exper/data_ascensao_2/build_monoculture_from_repo.py")
     df = pd.read_csv(path)
     if df["gene_ID"].duplicated().any():
         raise ValueError(f"{path}: duplicated gene_ID; the cache is corrupt")

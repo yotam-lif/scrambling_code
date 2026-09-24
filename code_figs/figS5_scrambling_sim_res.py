@@ -131,7 +131,7 @@ fgm_dfe1 = dfes[ind1]
 fgm_dfe2 = dfes[ind2]
 
 # SK data
-res_directory = os.path.join(os.path.dirname(__file__), "..", "data", "PSPIN")
+res_directory = os.path.join(os.path.dirname(__file__), "..", "data", "sim", "PSPIN")
 data_file_sk = os.path.join(res_directory, SK_FILE)
 with open(data_file_sk, "rb") as f:
     data_sk = pickle.load(f)
@@ -148,7 +148,7 @@ sk_dfe1 = cmn_pspin.compute_dfe(sig1, J)
 sk_dfe2 = cmn_pspin.compute_dfe(sig2, J)
 
 # NK data
-res_directory = os.path.join(os.path.dirname(__file__), "..", "data", "NK")
+res_directory = os.path.join(os.path.dirname(__file__), "..", "data", "sim", "NK")
 data_file_nk = os.path.join(res_directory, NK_FILE)
 with open(data_file_nk, "rb") as f:
     data_nk = pickle.load(f)
@@ -157,11 +157,11 @@ flip_seq = data_entry["flip_seq"]
 dfes = data_entry["dfes"]
 ind1 = int(NK_T1 * (len(flip_seq) - 1))
 ind2 = int(NK_T2 * (len(flip_seq) - 1))
-# The pickles under data/NK/ were generated BEFORE cmn_nk switched to the extensive
+# The pickles under data/sim/NK/ were generated BEFORE cmn_nk switched to the extensive
 # convention, so their effects are intensive (fitness = mean of f_i over loci) and ~N
 # times smaller than the p-spin's. Rescale by N to match; each stored DFE holds one entry
 # per locus, so N is just its length.
-# IMPORTANT: cmn_nk.NK.compute_fitness is now EXTENSIVE. If data/NK/ is ever regenerated
+# IMPORTANT: cmn_nk.NK.compute_fitness is now EXTENSIVE. If data/sim/NK/ is ever regenerated
 # with the current code its effects are already extensive -- DROP this * nk_n rescale, or
 # they will be inflated by a further factor of N.
 nk_n = len(dfes[ind1])

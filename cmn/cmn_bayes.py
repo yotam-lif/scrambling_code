@@ -24,7 +24,7 @@ Known values imposed via `infer(fix_theta=..., fix_d=...)`:
   SK (p=2)       theta = 1 [, d = 0.3]           -> free c, [d,] alpha
   NK, p-spin p=3 nothing                          -> free theta, d, c, alpha
 
-Data products written to data/ (read by the figures, never recomputed by them):
+Data products written to data/sim/cache/ (read by the figures, never recomputed by them):
 
   floor_effects_cache.pkl    sorted deleterious effects per (model, param, N);
                              slow to build (p=3 is multi-GB) -- built once.
@@ -38,9 +38,9 @@ Data products written to data/ (read by the figures, never recomputed by them):
 CLI (run from the repo root):
 
     python cmn/cmn_bayes.py cache    # (re)build floor_effects_cache.pkl  [slow]
-    python cmn/cmn_bayes.py alpha    # -> data/floor_alpha_by_param.json
-    python cmn/cmn_bayes.py theta    # -> data/floor_theta_by_param.json
-    python cmn/cmn_bayes.py radius   # -> data/fgm_radius_by_n.json
+    python cmn/cmn_bayes.py alpha    # -> data/sim/cache/floor_alpha_by_param.json
+    python cmn/cmn_bayes.py theta    # -> data/sim/cache/floor_theta_by_param.json
+    python cmn/cmn_bayes.py radius   # -> data/sim/cache/fgm_radius_by_n.json
     python cmn/cmn_bayes.py all      # alpha + theta + radius (cache must exist)
 
 ──────────────────────────────────────────────────────────────────────────────
@@ -106,8 +106,9 @@ if REPO_DIR not in sys.path:
     sys.path.insert(0, REPO_DIR)
 from cmn import cmn, cmn_pspin
 
-DATA = os.path.join(REPO_DIR, "data")
-CACHE = os.path.join(DATA, "floor_effects_cache.pkl")
+DATA = os.path.join(REPO_DIR, "data", "sim")           # raw N-sweep walks: FGM/, NK/, PSPIN/
+CACHE_DIR = os.path.join(DATA, "cache")                # everything this module writes
+CACHE = os.path.join(CACHE_DIR, "floor_effects_cache.pkl")
 REPS = 10
 RNG = np.random.default_rng(0)
 
@@ -310,7 +311,7 @@ def compute_alpha():
         out["NK"][str(K)] = _a_ci(infer(per, Ns, 400))
         print("NK", K, out["NK"][str(K)])
 
-    path = os.path.join(DATA, "floor_alpha_by_param.json")
+    path = os.path.join(CACHE_DIR, "floor_alpha_by_param.json")
     json.dump(out, open(path, "w"), indent=2)
     print("wrote", path)
 
@@ -340,7 +341,7 @@ def compute_theta():
         out["NK"][str(K)] = _t_ci(infer(per, Ns, 400))                     # theta free
         print("NK", K, out["NK"][str(K)])
 
-    path = os.path.join(DATA, "floor_theta_by_param.json")
+    path = os.path.join(CACHE_DIR, "floor_theta_by_param.json")
     json.dump(out, open(path, "w"), indent=2)
     print("wrote", path)
 
@@ -409,7 +410,7 @@ def compute_radius():
         print(f"n={n}: gamma = {gamma_hat:.3f} [{lo:.3f}, {hi:.3f}]  "
               f"(r {r_mean[0]:.3f} -> {r_mean[-1]:.3f})")
 
-    path = os.path.join(DATA, "fgm_radius_by_n.json")
+    path = os.path.join(CACHE_DIR, "fgm_radius_by_n.json")
     json.dump(out, open(path, "w"), indent=2)
     print("wrote", path)
 

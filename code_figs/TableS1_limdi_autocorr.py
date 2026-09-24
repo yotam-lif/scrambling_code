@@ -8,7 +8,7 @@ the observable the p-spin / FGM scrambling picture predicts decays with the numb
 mutations separating the two genotypes.  Effects are LOG-fitness selection coefficients, so no
 conversion is needed.
 
-Rows, all from the Limdi LTEE TnSeq panel (data/data_limdi).  Per-GENE effects, averaged over
+Rows, all from the Limdi LTEE TnSeq panel (data/exper/data_limdi).  Per-GENE effects, averaged over
 the TA sites in the gene and (except in the replicate rows) over both technical replicates.
 Genes are matched on the metadata row index of the .npy fitness matrices.
 
@@ -163,7 +163,7 @@ fixed-time median past ~19 runs over a shrinking and increasingly atypical set o
 Control rows carry no simulated columns.  A green -> red pair is one library against itself with
 nothing evolving between the two channels, so there is no walk to run.
 
-    data/TableS1_limdi_autocorr.csv
+    data/exper/TableS1_limdi_autocorr.csv
     columns: dataset, transition, kind, n_fixed_mut,
              n_100, r_100, r_100_null, r_100_sim_latent, r_100_sim_noisy, r_100_w,
              n_95, cut_95, r_95, r_95_null, r_95_sim_latent, r_95_sim_noisy,

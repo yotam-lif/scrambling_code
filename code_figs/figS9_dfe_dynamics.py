@@ -189,7 +189,7 @@ def extract_nk_ridge_data(nk_data):
 
 
 def load_fgm_reps():
-    path = "../data/FGM/fgm_rps1000_n4_sig0.05.pkl"
+    path = "../data/sim/FGM/fgm_rps1000_n4_sig0.05.pkl"
     if not os.path.exists(path):
         raise FileNotFoundError(f"FGM data file not found: {path}")
     with open(path, "rb") as f:
@@ -197,7 +197,7 @@ def load_fgm_reps():
 
 
 def load_fgm_heavy_reps():
-    path = ("../data/FGM_HEAVY_TAILED/"
+    path = ("../data/sim/FGM_HT/"
             "fgm_rps1000_n4_m1000_sig0.05_heavy_tailed_mu0.45_r1.0.pkl")
     if not os.path.exists(path):
         raise FileNotFoundError(f"Heavy-tailed FGM data file not found: {path}")
@@ -206,7 +206,7 @@ def load_fgm_heavy_reps():
 
 
 def load_pspin_data():
-    path = "../data/PSPIN/N1500_P2_pure_repeats10.pkl"
+    path = "../data/sim/PSPIN/N1500_P2_pure_repeats10.pkl"
     if not os.path.exists(path):
         raise FileNotFoundError(f"PSPIN data file not found: {path}")
     with open(path, "rb") as f:
@@ -214,7 +214,7 @@ def load_pspin_data():
 
 
 def load_nk_single_k():
-    path = "../data/NK/N_2000_K_8_repeats_100.pkl"
+    path = "../data/sim/NK/N_2000_K_8_repeats_100.pkl"
     if not os.path.exists(path):
         raise FileNotFoundError(f"NK data file not found: {path}")
     with open(path, "rb") as f:

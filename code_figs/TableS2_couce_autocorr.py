@@ -5,7 +5,7 @@ The Couce analog of TableS1.  For every transition ``early -> late`` we ask how 
 knockout's fitness effect measured in the EARLIER background predicts its effect in the LATER
 one, over the segments assayed in both, and report the Pearson ``r`` of the matched pairs on
 four nested subsets defined from the early side alone.  Data: Couce et al., three sequenced
-timepoints of the LTEE Ara+2 lineage (data/data_couce), per-SEGMENT transposon-insertion
+timepoints of the LTEE Ara+2 lineage (data/exper/data_couce), per-SEGMENT transposon-insertion
 effects.  Effects are log-fitness selection coefficients, so no conversion is needed.
 
 WHAT THE ROWS ARE.
@@ -140,7 +140,7 @@ effect size or by error -- but each weighted by w = 1/(sterr_early^2 + sterr_lat
 NOT disattenuation: it does not divide the noise out, it changes which segments dominate the
 sum, demoting the badly measured ones instead of trusting them equally.
 
-    data/TableS2_couce_autocorr.csv
+    data/exper/TableS2_couce_autocorr.csv
     columns: dataset, transition, kind, delta_gen, n_fixed_mut,
              n_100, r_100, r_100_null, r_100_sim_latent, r_100_sim_noisy, r_100_w,
              n_98, cut_98, r_98, r_98_null, r_98_sim_latent, r_98_sim_noisy,
