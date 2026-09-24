@@ -63,10 +63,10 @@ ancestor *without* measurement-error convolution.  Two probe subsets are drawn p
 all probes (r100) and the probes surviving a cut of the largest-|s| ancestral effects,
 defined once from the noisy ancestral measurement and then held fixed.
 
-The cut follows cmn_scatter, so each panel matches its own scatter panels in fig1 and figs
-S1-S4: 10% for the Limdi data, whose effects run out to |s| = 0.65, and 2% for the Couce
-data, whose effects are compact enough that a 10% cut would reach inside the bulk.  Hence
-r90 in panel D and r98 in panel E.  Both rank on |s| and drop the
+Panel D cuts at p* = 11.2%, the pooled half-max edge of the ten retained Limdi lineages, read
+from Table S5 (row ``pooled``) -- the same cut as the Limdi panels of fig2.  Panel E cuts 2%,
+since the Couce effects are compact enough that a 10% cut would reach inside the bulk.  The
+subsets are labelled r_All and r_Bulk, as in fig2.  Both rank on |s| and drop the
 LARGEST-magnitude fraction, not the signed effect.  Every cache carries a wider ladder than
 any one panel draws, and a panel names the FRACTION it wants rather than a column number, so
 a dot and the curve it sits on cannot come to mean different things.
@@ -87,9 +87,9 @@ Panel D carries a t = 0 marker, E does not.  The t = 0 marker is the ISOGENIC CO
 the same genotype assayed twice, so nothing has fixed between the two measurements and the
 only thing separating them is the assay itself.  It is the ceiling the panel's curves start
 from -- the simulation asserts r = 1 at t = 0, and the control says what the measurement can
-actually deliver there.  It is read straight out of TableS1 (``REL606 green -> red``) rather
-than recomputed, on the same |s|-ranked ladder as every other marker, so the figure and that
-table cannot drift apart.
+actually deliver there.  It is the ``REL606 green -> red`` pair of TableS1, recomputed here on
+the same |s|-ranked ladder as every other marker, because p* is not one of that table's
+columns; at the table's own cuts the two agree to every printed digit.
 
 Panel E has no such row to draw.  The Couce release publishes no replicate of a timepoint;
 its only same-background pair is ``fitted1`` against ``fitted2``, two fits of the SAME five
@@ -211,9 +211,9 @@ FIT_JSON = os.path.join(_REPO_ROOT, "data", "fig3_fgm_fits.json")
 # Caches are located through the registry rather than by filename: the stems carry the
 # matched-gene and replicate counts, and no figure should have to track either.
 WALK_DIR = cmn_walksim.WALK_DIR
-# The t = 0 isogenic control is read from the supplementary table rather than recomputed,
-# so its star and the numbers in that table cannot drift apart.
-LIMDI_TABLE = os.path.join(_REPO_ROOT, "data", "exper", "TableS1_limdi_autocorr.csv")
+# Panel D's cut, the pooled Limdi half-max edge p*; run code_figs/TableS5_limdi_half_max.py first.
+HALF_MAX_TABLE = os.path.join(_REPO_ROOT, "data", "exper", "TableS5_limdi_half_max.csv")
+R_LABELS = ("All", "Bulk")
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 SCHEMATIC_SVG = os.path.join(_REPO_ROOT, "code_figs", "ext_svg/fig4_prediction_pipeline_schematic.svg")
 SCHEMATIC_PDF = os.path.join(OUT_DIR, "fig4_schematic.pdf")
@@ -619,16 +619,23 @@ def load_or_fit(refit):
 # ladder wide enough for every consumer, and ``cmn_walkpanel`` resolves a fraction to whatever
 # column holds it, so a panel cannot silently draw a different subset under the old label.
 #
-# The cut follows cmn_scatter, so each panel matches its own scatter panels in fig1 and figs
-# S1-S4: 10% for the Limdi data, whose effects run out to |s| = 0.65, and 2% for the Couce
-# data, whose effects are compact enough that a 10% cut would reach inside the bulk.  Hence
-# r90 in panel D and r98 in panel E.
+# Panel D cuts at the pooled Limdi half-max edge p* from Table S5, as fig2 D-E do; panel E cuts
+# 2%.  The walk caches must hold both fractions -- see ``cmn_walksim.TAIL_EXCLUSIONS``.
+def limdi_half_max_cut():
+    """The pooled half-max edge p* from Table S5, as a fraction."""
+    with open(HALF_MAX_TABLE, newline="") as fh:
+        for row in csv.DictReader(fh):
+            if row["lineage"] == "pooled":
+                return float(row["p_star"]) / 100
+    raise SystemExit(f"{HALF_MAX_TABLE} has no pooled row")
+
+
 PANELS = (
     {
         "transition": "limdi_REL606_Ara-1",
         "title": "ARA-1 (LB)",
-        # Limdi effects run out to |s| = 0.65, so cmn_scatter drops 10%.
-        "fractions": (0.00, 0.10),
+        # The pooled half-max edge of -dr/dp over the ten retained Limdi lineages.
+        "fractions": (0.00, limdi_half_max_cut()),
         # These walks peak after a median of about 19 steps; past 15 the median runs out of
         # surviving walks and becomes noise.
         "display_steps": 15,
@@ -638,7 +645,7 @@ PANELS = (
         # A plateau reference, not a substitution count -- see the module docstring.  The
         # note says so on the face of the figure, since the marker's position would
         # otherwise read as a claim that Ara-1 fixed 15 mutations.
-        "markers": ({"time": 0, "control": (LIMDI_TABLE, "REL606 green -> red")},
+        "markers": ({"time": 0, "control": "REL606"},
                     {"time": 15, "pair": ("limdi", "REL606", "Ara-1"),
                      "note": "Measured at $t = 1100$ $\\rightarrow$"}),
     },
@@ -649,7 +656,7 @@ PANELS = (
         "fractions": (0.00, 0.02),
         # Terminated walks are held at their peak, so all 500 contribute throughout.
         "display_steps": 35,
-        # Its cut is 2% where the two Limdi panels are 10%, so it needs its own colour key.
+        # Its cut differs from D's, so it carries its own colour key.
         "legend": "cuts",
         # The fixed-mutation count the 0K -> 15K cache was built around, plus the
         # shorter 0K -> 2K leg.  The second marker's correlations are supplied
@@ -696,7 +703,8 @@ def limdi_pair(founder, clone):
 def measured_pair(spec):
     """``(ancestor, evolved)`` effect arrays for one panel's marker."""
     source, early, late = spec
-    return {"couce": couce_pair, "limdi": limdi_pair}[source](early, late)
+    return {"couce": couce_pair, "limdi": limdi_pair,
+            "limdi_control": limdi_channels}[source](early, late)
 
 
 def empirical_ladder(spec, exclusions):
@@ -719,36 +727,23 @@ def empirical_ladder(spec, exclusions):
     return ladder
 
 
-def control_ladder(table, transition, exclusions):
-    """Measured r for each retained fraction, read out of a supplementary table row.
+def limdi_channels(pop, _unused=None):
+    """The green and red channels of one Limdi library -- TableS1's ``<pop> green -> red`` pair."""
+    green, red = cmn_exper.limdi_channel_series(pop)
+    return green.to_numpy(float), red.to_numpy(float)
+
+
+def control_ladder(pop, exclusions):
+    """Measured r for each retained fraction, for the green -> red control of one library.
 
     The t = 0 markers are the ISOGENIC controls: the same genotype measured twice, so the
     only thing separating the two assays is measurement noise and no background mutation
     has fixed between them.  They are the ceiling every curve in the panel starts from --
     r = 1 is what the simulation asserts at t = 0, and these say what the assay itself can
-    actually deliver there.
-
-    Read from the table rather than recomputed here because the ranked-|s| ladder in
-    TableS1/TableS2 already applies exactly the rule ``empirical_ladder`` applies, on the
-    same green/red replicate pairing; recomputing it in this script would duplicate that
-    pairing logic for no gain and let the figure drift away from the tables.
+    actually deliver there.  Same pairing and ranked-|s| rule as TableS1, which does not carry
+    the p* cut; at its own 0/5/10% cuts this reproduces the table exactly.
     """
-    with open(table, encoding="utf-8", newline="") as handle:
-        rows = [row for row in csv.DictReader(handle)
-                if row["transition"] == transition]
-    if len(rows) != 1:
-        raise SystemExit(f"{os.path.basename(table)} holds {len(rows)} rows for "
-                         f"{transition!r}; expected exactly one")
-    row = rows[0]
-    ladder = {}
-    for excluded in exclusions:
-        key = cmn_walkpanel.cut_key(excluded)
-        column = f"r_{key[1:]}"
-        if not row.get(column):
-            raise SystemExit(f"{os.path.basename(table)} row {transition!r} has no "
-                             f"{column} column for the {key} cut")
-        ladder[key] = float(row[column])
-    return ladder
+    return empirical_ladder(("limdi_control", pop, None), exclusions)
 
 
 def marker_ladder(marker, exclusions):
@@ -761,7 +756,7 @@ def marker_ladder(marker, exclusions):
                              + ", ".join(missing))
         return marker["ladder"]
     if "control" in marker:
-        return control_ladder(*marker["control"], exclusions)
+        return control_ladder(marker["control"], exclusions)
     return empirical_ladder(marker["pair"], exclusions)
 
 
@@ -934,7 +929,7 @@ def build_autocorr_row(axes):
             if "pair" in marker:
                 source = "/".join(marker["pair"])
             elif "control" in marker:
-                source = f"control {marker['control'][1]}"
+                source = f"control {marker['control']} green -> red"
             else:
                 source = "stated"
             print(f"{panel['title']} {source} at t={time}: measured "
@@ -944,8 +939,7 @@ def build_autocorr_row(axes):
         print(f"  walks alive at t={last_time}: "
               f"{curves['surviving'][-1]}/{curves['walks']}")
 
-        # Every panel names its own subsets, because 10% and 2% are different cuts and
-        # cannot share a label.  The style key -- what solid, dashed and the stars mean,
+        # Every panel carries its own colour key, because D and E cut at different fractions.  The style key -- what solid, dashed and the stars mean,
         # which is the same in both -- is stated once, in D, with D's colour key
         # immediately to its right.
         if panel["legend"] == "both":
@@ -960,7 +954,7 @@ def build_autocorr_row(axes):
             axis.add_artist(style)
             side_by_side.append((axis, style, fractions))
         else:
-            cmn_walkpanel.cut_legend(axis, fractions)
+            cmn_walkpanel.cut_legend(axis, fractions, labels=R_LABELS)
 
     # Anything that dips below the frame is therefore cut off, which is worth saying out loud
     # rather than leaving to the eye.
@@ -972,7 +966,7 @@ def build_autocorr_row(axes):
 def place_side_legends(side_by_side):
     """Set each colour key down just clear of the style key it sits beside."""
     for axis, style, fractions in side_by_side:
-        cmn_walkpanel.place_beside(axis, style, fractions)
+        cmn_walkpanel.place_beside(axis, style, fractions, labels=R_LABELS)
 
 
 # ════════════════════════════════════ Assembly ════════════════════════════════════

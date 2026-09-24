@@ -19,10 +19,16 @@ Row 2 (D-F)  Paired-effect scatters with nested ancestor-defined tail exclusions
     E  Limdi REL607 -> Ara+2.
     F  Couce 0K -> 2K.
 
-    Each reports Pearson r over every pair and again over the pairs whose x effect is
-    smallest in ABSOLUTE value -- one partition per panel, dropping the largest 10% of |s| in
-    D and E and the largest 2% in F, since the Couce effects are compact enough that 10%
-    would reach well inside the bulk.  The exclusion is defined only from the x
+    Each reports Pearson r over every pair (r_All) and again over the pairs whose x effect
+    is smallest in ABSOLUTE value (r_Bulk) -- one partition per panel.  D and E drop the
+    largest p* of |s|, the half-max edge of -dr/dp of the pooled r(p) over the ten retained
+    Limdi lineages, read from Table S5 (``data/exper/TableS5_limdi_half_max.csv``, row
+    ``pooled``, column ``p_star``; run ``code_figs/TableS5_limdi_half_max.py`` first).
+    One panel-wide cut rather than Ara+2's own edge, so D is cut at the same fraction as the
+    transition it calibrates and neither rests on one lineage's noisier edge.  F drops the
+    largest 3%:
+    the Couce r(p) is close to a power law with no edge to locate, and its effects are compact
+    enough that 10% would reach well inside the bulk.  The exclusion is defined only from the x
     (ancestor/control) measurement and never from y, so the retained subset is not
     conditioned on the outcome whose correlation is reported.  Ranking on |s| rather than on
     s keeps the retained set symmetric about zero: a knockout is dropped for being large, not
@@ -46,6 +52,7 @@ Run from anywhere:  python code_figs/fig2_scrambling_exper_res.py
 Output:             figs_paper/fig2_scrambling_exper_res.pdf
 """
 
+import csv
 import os
 import sys
 
@@ -62,8 +69,7 @@ if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 from cmn import cmn_exper, cmn_scatter  # noqa: E402
 from cmn.cmn_scatter import (  # noqa: E402  (row 2 is shared with figs S1-S4)
-    SHALLOW_MAGNITUDE_EXCLUSIONS, envelope_limits, print_correlations, scatter_panel,
-    share_density_norm,
+    envelope_limits, print_correlations, scatter_panel, share_density_norm,
 )
 
 # ───────────────────────────────────── Style ─────────────────────────────────────
@@ -81,6 +87,12 @@ UPPER_BEN_LIMIT = 0.3       # arrows are drawn for LOWER < s < UPPER ...
 LOWER_BEN_LIMIT = 0.005     # ... median Limdi measurement error is 0.008
 
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
+
+# Row 2 cuts: the fraction of largest |x| moved from r_All to r_Bulk.
+HALF_MAX_TABLE = os.path.join(_REPO_ROOT, "data", "exper", "TableS5_limdi_half_max.csv")
+LIMDI_CUT_LINEAGE = "pooled"        # D and E both use the pooled half-max edge
+COUCE_CUT = 0.03                    # F
+R_LABELS = ("All", "Bulk")
 
 # Row 1 spans +-0.06, so every tick label would read "-0.02", "0.00", ... .  Pulling a
 # fixed 10^-2 out into the axis offset text turns those into "-2", "0", ... , which is
@@ -275,7 +287,18 @@ def create_segben(ax, dfe_anc, dfe_evo, labels):
 
 
 # ─────────────────────────────────────  Figure  ───────────────────────────────────
+def limdi_half_max_cut(lineage=LIMDI_CUT_LINEAGE):
+    """The half-max edge p* of a Table S5 row, as a fraction."""
+    with open(HALF_MAX_TABLE, newline="") as fh:
+        for row in csv.DictReader(fh):
+            if row["lineage"] == lineage:
+                return float(row["p_star"]) / 100
+    raise KeyError(f"{lineage} not in {HALF_MAX_TABLE}")
+
+
 def main():
+    limdi_exclusions = (0.0, limdi_half_max_cut())
+    couce_exclusions = (0.0, COUCE_CUT)
     couce_anc, couce_evo = load_couce_pair()
     control_green, control_red = cmn_exper.limdi_channel_series("REL607")
     control_green = np.asarray(control_green, dtype=float)
@@ -311,16 +334,18 @@ def main():
         axes[1, 0], control_green, control_red, "Isogenic control (REL607, LB)",
         r"Fitness effect $(s)$, measurement 1",
         r"Fitness effect $(s)$, measurement 2",
-        envelope_limits(control_green, control_red))
+        envelope_limits(control_green, control_red),
+        exclusions=limdi_exclusions, r_labels=R_LABELS)
     ara2_results, ara2_density = scatter_panel(
         axes[1, 1], scatter_anc, scatter_evo, "ARA+2 (LB), 50K",
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
-        envelope_limits(scatter_anc, scatter_evo))
+        envelope_limits(scatter_anc, scatter_evo),
+        exclusions=limdi_exclusions, r_labels=R_LABELS)
     couce_results, couce_density = scatter_panel(
         axes[1, 2], couce_anc, couce_evo, "ARA+2 (DM25), 2K",
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
         envelope_limits(couce_anc, couce_evo),
-        marker_size=6.0, exclusions=SHALLOW_MAGNITUDE_EXCLUSIONS)
+        marker_size=6.0, exclusions=couce_exclusions, r_labels=R_LABELS)
 
     share_density_norm((control_density, ara2_density, couce_density))
 
