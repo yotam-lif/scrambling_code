@@ -133,6 +133,35 @@ def scale_effect_axis(ax):
     ax.xaxis.get_offset_text().set_fontsize(14)
 
 
+# Panel titles read "<population>, <from> -> <to>".  The arrow is drawn as its own text in
+# a larger font than the title around it, so it reads at a glance.
+TITLE_ARROW_SIZE = 26       # points; the title text itself is 16
+TITLE_ARROW_GAP = 3         # points of space either side of the arrow
+TITLE_ARROW_FONT = "Times New Roman"    # a thin arrow with an open head; DejaVu's is blunt
+
+
+def arrow_title(ax, before, after, pad=8):
+    """Set ``before -> after`` as the title of ``ax``, with an enlarged arrow.
+
+    ``before`` is the ordinary title; the arrow and ``after`` are chained to its right edge.
+    The whole group is then centred by shifting ``before`` left in points, not in axes
+    fraction, so it stays centred when an equal-aspect panel shrinks its box at draw time.
+    """
+    title = ax.set_title(before, pad=pad)
+    arrow = ax.annotate("→", xy=(1, 0.5), xycoords=title, xytext=(TITLE_ARROW_GAP, 0),
+                        textcoords="offset points", ha="left", va="center",
+                        fontsize=TITLE_ARROW_SIZE, family=TITLE_ARROW_FONT)
+    tail = ax.annotate(after, xy=(1, 0.5), xycoords=arrow, xytext=(TITLE_ARROW_GAP, 0),
+                       textcoords="offset points", ha="left", va="center",
+                       fontsize=title.get_fontsize())
+    renderer = ax.figure.canvas.get_renderer()
+    trailing_px = (arrow.get_window_extent(renderer).width
+                   + tail.get_window_extent(renderer).width)
+    trailing_in = trailing_px / ax.figure.dpi + 2 * TITLE_ARROW_GAP / 72
+    title.set_transform(title.get_transform() + mpl.transforms.ScaledTranslation(
+        -trailing_in / 2, 0, ax.figure.dpi_scale_trans))
+
+
 # ─────────────────────────────────── Data loading ─────────────────────────────────
 def load_couce_pair(ancestor="0K", evolved="2K"):
     """Matched Couce segment effects for one transition.
@@ -410,7 +439,7 @@ def main():
     create_overlapping_dfes(axes[0, 1], axes[0, 2], couce_anc, couce_evo,
                             couce_histograms, headroom=lambda ylim: 10.0)
     for ax in axes[0]:
-        ax.set_title(r"ARA+2 (DM25), 0K $\rightarrow$ 2K", pad=8)
+        arrow_title(ax, "ARA+2 (DM25), 0K", "2K")
 
     # Row 2: paired-effect scatters, each on the envelope of its own data.
     control_results, control_density = scatter_panel(
@@ -421,16 +450,19 @@ def main():
         exclusions=limdi_exclusions, r_labels=R_LABELS)
     ara2_results, ara2_density = scatter_panel(
         axes[1, 1], scatter_anc, scatter_evo,
-        r"ARA+2 (LB), 0K $\rightarrow$ 50K",
+        "",     # arrow title set below
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
         envelope_limits(scatter_anc, scatter_evo),
         exclusions=limdi_exclusions, r_labels=R_LABELS)
     couce_results, couce_density = scatter_panel(
         axes[1, 2], couce_anc, couce_evo,
-        r"ARA+2 (DM25), 0K $\rightarrow$ 2K",
+        "",     # arrow title set below
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
         envelope_limits(couce_anc, couce_evo),
         marker_size=6.0, exclusions=couce_exclusions, r_labels=R_LABELS)
+
+    arrow_title(axes[1, 1], "ARA+2 (LB), 0K", "50K")
+    arrow_title(axes[1, 2], "ARA+2 (DM25), 0K", "2K")
 
     share_density_norm((control_density, ara2_density, couce_density))
 
