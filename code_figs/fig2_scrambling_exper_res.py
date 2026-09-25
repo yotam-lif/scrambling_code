@@ -1,15 +1,23 @@
-r"""Figure 1: experimental scrambling in two independent LTEE knockout panels.
+r"""Figure 2: experimental scrambling in two independent LTEE knockout panels.
+
+Panel A shows the cross-background effects of beneficial insertions as one 100% bar
+per direction.  Panels B and C show the underlying effect distributions.
 
 Two rows, three columns.
 
 Row 1 (A-C)  Couce Ara+2, generation 0K -> 2K.
 
-    A  Beneficial knockouts at one timepoint, with an arrow to the same knockout's
-       effect at the other -- forward (grey, anchored on the ancestor) and backward
-       (orange, anchored on the evolved clone).
+    A  Fate of the knockouts beneficial at one timepoint, read in the other background: the
+       fraction that is deleterious / neutral / beneficial there.  Top bar forward (beneficial
+       at 0, read at 2K), bottom bar backward (beneficial at 2K, read at 0).  The classes are
+       Couce et al.'s own: beneficial s > 0.015, the cut in their
+       ``beneficials_accross_backgrounds.R``, and neutral |s| <= 0.015.  With these the
+       forward fates come out 6.1 / 76.5 / 17.4 % (ben. / neu. / del.), against the paper's
+       quoted 5.9 / 76.9 / 17.2 %; the small gap is their per-site de-duplication, which this
+       repo does per segment (see ``cmn/cmn_exper.py``).
     B  Forward: the ancestor's beneficial DFE (grey) and where those same knockouts
-       land in the evolved background (orange), against the evolved full DFE (line).
-    C  Backward: the evolved clone's beneficial DFE (orange) and where those same
+       land in the evolved background (purple), against the evolved full DFE (line).
+    C  Backward: the evolved clone's beneficial DFE (purple) and where those same
        knockouts sat in the ancestor (grey), against the ancestor's full DFE (line).
 
 Row 2 (D-F)  Paired-effect scatters with nested ancestor-defined tail exclusions.
@@ -62,7 +70,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.ticker as mticker
 from matplotlib.gridspec import GridSpec
-from matplotlib.patches import FancyArrowPatch, Rectangle
+from matplotlib.patches import Rectangle
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
@@ -83,8 +91,16 @@ DFE_FILL = color[2]
 # ─────────────────────────────────── Parameters ──────────────────────────────────
 XLIM = 0.06                 # half-width of the plotted fitness-effect window
 SHIFT_FRAC = 0.025          # sideways offset between the paired histograms
-UPPER_BEN_LIMIT = 0.3       # arrows are drawn for LOWER < s < UPPER ...
-LOWER_BEN_LIMIT = 0.005     # ... median Limdi measurement error is 0.008
+
+# Panel A classes: beneficial s > NEUTRAL_BAND, neutral |s| <= NEUTRAL_BAND, deleterious
+# s < -NEUTRAL_BAND.  0.015 is Couce et al.'s own beneficial cut.
+NEUTRAL_BAND = 0.015
+# Ordered from negative to positive effect, left to right.
+FATE_CLASSES = ("Deleterious", "Neutral", "Beneficial")
+# Neutral segments match the histogram fills composited over white.  The other
+# fates use darker shades of the same hue, in the same order in both bars.
+FATE_PURPLES = ("#613669", tuple(0.5 * np.array(EVO_FILL[:3]) + 0.5), "#915c9d")
+FATE_GREYS = ("#505050", tuple(0.15 * np.array(ANC_FILL[:3]) + 0.85), "#999999")
 
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 
@@ -252,38 +268,96 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo, histograms, hea
         ax.yaxis.set_ticks_position('left')
 
 
-def create_segben(ax, dfe_anc, dfe_evo, labels):
-    """Paired beneficial effects at both timepoints, joined by arrows."""
+def fate_fractions(effects):
+    """Fractions of ``effects`` that are deleterious / neutral / beneficial, in that order."""
+    return np.array([np.mean(effects < -NEUTRAL_BAND),
+                     np.mean(np.abs(effects) <= NEUTRAL_BAND),
+                     np.mean(effects > NEUTRAL_BAND)])
+
+
+def create_fate_bars(ax, dfe_anc, dfe_evo, labels):
+    """One 100% bar per direction: what the beneficial set is in the other background.
+
+    Stacked left to right deleterious / neutral / beneficial, the same way round as a fitness
+    axis.  Each bar carries its own title above it and there is no x axis: the bars are
+    percentages of one set, labelled in place.  Returns ``(n, counts, source, target)`` per
+    direction for the printed summary.
+    """
     valid = np.isfinite(dfe_anc) & np.isfinite(dfe_evo)
     dfe_anc, dfe_evo = dfe_anc[valid], dfe_evo[valid]
+    early, late = labels
 
-    anc_mask = (dfe_anc > LOWER_BEN_LIMIT) & (dfe_anc < UPPER_BEN_LIMIT)
-    evo_mask = (dfe_evo > LOWER_BEN_LIMIT) & (dfe_evo < UPPER_BEN_LIMIT)
-    x0, x1 = 1.0, 2.0
+    # (beneficial-in background, read-in background), forward on top.
+    directions = ((dfe_anc, dfe_evo, early, late, 1.35),
+                  (dfe_evo, dfe_anc, late, early, -0.30))
+    height = 0.40
+    ax.set_xlim(0, 100)
+    ax.set_ylim(-1.05, 2.10)
+    renderer = ax.figure.canvas.get_renderer()
+    summary = []
+    for source, target, src_label, dst_label, y in directions:
+        fate_colors = FATE_PURPLES if dst_label == late else FATE_GREYS
+        selected = source > NEUTRAL_BAND
+        n = int(selected.sum())
+        fractions = fate_fractions(target[selected])
+        summary.append((n, np.rint(fractions * n).astype(int), src_label, dst_label))
 
-    anc_vals, evo_from_anc = dfe_anc[anc_mask], dfe_evo[anc_mask]
-    evo_vals, anc_from_evo = dfe_evo[evo_mask], dfe_anc[evo_mask]
+        left = 0.0
+        for class_index, (fraction, color) in enumerate(zip(100 * fractions, fate_colors)):
+            ax.barh(y, fraction, height, left=left, color=color, edgecolor="white",
+                    linewidth=1.0)
+            center = left + fraction / 2
+            label = ax.text(center, y, f"{fraction:.1f}%", ha="center",
+                            va="center", fontsize=14,
+                            color="#222222" if class_index == 1 and dst_label == early else "white")
+            # Measure the actual glyph width, including padding, in display pixels.
+            segment_width = (ax.transData.transform((left + fraction, y))[0]
+                             - ax.transData.transform((left, y))[0])
+            if (class_index == 2
+                    or label.get_window_extent(renderer).width + 3 > segment_width):
+                right_side = center >= 50
+                sign = -1
+                elbow = 91 if right_side else -2
+                end = elbow + sign * 4
+                label_y = y - height / 2 - 0.16
+                label.set_position((end + sign * 1.5, label_y))
+                label.set_ha("right")
+                label.set_color("#222222")
+                label.set_clip_on(False)
+                ax.plot([center, elbow, end],
+                        [y - height * 0.30, label_y, label_y],
+                        color="#555555", linewidth=0.9, clip_on=False,
+                        solid_capstyle="round", solid_joinstyle="round")
+            left += fraction
 
-    ax.scatter(np.full_like(evo_vals, x1), evo_vals, color=EVO_FILL, label="Backwards")
-    ax.scatter(np.full_like(evo_vals, x0), anc_from_evo,
-               facecolors='none', edgecolors=EVO_FILL)
-    for y1, y0 in zip(evo_vals, anc_from_evo):
-        ax.add_patch(FancyArrowPatch((x1, y1), (x0, y0), arrowstyle='-|>',
-                                     mutation_scale=8, color=EVO_FILL, linewidth=0.7))
+        ax.text(0, y - height / 2 - 0.04, f"n = {n}",
+                ha="left", va="top", fontsize=11, fontstyle="italic",
+                color="#aaaaaa")
 
-    ax.scatter(np.full_like(anc_vals, x0), anc_vals, color=ANC_FILL, label="Forward")
-    ax.scatter(np.full_like(anc_vals, x1), evo_from_anc,
-               facecolors='none', edgecolors=ANC_FILL)
-    for y0, y1 in zip(anc_vals, evo_from_anc):
-        ax.add_patch(FancyArrowPatch((x0, y0), (x1, y1), arrowstyle='-|>',
-                                     mutation_scale=8, color=ANC_FILL, linewidth=0.7))
+        source_name = "anc." if src_label == early else "evo."
+        target_name = "evo." if dst_label == late else "anc."
+        ax.text(0, y + height / 2 + 0.08,
+                f"Insertions beneficial in {source_name} background\n"
+                f"when measured in {target_name} background",
+                ha="left", va="bottom", fontsize=12, fontstyle="italic",
+                color="black", linespacing=1.15)
 
-    ax.set_xticks([x0, x1])
-    ax.set_xticklabels(labels)
-    ax.set_xlim(x0 - 0.2, x1 + 0.2)
-    ax.set_ylabel(r'Fitness effect $(s)$')
-    ax.axhline(0, linestyle='--', color='black', linewidth=0.8)
-    ax.tick_params(labelsize=16)
+        handles = [Rectangle((0, 0), 1, 1, facecolor=c, edgecolor="none")
+                   for c in fate_colors]
+        legend = ax.legend(handles, FATE_CLASSES, loc="upper left",
+                           bbox_to_anchor=(0, y - height / 2 - 0.28),
+                           bbox_transform=ax.transData, ncol=3,
+                           frameon=False, fontsize=12, handlelength=1.0,
+                           handletextpad=0.4, columnspacing=0.9, borderaxespad=0)
+        if dst_label == late:
+            ax.add_artist(legend)
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    return summary
 
 
 # ─────────────────────────────────────  Figure  ───────────────────────────────────
@@ -318,6 +392,13 @@ def main():
     panel_rows = (0, 2)
     axes = np.array([[fig.add_subplot(gs[panel_rows[row], col]) for col in range(3)]
                      for row in range(2)])
+    # Use the free left margin for longer fate bars; retain the shared column
+    # positions below for aligned panel letters across the two rows.
+    panel_positions = [ax.get_position().frozen() for ax in axes.ravel()]
+    fate_position = axes[0, 0].get_position()
+    extra_width = 0.055
+    axes[0, 0].set_position([fate_position.x0 - extra_width, fate_position.y0,
+                             fate_position.width + extra_width, fate_position.height])
 
     # Row 1: Couce, fig1's hand-set per-curve histogram thresholds.
     couce_histograms = {
@@ -325,9 +406,11 @@ def main():
         "forward_backdrop": couce_histogram(6), "backward_subset": couce_histogram(2),
         "backward_anchor": couce_histogram(3), "backward_backdrop": couce_histogram(8),
     }
-    create_segben(axes[0, 0], couce_anc, couce_evo, labels=('0', '2K'))
+    fate_summary = create_fate_bars(axes[0, 0], couce_anc, couce_evo, labels=('0', '2K'))
     create_overlapping_dfes(axes[0, 1], axes[0, 2], couce_anc, couce_evo,
                             couce_histograms, headroom=lambda ylim: 10.0)
+    for ax in axes[0]:
+        ax.set_title(r"ARA+2 (DM25), 0K $\rightarrow$ 2K", pad=8)
 
     # Row 2: paired-effect scatters, each on the envelope of its own data.
     control_results, control_density = scatter_panel(
@@ -337,12 +420,14 @@ def main():
         envelope_limits(control_green, control_red),
         exclusions=limdi_exclusions, r_labels=R_LABELS)
     ara2_results, ara2_density = scatter_panel(
-        axes[1, 1], scatter_anc, scatter_evo, "ARA+2 (LB), 50K",
+        axes[1, 1], scatter_anc, scatter_evo,
+        r"ARA+2 (LB), 0K $\rightarrow$ 50K",
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
         envelope_limits(scatter_anc, scatter_evo),
         exclusions=limdi_exclusions, r_labels=R_LABELS)
     couce_results, couce_density = scatter_panel(
-        axes[1, 2], couce_anc, couce_evo, "ARA+2 (DM25), 2K",
+        axes[1, 2], couce_anc, couce_evo,
+        r"ARA+2 (DM25), 0K $\rightarrow$ 2K",
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
         envelope_limits(couce_anc, couce_evo),
         marker_size=6.0, exclusions=couce_exclusions, r_labels=R_LABELS)
@@ -350,7 +435,12 @@ def main():
     share_density_norm((control_density, ara2_density, couce_density))
 
     for index, (ax, label) in enumerate(zip(axes.ravel(), "ABCDEF")):
-        cmn_scatter.panel_label(ax, label)
+        position = panel_positions[index]
+        fig.text(position.x0 - 0.30 * position.width,
+                 1.15, label,
+                 transform=mpl.transforms.blended_transform_factory(
+                     fig.transFigure, ax.transAxes),
+                 fontsize=18, fontweight="heavy", va="top", ha="left")
         if index >= 3:      # row 2: open, detached frame, matching B and C
             cmn_scatter.style_scatter_axes(ax)
         else:
@@ -363,6 +453,11 @@ def main():
     out_path = os.path.join(OUT_DIR, "fig2_scrambling_exper_res.pdf")
     fig.savefig(out_path, format="pdf", bbox_inches='tight')
     plt.close(fig)
+
+    for n, counts, src, dst in fate_summary:
+        print(f"Beneficial at {src} (n={n}), measured at {dst}:  "
+              + "  ".join(f"{name} {c} ({100 * c / n:.1f}%)"
+                          for name, c in zip(FATE_CLASSES, counts)))
 
     print_correlations("REL607 green vs red", control_results)
     print_correlations("REL607 -> Ara+2", ara2_results)
