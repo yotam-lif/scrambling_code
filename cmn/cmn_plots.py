@@ -1,12 +1,13 @@
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from scipy.stats import ks_2samp, cramervonmises_2samp
-import seaborn as sns
+import matplotlib as mpl
 
-color = sns.color_palette("CMRmap", 5)
-EVO_FILL = (color[1][0], color[1][1], color[1][2], 0.5)
+EVO_FILL = mpl.colors.to_rgba("#DC143C", alpha=0.7)
 ANC_FILL = (0.5, 0.5, 0.5, 0.15)
-DFE_FILL = color[2]
+DFE_FILL = "black"
+FATE_CLASSES = ("Deleterious", "Neutral", "Beneficial")
+FATE_COLORS = ("#8B4513", "#CD853F", "#F5DEB3")
 upper_ben_limit = 0.3
 lower_ben_limit = 0.005
 
@@ -240,7 +241,7 @@ def create_overlapping_dfes_sim(ax_left, ax_right, dfe_anc, dfe_evo, xlim=0.08, 
         # Back layer line (dashed)
         # It is centered, but scaled down by depth_factor
         ax.plot([-_xlim * depth_factor, _xlim * depth_factor], [_z, _z],
-                linestyle="--", color="grey", lw=lw_main)
+                linestyle=":", color="grey", lw=lw_main)
 
         # Connecting lines (Perspective)
         # Connect x (front) to x * depth_factor (back)
@@ -252,7 +253,7 @@ def create_overlapping_dfes_sim(ax_left, ax_right, dfe_anc, dfe_evo, xlim=0.08, 
             ((0, 0), (0, _z))  # Center (Vertical)
         ]
         for (x0, y0), (x1, y1) in segs:
-            ax.plot([x0, x1], [y0, y1], linestyle="--", color="grey", lw=lw_main)
+            ax.plot([x0, x1], [y0, y1], linestyle=":", color="grey", lw=lw_main)
 
     # --- Histograms Calculation ---
     counts, bin_edges = np.histogram(prop_bdfe_anc, bins=15, density=True)
@@ -285,8 +286,9 @@ def create_overlapping_dfes_sim(ax_left, ax_right, dfe_anc, dfe_evo, xlim=0.08, 
     # --- Left Panel (Forward) ---
     ax_left.stairs(values=counts_shifted, edges=bin_edges_squeezed, baseline=0, fill=True, facecolor=EVO_FILL,
                    edgecolor="black", lw=1.1, label="Evo.")
-    ax_left.stairs(values=dfe_counts_shifted, edges=dfe_bin_edges_squeezed, baseline=0, fill=False, edgecolor=DFE_FILL,
-                   lw=1.1, label="Evo. DFE")
+    ax_left.stairs(values=dfe_counts_shifted, edges=dfe_bin_edges_squeezed,
+                   baseline=0, fill=False, edgecolor=DFE_FILL, linestyle="-.",
+                   lw=1.5, label="DFE Evo.")
 
     # White blocker rect
     ax_left.add_patch(Rectangle((-xlim, 0), 2 * xlim, z, facecolor="white", edgecolor="none"))
@@ -305,6 +307,7 @@ def create_overlapping_dfes_sim(ax_left, ax_right, dfe_anc, dfe_evo, xlim=0.08, 
     ax_left.set_ylim(0, ylim)
     ax_left.tick_params(labelsize=14)
     ax_left.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_left.set_ylabel('Density')
     ax_left.legend(frameon=False)
 
     # --- Right Panel (Backward) ---
@@ -324,13 +327,15 @@ def create_overlapping_dfes_sim(ax_left, ax_right, dfe_anc, dfe_evo, xlim=0.08, 
 
     ax_right.stairs(values=anc2_counts, edges=anc2_bin_edges_shifted, baseline=0, fill=True, facecolor=ANC_FILL,
                     edgecolor="black", lw=1.1, label="Anc.")
-    ax_right.stairs(values=dfe2_counts, edges=dfe2_bin_edges_shifted, baseline=0, edgecolor=DFE_FILL, lw=1.1,
-                    label="Anc. DFE")
+    ax_right.stairs(values=dfe2_counts, edges=dfe2_bin_edges_shifted, baseline=0,
+                    edgecolor=DFE_FILL, linestyle="-.", lw=1.5,
+                    label="DFE Anc.")
 
     ax_right.set_xlim(-xlim, xlim)
     ax_right.set_ylim(0, ylim)
     ax_right.tick_params(labelsize=14)
     ax_right.set_xlabel(r'Fitness effect $(\Delta)$')
+    ax_right.set_ylabel('Density')
     ax_right.legend(frameon=False)
 
     for ax in [ax_left, ax_right]:
@@ -394,56 +399,76 @@ def create_segben_exper(ax, dfe_anc, dfe_evo, labels=(r'$t_1$', r'$t_2$')):
     # ax.legend(frameon=False)
 
 def create_segben_sim(ax, dfe_anc, dfe_evo, labels=(r'$t_1$', r'$t_2$'), ben=True):
-    # mask out non‐positive if you want
+    """Show the fate of mutations selected at either time as two 100% bars.
+
+    Simulations have no experimental neutral band, so only exactly zero target effects are
+    neutral.  The bar order and palette match panel A of the experimental figure.
+    """
     valid_indices = np.isfinite(dfe_anc) & np.isfinite(dfe_evo)
     dfe_anc = dfe_anc[valid_indices]
     dfe_evo = dfe_evo[valid_indices]
+    early, late = labels
+    selected = (lambda values: values > 0) if ben else (lambda values: values < 0)
+    directions = ((dfe_anc, dfe_evo, early, late, 1.05),
+                  (dfe_evo, dfe_anc, late, early, -0.30))
+    height = 0.52
+    ax.set_xlim(0, 100)
+    ax.set_ylim(-1.05, 2.10)
+    renderer = ax.figure.canvas.get_renderer()
+    summary = []
 
-    if ben:
-        anc_mask = dfe_anc > 0
-        evo_mask = dfe_evo > 0
-    else:
-        anc_mask = dfe_anc < 0
-        evo_mask = dfe_evo < 0
-    # positions
-    x0, x1 = 1.0, 2.0
+    for source, target, src_label, dst_label, y in directions:
+        mask = selected(source)
+        n = int(mask.sum())
+        measured = target[mask]
+        counts = np.array([(measured < 0).sum(), (measured == 0).sum(),
+                           (measured > 0).sum()])
+        fractions = counts / n
+        summary.append((n, counts, src_label, dst_label))
 
-    # fetch the paired values
-    anc_vals = dfe_anc[anc_mask]
-    evo_from_anc = dfe_evo[anc_mask]
+        left = 0.0
+        for class_index, (fraction, color) in enumerate(zip(100 * fractions, FATE_COLORS)):
+            if fraction <= 0:
+                continue
+            ax.barh(y, fraction, height, left=left, color=color, edgecolor="black",
+                    linewidth=1.0, clip_on=False)
+            center = left + fraction / 2
+            label = ax.text(center, y, f"{fraction:.1f}%", ha="center", va="center",
+                            fontsize=16, color="white")
+            segment_width = (ax.transData.transform((left + fraction, y))[0]
+                             - ax.transData.transform((left, y))[0])
+            if (class_index == 2
+                    or label.get_window_extent(renderer).width + 3 > segment_width):
+                right_side = center >= 50
+                sign = -1 if right_side else 1
+                elbow = 91 if right_side else 9
+                end = elbow + sign * 4
+                label_y = y - height / 2 - 0.16
+                label.set_position((end + sign * 1.5, label_y))
+                label.set_ha("right" if right_side else "left")
+                label.set_color("#222222")
+                label.set_clip_on(False)
+                ax.plot([center, elbow, end], [y - height * 0.30, label_y, label_y],
+                        color="#555555", linewidth=0.9, clip_on=False,
+                        solid_capstyle="round", solid_joinstyle="round")
+            left += fraction
 
-    evo_vals = dfe_evo[evo_mask]
-    anc_from_evo = dfe_anc[evo_mask]
+        ax.text(0, y - height / 2 - 0.04, f"n = {n}", ha="left", va="top",
+                fontsize=12, fontstyle="italic", color="#aaaaaa")
+        ax.text(0, y + height / 2 + 0.08,
+                f"Mutations beneficial at {src_label}\nwhen measured at {dst_label}",
+                ha="left", va="bottom", fontsize=12, fontstyle="italic",
+                color="black", linespacing=1.15)
 
-    # scatter evo→anc (reverse)
-    ax.scatter(np.full_like(evo_vals, x1), evo_vals,
-               color=EVO_FILL, label="Backwards")
-    ax.scatter(np.full_like(evo_vals, x0), anc_from_evo,
-               facecolors='none', edgecolors=EVO_FILL)
-
-    # arrows from evo→anc
-    for y1, y0 in zip(evo_vals, anc_from_evo):
-        ax.add_patch(FancyArrowPatch((x1, y1), (x0, y0),
-                                     arrowstyle='-|>', mutation_scale=8,
-                                     color=EVO_FILL, linewidth=0.7))
-
-    # scatter ancestor→evo
-    ax.scatter(np.full_like(anc_vals, x0), anc_vals,
-               color=ANC_FILL, label="Forward")
-    ax.scatter(np.full_like(anc_vals, x1), evo_from_anc,
-               facecolors='none', edgecolors=ANC_FILL)
-
-    # arrows from anc→evo
-    for y0, y1 in zip(anc_vals, evo_from_anc):
-        ax.add_patch(FancyArrowPatch((x0, y0), (x1, y1),
-                                     arrowstyle='-|>', mutation_scale=8,
-                                     color=ANC_FILL, linewidth=0.7))
-
-    # styling
-    ax.set_xticks([x0, x1])
-    ax.set_xticklabels(labels)
-    ax.set_xlim(x0 - 0.2, x1 + 0.2)
-    ax.set_ylabel(r'Fitness effect $(\Delta)$')
-    ax.axhline(0, linestyle='--', color='black', linewidth=0.8)
-    ax.tick_params(labelsize=14)
-    # ax.legend(frameon=False)
+    handles = [Rectangle((0, 0), 1, 1, facecolor=color, edgecolor="black", linewidth=1.0)
+               for color in FATE_COLORS]
+    ax.legend(handles, FATE_CLASSES, loc="upper left",
+              bbox_to_anchor=(0, directions[-1][-1] - height / 2 - 0.28),
+              bbox_transform=ax.transData, ncol=3, frameon=False, fontsize=12,
+              handlelength=1.0, handletextpad=0.4, columnspacing=0.9,
+              borderaxespad=0)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    return summary

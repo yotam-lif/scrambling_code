@@ -16,11 +16,19 @@ Row 1 (A-C)  Couce Ara+2, generation 0K -> 2K.
        quoted 5.9 / 76.9 / 17.2 %; the small gap is their per-site de-duplication, which this
        repo does per segment (see ``cmn/cmn_exper.py``).
     B  Forward: the ancestor's beneficial DFE (grey) and where those same knockouts
-       land in the evolved background (purple), against the evolved full DFE (line).
-    C  Backward: the evolved clone's beneficial DFE (purple) and where those same
+       land in the evolved background (terracotta), against the evolved full DFE (line).
+    C  Backward: the evolved clone's beneficial DFE (terracotta) and where those same
        knockouts sat in the ancestor (grey), against the ancestor's full DFE (line).
 
 Row 2 (D-F)  Paired-effect scatters with nested ancestor-defined tail exclusions.
+
+    Each occupied hexagon is colored by the fraction of the panel's mutants it contains,
+    on a logarithmic scale specific to each panel.  Singleton bins share the lightest
+    color, and each panel's most populated bin uses the darkest color.
+    Each panel uses the same number of
+    bins across its own axis span.  Cyan rectangles enclose every retained bulk point.
+    Every panel's axes start at ``SCATTER_FLOOR``; the few points below it are not drawn but
+    still count toward the densities and the Pearson r.
 
     D  Limdi REL607 green- versus red-reference estimates.  Zero evolution, so whatever
        decorrelation it shows is measurement error, not epistasis; D calibrates E and F.
@@ -49,9 +57,10 @@ abundance > 1, as in the published panel.  Limdi genes are matched on metadata r
 the shared gene identity across the Limdi matrices; see the block comment in
 ``cmn/cmn_exper.py`` for why the labelled CSV must not be used for this.
 
-Nothing here is clipped or cut -- both rows show the full measured range, and each row-2
-panel is on the envelope of its own data rather than a shared limit, with x and y sharing
-that envelope so the identity line is the panel diagonal.  The Limdi
+Nothing is cut from any statistic.  Row 1 shows the full measured range.  Row 2 runs from
+``SCATTER_FLOOR`` up to the top of each panel's own data envelope, with x and y sharing those
+limits so the identity line is the panel diagonal; F borrows E's, so the two evolved panels
+read on one scale.  Points below the floor are hidden only.  The Limdi
 counterpart of row 1, which needs a nonlethal cut and window-clipped histograms because
 its deleterious tail is real where Couce's is not, lives in
 ``code_tmp/fig1_limdi_clones.py``.
@@ -67,9 +76,9 @@ import sys
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 import matplotlib.ticker as mticker
 from matplotlib.gridspec import GridSpec
+from matplotlib.offsetbox import AnchoredOffsetbox
 from matplotlib.patches import Rectangle
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -77,16 +86,14 @@ if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 from cmn import cmn_exper, cmn_scatter  # noqa: E402
 from cmn.cmn_scatter import (  # noqa: E402  (row 2 is shared with figs S1-S4)
-    envelope_limits, print_correlations, scatter_panel, share_density_norm,
+    envelope_limits, print_correlations, scatter_panel,
 )
 
 # ───────────────────────────────────── Style ─────────────────────────────────────
 cmn_scatter.apply_style()
 
-color = sns.color_palette('CMRmap', 5)
-EVO_FILL = (color[1][0], color[1][1], color[1][2], 0.5)
+EVO_FILL = mpl.colors.to_rgba("#DC143C", alpha=0.7)
 ANC_FILL = (0.5, 0.5, 0.5, 0.15)
-DFE_FILL = color[2]
 
 # ─────────────────────────────────── Parameters ──────────────────────────────────
 XLIM = 0.06                 # half-width of the plotted fitness-effect window
@@ -97,10 +104,8 @@ SHIFT_FRAC = 0.025          # sideways offset between the paired histograms
 NEUTRAL_BAND = 0.015
 # Ordered from negative to positive effect, left to right.
 FATE_CLASSES = ("Deleterious", "Neutral", "Beneficial")
-# Neutral segments match the histogram fills composited over white.  The other
-# fates use darker shades of the same hue, in the same order in both bars.
-FATE_PURPLES = ("#613669", tuple(0.5 * np.array(EVO_FILL[:3]) + 0.5), "#915c9d")
-FATE_GREYS = ("#505050", tuple(0.15 * np.array(ANC_FILL[:3]) + 0.85), "#999999")
+# Both directions share categorical colors distinct from the background fills in B/C.
+FATE_COLORS = ("#8B4513", "#CD853F", "#F5DEB3")
 
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 
@@ -108,7 +113,23 @@ OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 HALF_MAX_TABLE = os.path.join(_REPO_ROOT, "data", "exper", "TableS5_limdi_half_max.csv")
 LIMDI_CUT_LINEAGE = "pooled"        # D and E both use the pooled half-max edge
 COUCE_CUT = 0.03                    # F
+# Lower limit of both axes in every row-2 panel; points below it are not drawn.
+SCATTER_FLOOR = -0.6
 R_LABELS = ("All", "Bulk")
+HEX_GRIDSIZE = 75          # fine enough to retain isolated occupied bins
+# Bulk-percentage leader, in points: a 45-degree segment off the rectangle's upper-left
+# corner, then a horizontal run to the label.  (rise, run); a negative rise heads down.
+BULK_LEADER = (-22, 18)
+# D's label runs out flatter and further left, clear of the diagonal cloud.
+BULK_LEADER_D = (-10, 40)
+# E's rectangle sits in the dense upper-right cloud, so its label goes up and further out.
+BULK_LEADER_E = (8, 55)
+# F's label goes up and left, rising as far as E's.
+BULK_LEADER_F = (BULK_LEADER_E[0], 40)
+# The Pearson block hangs just below the y = 0 guide, by this many points.
+PEARSON_BELOW_ZERO = 6
+HEX_DENSITY_CMAP =mpl.colors.LinearSegmentedColormap.from_list(
+    "purple_hex_density", ("#C5B6DF", cmn_scatter.EXCLUDED_COLOR, "#21103F"))
 
 # Row 1 spans +-0.06, so every tick label would read "-0.02", "0.00", ... .  Pulling a
 # fixed 10^-2 out into the axis offset text turns those into "-2", "0", ... , which is
@@ -219,7 +240,7 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo, histograms, hea
     def draw_custom_segments(ax, _xlim, _ylim):
         z = _ylim * z_frac * 1.1
         ax.plot([-_xlim * 0.9, _xlim * 0.9], [z, z],
-                linestyle="--", color="grey", lw=lw_main)
+                linestyle=":", color="grey", lw=lw_main)
         for (x0, y0), (x1, y1) in [
             ((-_xlim, -0.75), (-_xlim * 0.9, z)),
             ((_xlim, -0.75), (_xlim * 0.9, z)),
@@ -227,7 +248,7 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo, histograms, hea
             ((_xlim / 2, -0.75), (_xlim / 2 * 0.9, z)),
             ((0, -0.75), (0, z)),
         ]:
-            ax.plot([x0, x1], [y0, y1], linestyle="--", color="grey", lw=lw_main)
+            ax.plot([x0, x1], [y0, y1], linestyle=":", color="grey", lw=lw_main)
 
     bdfe_anc = dfe_anc[dfe_anc > 0]
     bdfe_evo = dfe_evo[dfe_evo > 0]
@@ -254,7 +275,7 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo, histograms, hea
     ax_left.stairs(values=counts + z, edges=bin_edges, baseline=0, fill=True,
                    facecolor=EVO_FILL, edgecolor="black", lw=1.1, label="Evo.")
     ax_left.stairs(values=dfe_counts + z, edges=dfe_bin_edges, baseline=0, fill=False,
-                   edgecolor=DFE_FILL, lw=1.1, label="DFE Evo.")
+                   edgecolor="black", linestyle="-.", lw=1.5, label="DFE Evo.")
     ax_left.add_patch(Rectangle((-XLIM, 0), 2 * XLIM, z,
                                 facecolor="white", edgecolor="none"))
     draw_custom_segments(ax_left, XLIM, ylim)
@@ -283,7 +304,7 @@ def create_overlapping_dfes(ax_left, ax_right, dfe_anc, dfe_evo, histograms, hea
     ax_right.stairs(values=anc2_counts, edges=anc2_bin_edges, baseline=0, fill=True,
                     facecolor=ANC_FILL, edgecolor="black", lw=1.1, label="Anc.")
     ax_right.stairs(values=dfe2_counts, edges=dfe2_bin_edges, baseline=0,
-                    edgecolor=DFE_FILL, lw=1.1, label="DFE Anc.")
+                    edgecolor="black", linestyle="-.", lw=1.5, label="DFE Anc.")
     ax_right.legend(frameon=False)
     ax_right.set_xlabel(r'Fitness effect $(s)$')
     ax_right.set_ylabel('Density')
@@ -317,28 +338,27 @@ def create_fate_bars(ax, dfe_anc, dfe_evo, labels):
     early, late = labels
 
     # (beneficial-in background, read-in background), forward on top.
-    directions = ((dfe_anc, dfe_evo, early, late, 1.35),
+    directions = ((dfe_anc, dfe_evo, early, late, 1.05),
                   (dfe_evo, dfe_anc, late, early, -0.30))
-    height = 0.40
+    height = 0.52
     ax.set_xlim(0, 100)
     ax.set_ylim(-1.05, 2.10)
     renderer = ax.figure.canvas.get_renderer()
     summary = []
     for source, target, src_label, dst_label, y in directions:
-        fate_colors = FATE_PURPLES if dst_label == late else FATE_GREYS
         selected = source > NEUTRAL_BAND
         n = int(selected.sum())
         fractions = fate_fractions(target[selected])
         summary.append((n, np.rint(fractions * n).astype(int), src_label, dst_label))
 
         left = 0.0
-        for class_index, (fraction, color) in enumerate(zip(100 * fractions, fate_colors)):
-            ax.barh(y, fraction, height, left=left, color=color, edgecolor="white",
-                    linewidth=1.0)
+        for class_index, (fraction, color) in enumerate(zip(100 * fractions, FATE_COLORS)):
+            ax.barh(y, fraction, height, left=left, color=color, edgecolor="black",
+                    linewidth=1.0, clip_on=False)
             center = left + fraction / 2
             label = ax.text(center, y, f"{fraction:.1f}%", ha="center",
-                            va="center", fontsize=14,
-                            color="#222222" if class_index == 1 and dst_label == early else "white")
+                            va="center", fontsize=16,
+                            color="white")
             # Measure the actual glyph width, including padding, in display pixels.
             segment_width = (ax.transData.transform((left + fraction, y))[0]
                              - ax.transData.transform((left, y))[0])
@@ -360,7 +380,7 @@ def create_fate_bars(ax, dfe_anc, dfe_evo, labels):
             left += fraction
 
         ax.text(0, y - height / 2 - 0.04, f"n = {n}",
-                ha="left", va="top", fontsize=11, fontstyle="italic",
+                ha="left", va="top", fontsize=12, fontstyle="italic",
                 color="#aaaaaa")
 
         source_name = "anc." if src_label == early else "evo."
@@ -371,15 +391,13 @@ def create_fate_bars(ax, dfe_anc, dfe_evo, labels):
                 ha="left", va="bottom", fontsize=12, fontstyle="italic",
                 color="black", linespacing=1.15)
 
-        handles = [Rectangle((0, 0), 1, 1, facecolor=c, edgecolor="none")
-                   for c in fate_colors]
-        legend = ax.legend(handles, FATE_CLASSES, loc="upper left",
-                           bbox_to_anchor=(0, y - height / 2 - 0.28),
-                           bbox_transform=ax.transData, ncol=3,
-                           frameon=False, fontsize=12, handlelength=1.0,
-                           handletextpad=0.4, columnspacing=0.9, borderaxespad=0)
-        if dst_label == late:
-            ax.add_artist(legend)
+    handles = [Rectangle((0, 0), 1, 1, facecolor=c, edgecolor="black", linewidth=1.0)
+               for c in FATE_COLORS]
+    ax.legend(handles, FATE_CLASSES, loc="upper left",
+              bbox_to_anchor=(0, directions[-1][-1] - height / 2 - 0.28),
+              bbox_transform=ax.transData, ncol=3,
+              frameon=False, fontsize=12, handlelength=1.0,
+              handletextpad=0.4, columnspacing=0.9, borderaxespad=0)
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -390,6 +408,58 @@ def create_fate_bars(ax, dfe_anc, dfe_evo, labels):
 
 
 # ─────────────────────────────────────  Figure  ───────────────────────────────────
+def draw_density_hexagons(ax, x, y):
+    """Fraction of a panel's mutants per hexagon, retaining singleton bins.
+
+    Only points inside the axis limits are binned, but the fractions are of every finite
+    pair, so hiding the points below the floor does not inflate the rest.
+    """
+    for collection in list(ax.collections):
+        collection.remove()
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    finite = np.isfinite(x) & np.isfinite(y)
+    lo, hi = ax.get_xlim()
+    shown = finite & (x >= lo) & (y >= lo) & (x <= hi) & (y <= hi)
+    hexagons = ax.hexbin(x[shown], y[shown], gridsize=HEX_GRIDSIZE, extent=(lo, hi, lo, hi),
+                        mincnt=1, cmap=HEX_DENSITY_CMAP, linewidths=0.15,
+                        edgecolors="face", zorder=3)
+    counts = hexagons.get_array()
+    hexagons.set_array(counts / finite.sum())
+    return hexagons
+
+
+def annotate_bulk(ax, x, y, results, leader=BULK_LEADER):
+    """Outline every retained point and label its percentage off the upper-left corner.
+
+    The label hangs from the corner on an angled-then-horizontal leader, the same shape as
+    the out-of-bar labels in panel A, running left and, per ``leader = (rise, run)`` in
+    points, down (rise < 0) or up (rise > 0).
+    """
+    x, y = np.asarray(x), np.asarray(y)
+    bulk = results[-1]
+    retained = np.argsort(np.abs(x), kind="stable")[:bulk["kept"]]
+    color = cmn_scatter.RETAINED_COLOR
+    # Pad the data bounds slightly so the outline clears the occupied hexagons.
+    x_pad = 0.008 * np.ptp(ax.get_xlim())
+    y_pad = 0.008 * np.ptp(ax.get_ylim())
+    left, right = np.min(x[retained]) - x_pad, np.max(x[retained]) + x_pad
+    bottom, top = np.min(y[retained]) - y_pad, np.max(y[retained]) + y_pad
+    ax.add_patch(Rectangle((left, bottom), right - left, top - bottom,
+                           fill=False, edgecolor=color, linewidth=1.1, zorder=9))
+    percentage = 100 * bulk["kept"] / results[0]["kept"]
+    rise, run = leader
+    ax.annotate(f"{percentage:.1f}% of data", xy=(left, top),
+                xytext=(-run - abs(rise), rise),
+                textcoords="offset points", ha="right", va="center",
+                fontsize=14, color=color, zorder=9, annotation_clip=False,
+                bbox=dict(boxstyle="square,pad=0.15", facecolor="white",
+                          edgecolor="none", alpha=0.88),
+                arrowprops=dict(arrowstyle="-", color=color, linewidth=0.9,
+                                shrinkA=3, shrinkB=0, relpos=(1, 0.5),
+                                connectionstyle=f"angle,angleA=0,angleB={45 if rise < 0 else -45}",
+                                capstyle="round", joinstyle="round"))
+
+
 def limdi_half_max_cut(lineage=LIMDI_CUT_LINEAGE):
     """The half-max edge p* of a Table S5 row, as a fraction."""
     with open(HALF_MAX_TABLE, newline="") as fh:
@@ -441,30 +511,69 @@ def main():
     for ax in axes[0]:
         arrow_title(ax, "ARA+2 (DM25), 0K", "2K")
 
-    # Row 2: paired-effect scatters, each on the envelope of its own data.
-    control_results, control_density = scatter_panel(
+    # Row 2: paired-effect scatters, all floored at SCATTER_FLOOR.  D and E top out at the
+    # envelope of their own data, F at E's.
+    control_limits = (SCATTER_FLOOR, envelope_limits(control_green, control_red)[1])
+    ara2_limits = (SCATTER_FLOOR, envelope_limits(scatter_anc, scatter_evo)[1])
+    control_results, _ = scatter_panel(
         axes[1, 0], control_green, control_red, "Isogenic control (REL607, LB)",
         r"Fitness effect $(s)$, measurement 1",
         r"Fitness effect $(s)$, measurement 2",
-        envelope_limits(control_green, control_red),
-        exclusions=limdi_exclusions, r_labels=R_LABELS)
-    ara2_results, ara2_density = scatter_panel(
+        control_limits,
+        exclusions=limdi_exclusions, r_labels=R_LABELS, show_inset=False)
+    ara2_results, _ = scatter_panel(
         axes[1, 1], scatter_anc, scatter_evo,
         "",     # arrow title set below
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
-        envelope_limits(scatter_anc, scatter_evo),
-        exclusions=limdi_exclusions, r_labels=R_LABELS)
-    couce_results, couce_density = scatter_panel(
+        ara2_limits,
+        exclusions=limdi_exclusions, r_labels=R_LABELS, show_inset=False)
+    couce_results, _ = scatter_panel(
         axes[1, 2], couce_anc, couce_evo,
         "",     # arrow title set below
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
-        envelope_limits(couce_anc, couce_evo),
-        marker_size=6.0, exclusions=couce_exclusions, r_labels=R_LABELS)
+        ara2_limits,
+        marker_size=6.0, exclusions=couce_exclusions, r_labels=R_LABELS,
+        show_inset=False)
 
     arrow_title(axes[1, 1], "ARA+2 (LB), 0K", "50K")
     arrow_title(axes[1, 2], "ARA+2 (DM25), 0K", "2K")
 
-    share_density_norm((control_density, ara2_density, couce_density))
+    # Per panel: the bulk-label leader.  Every Pearson block hangs just below y = 0.
+    density_hexagons = []
+    for ax, x, y, results, leader in (
+            (axes[1, 0], control_green, control_red, control_results, BULK_LEADER_D),
+            (axes[1, 1], scatter_anc, scatter_evo, ara2_results, BULK_LEADER_E),
+            (axes[1, 2], couce_anc, couce_evo, couce_results, BULK_LEADER_F)):
+        density_hexagons.append(draw_density_hexagons(ax, x, y))
+        # These panels contain the two zero guides and the identity line.
+        for line in ax.lines:
+            is_axis = np.ptp(line.get_xdata()) == 0 or np.ptp(line.get_ydata()) == 0
+            line.set_linestyle(":" if is_axis else "--")
+        for artist in ax.artists:
+            if isinstance(artist, AnchoredOffsetbox):
+                # x in axes fraction, y in data, then nudged down in points.
+                below_zero = (mpl.transforms.blended_transform_factory(
+                    ax.transAxes, ax.transData)
+                    + mpl.transforms.ScaledTranslation(
+                        0, -PEARSON_BELOW_ZERO / 72, fig.dpi_scale_trans))
+                artist.loc = AnchoredOffsetbox.codes["upper left"]
+                artist.set_bbox_to_anchor((0.02, 0.0), transform=below_zero)
+        annotate_bulk(ax, x, y, results, leader=leader)
+
+    # Normalize each panel separately so singleton and peak bins share endpoint colors.
+    for ax, hexagons in zip(axes[1], density_hexagons):
+        density_min = float(hexagons.get_array().min())
+        density_max = float(hexagons.get_array().max())
+        hexagons.set_norm(mpl.colors.LogNorm(vmin=density_min, vmax=density_max))
+        density_order = int(np.ceil(np.log10(density_min)))
+        key_ax = ax.inset_axes((0.59, 0.08, 0.36, 0.03))
+        key = fig.colorbar(hexagons, cax=key_ax, orientation="horizontal",
+                           ticks=[10.0 ** order for order in range(density_order, 1)
+                                  if 10.0 ** order <= density_max],
+                           format=mticker.LogFormatterMathtext())
+        key.ax.minorticks_off()
+        key.ax.tick_params(labelsize=13, length=3, pad=2)
+        key.ax.set_title("Density", fontsize=15, pad=6)
 
     for index, (ax, label) in enumerate(zip(axes.ravel(), "ABCDEF")):
         position = panel_positions[index]

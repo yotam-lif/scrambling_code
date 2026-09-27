@@ -1,17 +1,18 @@
-r"""Paired-effect scatter panels: one shared implementation for fig1 row 2 and figs S1-S4.
+r"""Paired-effect density panels shared by fig2 row 2 and figs S1-S4.
 
 The same panel is drawn eleven times across the paper -- once per pair of fitness-effect
 measurements of the same knockouts on two backgrounds (or on the same background twice, for
 a control).  Every instance shows
 
-    * the raw pair cloud, split into the near-neutral bulk and the excluded large-effect
-      points, which are the colour split and nothing else -- no rule is drawn, because the
-      partition is on |s| and so falls on BOTH sides of zero,
-    * the identity line and the two zero axes,
+    * a full-panel hexagonal density map, with density expressed as the fraction of the
+      panel's mutants in each occupied hexagon,
+    * a cyan rectangle around the near-neutral bulk and its percentage below the rectangle,
+    * a dashed identity line and dotted zero axes,
     * Pearson r over every pair and again over the pairs whose x effect is smallest in
       ABSOLUTE value -- one partition per panel, dropping the largest 10% or 2% of |x|
       depending on how far that dataset's effects run, and
-    * a hexbin inset zoomed on the dense core near the origin.
+    * a panel-specific logarithmic density key, so singleton and peak bins use the same
+      endpoint colours in every panel.
 
 so it lives here rather than being copied per figure.
 
@@ -37,6 +38,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
+from matplotlib.patches import Rectangle
 from scipy.stats import pearsonr
 
 # ───────────────────────────────────── Style ─────────────────────────────────────
@@ -73,6 +75,10 @@ def _tint(color, fraction):
 DENSITY_CMAP = mpl.colors.LinearSegmentedColormap.from_list(
     "moderate_density",
     (_tint(RETAINED_COLOR, INSET_LIGHT_TINT), RETAINED_COLOR))
+
+HEX_GRIDSIZE = 75
+HEX_DENSITY_CMAP = mpl.colors.LinearSegmentedColormap.from_list(
+    "purple_hex_density", ("#C5B6DF", EXCLUDED_COLOR, "#21103F"))
 
 # Retained bulk first, excluded large effects second: darker, larger and more opaque, on top.
 BAND_COLORS = (RETAINED_COLOR, EXCLUDED_COLOR)
@@ -194,7 +200,7 @@ def draw_scatter_points(ax, x, y, marker_size, exclusions):
 def scatter_panel(ax, x, y, title, xlabel, ylabel, limits,
                   marker_size=8.0, exclusions=MAGNITUDE_EXCLUSIONS,
                   inset_limits=INSET_LIMITS, inset_rect=(0.52, 0.04, 0.38, 0.38),
-                  r_labels=None):
+                  r_labels=None, show_inset=True):
     """One paired-effect scatter with a colour-split cloud, Pearson block and density inset.
 
     ``limits`` is applied to BOTH axes, so the panel is square and the identity line is its
@@ -203,12 +209,13 @@ def scatter_panel(ax, x, y, title, xlabel, ylabel, limits,
     ``(correlations, density)`` -- the latter so a caller can put every inset in a figure
     on one shared colour norm via :func:`share_density_norm`.  ``r_labels`` names the Pearson
     lines instead of the retained percentage; see :func:`draw_pearson_block`.
+    With ``show_inset=False``, skip the density inset and return ``None`` for density.
     """
     lo, hi = limits
 
-    ax.axhline(0.0, color="grey", lw=0.75, ls="--", zorder=1)
-    ax.axvline(0.0, color="grey", lw=0.75, ls="--", zorder=1)
-    ax.plot([lo, hi], [lo, hi], color=IDENTITY_COLOR, lw=1.2, zorder=2)
+    ax.axhline(0.0, color="grey", lw=0.75, ls=":", zorder=1)
+    ax.axvline(0.0, color="grey", lw=0.75, ls=":", zorder=1)
+    ax.plot([lo, hi], [lo, hi], color=IDENTITY_COLOR, lw=1.2, ls="--", zorder=2)
     draw_scatter_points(ax, x, y, marker_size, exclusions)
     ax.set_xlim(lo, hi)
     ax.set_ylim(lo, hi)
@@ -222,6 +229,9 @@ def scatter_panel(ax, x, y, title, xlabel, ylabel, limits,
 
     correlations = magnitude_exclusion_correlations(x, y, exclusions)
     draw_pearson_block(ax, correlations, labels=r_labels)
+
+    if not show_inset:
+        return correlations, None
 
     # Right edge at 0.90, not 0.96: the right-hand y labels need room inside the parent
     # frame, and inward ticks keep the tick marks off the inset spines' outer side.
@@ -303,6 +313,60 @@ def share_density_norm(densities):
     return shared
 
 
+def draw_density_hexagons(ax, x, y, gridsize=HEX_GRIDSIZE):
+    """Replace the raw point layers with full-panel mutant-density hexagons."""
+    for collection in list(ax.collections):
+        collection.remove()
+    lo, hi = ax.get_xlim()
+    hexagons = ax.hexbin(
+        x, y, gridsize=gridsize, extent=(lo, hi, lo, hi), mincnt=1,
+        cmap=HEX_DENSITY_CMAP, linewidths=0.15, edgecolors="face", zorder=3)
+    counts = hexagons.get_array()
+    hexagons.set_array(counts / counts.sum())
+    density_min = float(hexagons.get_array().min())
+    density_max = float(hexagons.get_array().max())
+    if np.isclose(density_min, density_max):
+        density_max = density_min * 10.0
+    hexagons.set_norm(mpl.colors.LogNorm(vmin=density_min, vmax=density_max))
+    return hexagons
+
+
+def annotate_bulk(ax, x, y, results):
+    """Outline all retained bulk points and label their share below the rectangle."""
+    x, y = np.asarray(x), np.asarray(y)
+    bulk = results[-1]
+    retained = np.argsort(np.abs(x), kind="stable")[:bulk["kept"]]
+    x_pad = 0.008 * np.ptp(ax.get_xlim())
+    y_pad = 0.008 * np.ptp(ax.get_ylim())
+    left, right = np.min(x[retained]) - x_pad, np.max(x[retained]) + x_pad
+    bottom, top = np.min(y[retained]) - y_pad, np.max(y[retained]) + y_pad
+    ax.add_patch(Rectangle(
+        (left, bottom), right - left, top - bottom, fill=False,
+        edgecolor=RETAINED_COLOR, linewidth=1.1, zorder=9))
+    percentage = 100 * bulk["kept"] / results[0]["kept"]
+    ax.annotate(
+        f"{percentage:.1f}% of data", xy=((left + right) / 2, bottom),
+        xytext=(0, -5), textcoords="offset points", ha="center", va="top",
+        fontsize=12, color=RETAINED_COLOR, zorder=9)
+
+
+def add_density_key(ax, hexagons, rect=(0.61, 0.08, 0.33, 0.025)):
+    """Add a compact horizontal logarithmic density key inside ``ax``."""
+    density_min = float(hexagons.get_array().min())
+    density_max = float(hexagons.get_array().max())
+    first_order = int(np.ceil(np.log10(density_min)))
+    ticks = [10.0 ** order for order in range(first_order, 1)
+             if 10.0 ** order <= density_max]
+    key_ax = ax.inset_axes(rect)
+    key = ax.figure.colorbar(
+        hexagons, cax=key_ax, orientation="horizontal", ticks=ticks,
+        format=mpl.ticker.LogFormatterMathtext())
+    key.ax.minorticks_off()
+    key.ax.tick_params(labelsize=9, length=2, pad=2)
+    key.ax.set_title("Mutant density", fontsize=11, pad=5)
+    return key
+
+
 def style_scatter_axes(ax):
     """The open, detached frame these panels share with fig1's DFE panels."""
     for side in ("top", "right"):
@@ -325,24 +389,27 @@ def panel_label(ax, label):
 
 def draw_panel_grid(axes, panels, exclusions=MAGNITUDE_EXCLUSIONS,
                     inset_limits=INSET_LIMITS, marker_size=8.0):
-    """Fill a grid of axes with paired scatters, A/B/C/... labelled and normed together.
+    """Fill a grid with paired-effect density panels labelled A/B/C/....
 
     ``panels`` is a sequence of dicts with ``name`` (for the printed correlation ladder),
     ``x``, ``y``, ``title``, ``xlabel``, ``ylabel``, ``limits`` and an optional
     ``overrides`` dict forwarded to :func:`scatter_panel`.  Returns ``[(name, results)]``
     in panel order.
     """
-    ladders, densities = [], []
+    ladders = []
     for ax, label, panel in zip(np.ravel(axes), "ABCDEFGH", panels):
         kwargs = {"exclusions": exclusions, "inset_limits": inset_limits,
-                  "marker_size": marker_size}
+                  "marker_size": marker_size, "r_labels": ("All", "Bulk"),
+                  "show_inset": False}
         kwargs.update(panel.get("overrides", {}))
         correlations, density = scatter_panel(
             ax, panel["x"], panel["y"], panel["title"], panel["xlabel"], panel["ylabel"],
             panel["limits"], **kwargs)
         panel_label(ax, label)
         style_scatter_axes(ax)
+        density = draw_density_hexagons(ax, panel["x"], panel["y"])
+        annotate_bulk(ax, panel["x"], panel["y"], correlations)
+        add_density_key(ax, density, panel.get("density_key_rect",
+                                               (0.61, 0.08, 0.33, 0.025)))
         ladders.append((panel["name"], correlations))
-        densities.append(density)
-    share_density_norm(densities)
     return ladders
