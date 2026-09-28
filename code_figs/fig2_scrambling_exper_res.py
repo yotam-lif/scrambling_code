@@ -16,8 +16,8 @@ Row 1 (A-C)  Couce Ara+2, generation 0K -> 2K.
        quoted 5.9 / 76.9 / 17.2 %; the small gap is their per-site de-duplication, which this
        repo does per segment (see ``cmn/cmn_exper.py``).
     B  Forward: the ancestor's beneficial DFE (grey) and where those same knockouts
-       land in the evolved background (terracotta), against the evolved full DFE (line).
-    C  Backward: the evolved clone's beneficial DFE (terracotta) and where those same
+       land in the evolved background (magenta), against the evolved full DFE (line).
+    C  Backward: the evolved clone's beneficial DFE (magenta) and where those same
        knockouts sat in the ancestor (grey), against the ancestor's full DFE (line).
 
 Row 2 (D-F)  Paired-effect scatters with nested ancestor-defined tail exclusions.
@@ -26,7 +26,7 @@ Row 2 (D-F)  Paired-effect scatters with nested ancestor-defined tail exclusions
     on a logarithmic scale specific to each panel.  Singleton bins share the lightest
     color, and each panel's most populated bin uses the darkest color.
     Each panel uses the same number of
-    bins across its own axis span.  Cyan rectangles enclose every retained bulk point.
+    bins across its own axis span.  Blue rectangles enclose every retained bulk point.
     Every panel's axes start at ``SCATTER_FLOOR``; the few points below it are not drawn but
     still count toward the densities and the Pearson r.
 
@@ -92,8 +92,8 @@ from cmn.cmn_scatter import (  # noqa: E402  (row 2 is shared with figs S1-S4)
 # ───────────────────────────────────── Style ─────────────────────────────────────
 cmn_scatter.apply_style()
 
-EVO_FILL = mpl.colors.to_rgba("#DC143C", alpha=0.7)
-ANC_FILL = (0.5, 0.5, 0.5, 0.15)
+EVO_FILL = mpl.colors.to_rgba("#CF0282", alpha=0.8)
+ANC_FILL = mpl.colors.to_rgba("#FAF9F6", alpha=0.6)
 
 # ─────────────────────────────────── Parameters ──────────────────────────────────
 XLIM = 0.06                 # half-width of the plotted fitness-effect window
@@ -104,8 +104,12 @@ SHIFT_FRAC = 0.025          # sideways offset between the paired histograms
 NEUTRAL_BAND = 0.015
 # Ordered from negative to positive effect, left to right.
 FATE_CLASSES = ("Deleterious", "Neutral", "Beneficial")
-# Both directions share categorical colors distinct from the background fills in B/C.
-FATE_COLORS = ("#8B4513", "#CD853F", "#F5DEB3")
+# Both directions share one diverging set: dark red for deleterious, light grey for
+# neutral, dark navy for beneficial.  The navy is far darker than row 2's light bulk blue,
+# and none of the three comes near the grey ANC_FILL or the orange EVO_FILL in B/C.
+FATE_COLORS = ("#8C1C1C", "#BDBDBD", "#1F3F7A")
+# In-bar percentage colors: white on the dark ends, dark on the grey.
+FATE_TEXT_COLORS = ("white", "#222222", "white")
 
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 
@@ -128,6 +132,8 @@ BULK_LEADER_E = (8, 55)
 BULK_LEADER_F = (BULK_LEADER_E[0], 40)
 # The Pearson block hangs just below the y = 0 guide, by this many points.
 PEARSON_BELOW_ZERO = 6
+# Row 2's retained bulk: rectangle, its label and the r_Bulk line, in the shared blue.
+BULK_COLOR = cmn_scatter.RETAINED_COLOR
 HEX_DENSITY_CMAP =mpl.colors.LinearSegmentedColormap.from_list(
     "purple_hex_density", ("#C5B6DF", cmn_scatter.EXCLUDED_COLOR, "#21103F"))
 
@@ -358,7 +364,7 @@ def create_fate_bars(ax, dfe_anc, dfe_evo, labels):
             center = left + fraction / 2
             label = ax.text(center, y, f"{fraction:.1f}%", ha="center",
                             va="center", fontsize=16,
-                            color="white")
+                            color=FATE_TEXT_COLORS[class_index])
             # Measure the actual glyph width, including padding, in display pixels.
             segment_width = (ax.transData.transform((left + fraction, y))[0]
                              - ax.transData.transform((left, y))[0])
@@ -438,7 +444,7 @@ def annotate_bulk(ax, x, y, results, leader=BULK_LEADER):
     x, y = np.asarray(x), np.asarray(y)
     bulk = results[-1]
     retained = np.argsort(np.abs(x), kind="stable")[:bulk["kept"]]
-    color = cmn_scatter.RETAINED_COLOR
+    color = BULK_COLOR
     # Pad the data bounds slightly so the outline clears the occupied hexagons.
     x_pad = 0.008 * np.ptp(ax.get_xlim())
     y_pad = 0.008 * np.ptp(ax.get_ylim())
@@ -520,20 +526,22 @@ def main():
         r"Fitness effect $(s)$, measurement 1",
         r"Fitness effect $(s)$, measurement 2",
         control_limits,
-        exclusions=limdi_exclusions, r_labels=R_LABELS, show_inset=False)
+        exclusions=limdi_exclusions, r_labels=R_LABELS, show_inset=False,
+        bulk_color=BULK_COLOR)
     ara2_results, _ = scatter_panel(
         axes[1, 1], scatter_anc, scatter_evo,
         "",     # arrow title set below
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
         ara2_limits,
-        exclusions=limdi_exclusions, r_labels=R_LABELS, show_inset=False)
+        exclusions=limdi_exclusions, r_labels=R_LABELS, show_inset=False,
+        bulk_color=BULK_COLOR)
     couce_results, _ = scatter_panel(
         axes[1, 2], couce_anc, couce_evo,
         "",     # arrow title set below
         r"Ancestral effect $(s)$", r"Evolved effect $(s)$",
         ara2_limits,
         marker_size=6.0, exclusions=couce_exclusions, r_labels=R_LABELS,
-        show_inset=False)
+        show_inset=False, bulk_color=BULK_COLOR)
 
     arrow_title(axes[1, 1], "ARA+2 (LB), 0K", "50K")
     arrow_title(axes[1, 2], "ARA+2 (DM25), 0K", "2K")

@@ -200,7 +200,7 @@ def draw_scatter_points(ax, x, y, marker_size, exclusions):
 def scatter_panel(ax, x, y, title, xlabel, ylabel, limits,
                   marker_size=8.0, exclusions=MAGNITUDE_EXCLUSIONS,
                   inset_limits=INSET_LIMITS, inset_rect=(0.52, 0.04, 0.38, 0.38),
-                  r_labels=None, show_inset=True):
+                  r_labels=None, show_inset=True, bulk_color=RETAINED_COLOR):
     """One paired-effect scatter with a colour-split cloud, Pearson block and density inset.
 
     ``limits`` is applied to BOTH axes, so the panel is square and the identity line is its
@@ -210,6 +210,7 @@ def scatter_panel(ax, x, y, title, xlabel, ylabel, limits,
     on one shared colour norm via :func:`share_density_norm`.  ``r_labels`` names the Pearson
     lines instead of the retained percentage; see :func:`draw_pearson_block`.
     With ``show_inset=False``, skip the density inset and return ``None`` for density.
+    ``bulk_color`` colours the retained-subset Pearson line.
     """
     lo, hi = limits
 
@@ -228,7 +229,7 @@ def scatter_panel(ax, x, y, title, xlabel, ylabel, limits,
     ax.set_ylabel(ylabel)
 
     correlations = magnitude_exclusion_correlations(x, y, exclusions)
-    draw_pearson_block(ax, correlations, labels=r_labels)
+    draw_pearson_block(ax, correlations, labels=r_labels, bulk_color=bulk_color)
 
     if not show_inset:
         return correlations, None
@@ -266,7 +267,8 @@ def scatter_panel(ax, x, y, title, xlabel, ylabel, limits,
     return correlations, density
 
 
-def draw_pearson_block(ax, correlations, loc="upper left", anchor=(0.02, 0.985), labels=None):
+def draw_pearson_block(ax, correlations, loc="upper left", anchor=(0.02, 0.985), labels=None,
+                       bulk_color=RETAINED_COLOR):
     """The Pearson ladder, one line per subset, each in the colour of the points it covers.
 
     Built with an offsetbox rather than one multi-line ``Text`` because matplotlib cannot
@@ -282,7 +284,7 @@ def draw_pearson_block(ax, correlations, loc="upper left", anchor=(0.02, 0.985),
     one name per line (``("All", "Bulk")`` -> ``r_All``, ``r_Bulk``), for a cut that is not a
     round number.
     """
-    colors = (IDENTITY_COLOR, EXCLUDED_COLOR, RETAINED_COLOR)
+    colors = (IDENTITY_COLOR, EXCLUDED_COLOR, bulk_color)
     lines = [TextArea("Pearson", textprops={"color": colors[0],
                                             "fontsize": PEARSON_FONTSIZE})]
     if labels is None:
