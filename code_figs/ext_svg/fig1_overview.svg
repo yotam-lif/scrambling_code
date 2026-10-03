@@ -7,7 +7,7 @@
    version="1.1"
    id="fig1-overview"
    sodipodi:docname="fig1_overview.svg"
-   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
    inkscape:export-filename="../../figs_paper/fig1_overview.pdf"
    inkscape:export-xdpi="600"
    inkscape:export-ydpi="600"
@@ -29,21 +29,26 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="3.5334905"
-     inkscape:cx="367.48365"
-     inkscape:cy="90.703513"
-     inkscape:window-width="2560"
-     inkscape:window-height="1382"
+     inkscape:zoom="1.0891527"
+     inkscape:cx="274.9844"
+     inkscape:cy="297.01988"
+     inkscape:window-width="1512"
+     inkscape:window-height="856"
      inkscape:window-x="0"
-     inkscape:window-y="30"
+     inkscape:window-y="33"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g70" />
+     inkscape:current-layer="fitness-key" />
   <title
      id="title1">Transposon insertion libraries and experimental datasets</title>
   <desc
      id="desc1">Matched gene disruptions across evolution above two datasets. LB and DM25 dataset schematics sit side by side in the lower row. Dotted vertical guides connect each generation tick to its sampled bacteria, behind the icons. Growth and assay media illustrate selection against disruptions of amino-acid synthesis.</desc>
   <defs
      id="defs9">
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3"
+       is_visible="true"
+       lpeversion="1" />
     <inkscape:path-effect
        effect="spiro"
        id="path-effect10"
@@ -827,6 +832,10 @@
              stroke-width="0.9"
              id="circle46" />
         </g>
+        <path
+           id="empirical-error-brace-1"
+           d="m 370.15693,355.91826 c -2.98593,0 -2.98593,6.62524 -5.97184,6.62524 h -1.99061 c -2.38873,0 -2.38873,4.41684 -3.98122,4.41684 -1.5925,0 -1.5925,-4.41684 -3.98125,-4.41684 h -1.9906 c -2.98593,0 -2.98593,-6.62524 -5.97184,-6.62524"
+           style="fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:2.0996;stroke-dasharray:none;stroke-opacity:1" />
       </g>
       <g
          id="evolved-library"
@@ -1426,8 +1435,8 @@
            id="text114"
            x="-176"
            y="542.27747"
-           style="font-size:14.5176px"><tspan
-             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.5176px;font-family:Sans;-inkscape-font-specification:Sans"
+           style="font-size:16.3323px"><tspan
+             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.3323px;font-family:Arial, Helvetica, sans-serif;-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
              id="tspan139">Fitness effect (s)</tspan></text>
         <text
            x="-91.390556"
@@ -1484,13 +1493,13 @@
            fill="#69747e"
            font-style="italic"
            id="text99"
-           style="font-size:18.147px;white-space:pre;inline-size:242.95;display:inline"
+           style="font-size:19.9617px;white-space:pre;inline-size:242.95;display:inline"
            xml:space="preserve"><tspan
              x="0"
              y="13.502489"
-             id="tspan39"><tspan
-               style="font-style:normal;font-family:Sans;-inkscape-font-specification:Sans"
-               id="tspan38">Insertion effect indicator</tspan></tspan></text>
+             id="tspan2"><tspan
+               style="font-style:normal;-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+               id="tspan1">Insertion effect indicator</tspan></tspan></text>
       </g>
       <g
          id="genomes"
@@ -1592,11 +1601,14 @@
            text-anchor="middle"
            fill="#333b43"
            font-style="italic"
-           transform="translate(0,38)"><tspan
+           transform="translate(0,38)"
+           style="font-size:14.5176px;white-space:pre;inline-size:176.01;display:inline"
+           xml:space="preserve"><tspan
              x="246"
              y="332"
-             id="tspan99"
-             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:'Sans Italic'">Ancestral genotype</tspan></text>
+             id="tspan6"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif Italic'"
+               id="tspan5">Ancestral genotype</tspan></tspan></text>
         <rect
            x="628"
            y="286.66199"
@@ -1723,11 +1735,12 @@
            text-anchor="middle"
            fill="#333b43"
            font-style="italic"
-           transform="translate(0,38)"><tspan
+           transform="translate(0,38)"
+           style="font-size:14.5176px"><tspan
              x="754"
              y="332"
              id="tspan100"
-             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:'Sans Italic'">Evolved genotype</tspan></text>
+             style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.5176px;font-family:Arial, Helvetica, sans-serif;-inkscape-font-specification:'Arial, Helvetica, sans-serif Italic'">Evolved genotype</tspan></text>
         <path
            id="path133"
            d="m 414,333.83752 h 160.59929 v -8.17986 l 14.23032,12.72422 -14.23032,12.72422 v -8.17986 H 414 Z"
@@ -1768,22 +1781,22 @@
            fill="#333b43"
            font-style="normal"
            transform="translate(0,27.111796)"
-           style="font-size:14.5176px;white-space:pre;inline-size:378.439;display:inline"
+           style="font-size:16.3323px;white-space:pre;inline-size:378.439;display:inline"
            xml:space="preserve"><tspan
              x="190"
              y="369"
-             id="tspan41"><tspan
-               style="font-family:Sans;-inkscape-font-specification:Sans"
-               id="tspan40">Assay fitness effects of 
+             id="tspan8"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+               id="tspan7">Generate insertion library
 </tspan></tspan><tspan
              x="190"
-             y="387.31507"
-             id="tspan43"><tspan
-               style="font-family:Sans;-inkscape-font-specification:Sans"
-               id="tspan42">insertions in ancestor</tspan></tspan></text>
+             y="389.41537"
+             id="tspan11"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+               id="tspan9">in ancestor and assay fitness</tspan></tspan></text>
         <path
            id="path154"
-           d="m 302,404.1118 h 95"
+           d="m 307.4441,404.1118 h 95"
            fill="none"
            stroke="#2f3439"
            stroke-width="1.65"
@@ -1791,7 +1804,7 @@
            marker-end="url(#ArrowTriangleStylized)" />
         <path
            id="path154-1"
-           d="m 603,404.1118 h 95"
+           d="m 597.5559,404.1118 h 95"
            fill="none"
            stroke="#2f3439"
            stroke-width="1.65"
@@ -1806,19 +1819,19 @@
            fill="#333b43"
            font-style="normal"
            transform="translate(8.1661527,29.833847)"
-           style="font-size:14.5176px;white-space:pre;inline-size:380.163;display:inline"
+           style="font-size:16.3323px;white-space:pre;inline-size:380.163;display:inline"
            xml:space="preserve"><tspan
              x="500"
              y="369"
-             id="tspan45"><tspan
-               style="font-family:Sans;-inkscape-font-specification:Sans"
-               id="tspan44">Background mutations 
+             id="tspan13"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+               id="tspan12">Background mutations 
 </tspan></tspan><tspan
              x="500"
-             y="387.31507"
-             id="tspan47"><tspan
-               style="font-family:Sans;-inkscape-font-specification:Sans"
-               id="tspan46">fix during evolution</tspan></tspan></text>
+             y="389.41537"
+             id="tspan16"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+               id="tspan15">fix during evolution</tspan></tspan></text>
         <text
            id="text125-8-4-2"
            x="810"
@@ -1828,20 +1841,36 @@
            fill="#333b43"
            font-style="normal"
            transform="translate(0,29.833847)"
-           style="font-size:14.5176px;white-space:pre;inline-size:228.811;display:inline"
+           style="font-size:16.3323px;white-space:pre;inline-size:215.986;display:inline"
            xml:space="preserve"><tspan
              x="810"
              y="369"
-             id="tspan49"><tspan
-   style="font-family:Sans;-inkscape-font-specification:Sans"
-   id="tspan48">Assay again in changed</tspan><tspan
-   y="369"
-   id="tspan50"> </tspan></tspan><tspan
+             id="tspan21"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+               id="tspan17">Generate insertion library in</tspan><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+               id="tspan20"></tspan><tspan
+               y="369"
+               id="tspan23"> </tspan></tspan><tspan
              x="810"
-             y="387.31507"
-             id="tspan52"><tspan
-               style="font-family:Sans;-inkscape-font-specification:Sans"
-               id="tspan51">evolved background</tspan></tspan></text>
+             y="389.41537"
+             id="tspan34"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+               id="tspan29">evolved and assay fitness</tspan></tspan></text>
+        <text
+           id="text125-3"
+           x="246"
+           y="332"
+           font-size="11.7593px"
+           text-anchor="middle"
+           fill="#333b43"
+           font-style="italic"
+           transform="translate(112.51839,43.921188)"
+           style="white-space:pre;inline-size:176.01;display:inline"
+           xml:space="preserve"><tspan
+             x="246"
+             y="332"
+             id="tspan35">gene</tspan></text>
       </g>
       <g
          id="key"
@@ -1864,20 +1893,20 @@
              font-weight="bold"
              fill="#69747e"
              id="text2"
-             style="font-size:18.147px;white-space:pre;inline-size:199.153;display:inline"
+             style="font-size:19.9617px;white-space:pre;inline-size:199.153;display:inline"
              transform="translate(-19.05436,-2.7220507)"
              xml:space="preserve"><tspan
                x="122"
                y="61"
-               id="tspan54"><tspan
-                 style="font-weight:normal;-inkscape-font-specification:'Sans Italic'"
-                 id="tspan53">Transposon 
+               id="tspan38"><tspan
+                 style="font-weight:normal;font-family:Arial, Helvetica, sans-serif;-inkscape-font-specification:'Arial, Helvetica, sans-serif Italic'"
+                 id="tspan37">Transposon 
 </tspan></tspan><tspan
                x="122"
-               y="83.683751"
-               id="tspan56"><tspan
-                 style="font-weight:normal;-inkscape-font-specification:'Sans Italic'"
-                 id="tspan55">insertion</tspan></tspan></text>
+               y="86.134707"
+               id="tspan44"><tspan
+                 style="font-weight:normal;font-family:Arial, Helvetica, sans-serif;-inkscape-font-specification:'Arial, Helvetica, sans-serif Italic'"
+                 id="tspan43">insertion</tspan></tspan></text>
         </g>
         <text
            id="text136"
@@ -1887,20 +1916,20 @@
            text-anchor="start"
            fill="#69747e"
            font-style="italic"
-           style="font-size:18.147px;white-space:pre;inline-size:295.405;display:inline"
+           style="font-size:19.9617px;white-space:pre;inline-size:295.405;display:inline"
            xml:space="preserve"
            transform="translate(-29.942564,-5.5704798)"><tspan
              x="796"
              y="59"
-             id="tspan58"><tspan
-               style="font-family:Sans;-inkscape-font-specification:'Sans Italic'"
-               id="tspan57">Fixed background 
+             id="tspan46"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif Italic'"
+               id="tspan45">Fixed background 
 </tspan></tspan><tspan
              x="796"
-             y="81.849736"
-             id="tspan60"><tspan
-               style="font-family:Sans;-inkscape-font-specification:'Sans Italic'"
-               id="tspan59">mutation</tspan></tspan></text>
+             y="83.952125"
+             id="tspan48"><tspan
+               style="-inkscape-font-specification:'Arial, Helvetica, sans-serif Italic'"
+               id="tspan47">mutation</tspan></tspan></text>
       </g>
     </g>
     <text
@@ -1925,7 +1954,7 @@
          transform="translate(29.39815,-11.75926)"><tspan
            x="-995.54547"
            y="341.52029"
-           id="tspan61">...</tspan></text>
+           id="tspan49">...</tspan></text>
       <text
          xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.4383px;font-family:Sans;-inkscape-font-specification:Sans;writing-mode:lr-tb;direction:ltr;white-space:pre;inline-size:50.4795;display:inline;fill:#202020;stroke:#000000;stroke-width:1.11111;stroke-dasharray:none;stroke-dashoffset:0"
@@ -1935,7 +1964,7 @@
          transform="translate(338.07501,-11.835979)"><tspan
            x="-995.54547"
            y="341.52029"
-           id="tspan62">...</tspan></text>
+           id="tspan50">...</tspan></text>
       <text
          xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.4383px;font-family:Sans;-inkscape-font-specification:Sans;writing-mode:lr-tb;direction:ltr;white-space:pre;inline-size:50.4795;display:inline;fill:#202020;stroke:#000000;stroke-width:1.11111;stroke-dasharray:none;stroke-dashoffset:0"
@@ -1945,7 +1974,7 @@
          transform="translate(576.28375,-12.111806)"><tspan
            x="-995.54547"
            y="341.52029"
-           id="tspan63">...</tspan></text>
+           id="tspan51">...</tspan></text>
       <text
          xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.4383px;font-family:Sans;-inkscape-font-specification:Sans;writing-mode:lr-tb;direction:ltr;white-space:pre;inline-size:50.4795;display:inline;fill:#202020;stroke:#000000;stroke-width:1.11111;stroke-dasharray:none;stroke-dashoffset:0"
@@ -1955,7 +1984,7 @@
          transform="translate(885.24706,-12.021033)"><tspan
            x="-995.54547"
            y="341.52029"
-           id="tspan64">...</tspan></text>
+           id="tspan52">...</tspan></text>
     </g>
   </g>
   <path

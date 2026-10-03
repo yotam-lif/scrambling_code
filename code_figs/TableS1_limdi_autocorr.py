@@ -125,7 +125,7 @@ result.
 
 SIMULATED COLUMNS (``r_*_sim_latent`` and ``r_*_sim_noisy``), evolved rows only.  What the
 adaptive-walk model predicts for the same three subsets, from the walk caches written by
-``code_figs/sim_walk_caches.py`` under the SAME |s| subset rule as the measured columns
+``data/sim/gen_data/sim_walk_caches.py`` under the SAME |s| subset rule as the measured columns
 beside them.  Each transition has its own cache: 500 SSWM walks in a heavy-tailed (radial
 beta-prime) FGM fitted to that row's own founder -- REL606 or REL607, from
 ``data/fig3_fgm_fits.json`` -- with a probe library of the same size as the matched gene set.
@@ -168,18 +168,26 @@ nothing evolving between the two channels, so there is no walk to run.
              n_100, r_100, r_100_null, r_100_sim_latent, r_100_sim_noisy, r_100_w,
              n_95, cut_95, r_95, r_95_null, r_95_sim_latent, r_95_sim_noisy,
              n_90, cut_90, r_90, r_90_null, r_90_sim_latent, r_90_sim_noisy,
+             n_89, cut_89, r_89, r_89_null, r_89_sim_latent, r_89_sim_noisy,
              sim_t, sim_walks, sim_walk_len, excluded
 
-ANCESTOR-DEFINED NESTED SUBSETS (the ``r_100 / r_95 / r_90`` columns).  The autocorrelation r
+ANCESTOR-DEFINED NESTED SUBSETS (the ``r_100 / r_95 / r_90 / r_89`` columns).  The autocorrelation r
 measures how much of the DFE is *preserved*; scrambling is its complement, roughly 1 - r.
 Because r is a Pearson correlation it is dominated by the points farthest from the origin, so
 where the subset is cut changes r a great deal, and reporting one cut hides that.  Each row
-therefore carries r on three nested subsets, obtained by removing exactly 0%, 5% and 10% of the
+therefore carries r on four nested subsets, obtained by removing exactly 0%, 5%, 10% and p* of the
 LARGEST-MAGNITUDE ancestor effects:
 
   r_100   every matched pair, nothing removed (the large-effect tail included)
   r_95    the largest 5% of |ANCESTOR effect| removed  (``cut_95`` = the |s| threshold)
   r_90    the largest 10% removed                      (``cut_90`` likewise)
+  r_89    the largest p* = 11.2% removed               (``cut_89`` likewise)
+
+p* is the pooled half-max edge of the ten retained lineages, read at run time from the ``pooled``
+row of Table S5 (data/exper/TableS5_limdi_half_max.csv), so the column follows that table if it is
+regenerated.  It is labelled by its retained percentage, 88.8 rounded to 89, as fig4 does.  It is
+the cut of fig2's Limdi panels and of fig4 panel D, where it is drawn as r_Bulk, so r_89 is the
+number those panels' stars and curves show.
 
     RANKED ON |s|, NOT ON s.  Earlier versions of this table ranked on the signed effect and
     dropped the most deleterious fraction, so the retained subset was one-sided: it kept the whole
@@ -274,17 +282,46 @@ WALK_DIR = cmn_walksim.WALK_DIR
 # ``n / autocorr / autocorr_corr`` block -- r at a fixed ``s > -0.3`` cut applied to BOTH sides,
 # plus its disattenuated value -- is gone: cutting the late side conditions on the outcome, and
 # with no fixed cut left there is no range where disattenuation is trustworthy.
-COLUMNS = ["dataset", "transition", "kind", "n_fixed_mut",
-           "n_100", "r_100", "r_100_null", "r_100_sim_latent", "r_100_sim_noisy",
-           "r_100_w",
-           "n_95", "cut_95", "r_95", "r_95_null", "r_95_sim_latent", "r_95_sim_noisy",
-           "n_90", "cut_90", "r_90", "r_90_null", "r_90_sim_latent", "r_90_sim_noisy",
-           "sim_t", "sim_walks", "sim_walk_len", "excluded"]
+# Panel D of fig4 and the Limdi panels of fig2 cut at p*, the pooled half-max edge; run
+# code_figs/TableS5_limdi_half_max.py first.
+HALF_MAX_TABLE = os.path.join(DATA_DIR, "TableS5_limdi_half_max.csv")
+
+
+def limdi_half_max_cut():
+    """The pooled half-max edge p* from Table S5, as a fraction.
+
+    Duplicated from fig4_autocorrelation.py rather than imported: figure and table scripts in
+    this repo do not import one another.
+    """
+    with open(HALF_MAX_TABLE, newline="") as fh:
+        for row in csv.DictReader(fh):
+            if row["lineage"] == "pooled":
+                return float(row["p_star"]) / 100
+    raise SystemExit(f"{HALF_MAX_TABLE} has no pooled row")
+
 
 # Fractions of the EARLY (ancestor) side removed, LARGEST |effect| first, for the nested-subset
-# ladder.  0.00 keeps every matched pair, so the subsets are nested: 90% inside 95% inside 100%.
-# Same rule and same fractions as code_tmp/poster_fig1.py, which shows two of these rows.
-TAIL_EXCLUSIONS = (0.00, 0.05, 0.10)
+# ladder.  0.00 keeps every matched pair, so the subsets are nested: 89% inside 90% inside 95%
+# inside 100%.  0.05 and 0.10 are the fractions of code_tmp/poster_fig1.py; the last rung is p*
+# (11.2%, labelled r_89 by its retained percentage), the cut fig4 panel D draws as r_Bulk.
+TAIL_EXCLUSIONS = (0.00, 0.05, 0.10, limdi_half_max_cut())
+
+
+def retained_pct(fraction):
+    """The column label of one rung: the retained percentage, as ``cmn_walkpanel.cut_key``."""
+    return int(round(100 * (1.0 - fraction)))
+
+
+# The rungs below 100, in ladder order: 95, 90, 89.
+CUT_PCTS = tuple(retained_pct(fraction) for fraction in TAIL_EXCLUSIONS[1:])
+
+COLUMNS = (["dataset", "transition", "kind", "n_fixed_mut",
+            "n_100", "r_100", "r_100_null", "r_100_sim_latent", "r_100_sim_noisy",
+            "r_100_w"]
+           + [f"{field}_{pct}" if field in ("n", "cut") else f"r_{pct}{field}"
+              for pct in CUT_PCTS
+              for field in ("n", "cut", "", "_null", "_sim_latent", "_sim_noisy")]
+           + ["sim_t", "sim_walks", "sim_walk_len", "excluded"])
 # Rank on |s| and drop the largest, not on s dropping the most deleterious.  See RANKED ON |s|
 # in the docstring; the walk caches read for the simulated columns are built the same way, and
 # ``cmn_walkcache.require_mode`` refuses a cache that is not.
@@ -456,7 +493,7 @@ def ancestor_exclusion_ladder(a, a_err, b, b_err, null_seed):
         r_null, n_null = null_results[null_column]
         ladder.append({
             "frac": frac,
-            "pct": int(round(100 * (1.0 - frac))),
+            "pct": retained_pct(frac),
             "n": n,
             "r": r,
             "r_null": r_null,
@@ -619,7 +656,7 @@ def write_table(rows, out_csv):
                       row["n_100"], _number(row["r_100"]), _number(row["r_100_null"]),
                       _number(row["r_100_sim_latent"]), _number(row["r_100_sim_noisy"]),
                       _number(row["r_100_w"])]
-            for pct in (95, 90):
+            for pct in CUT_PCTS:
                 record += [row[f"n_{pct}"], _number(row[f"cut_{pct}"]),
                            _number(row[f"r_{pct}"]), _number(row[f"r_{pct}_null"]),
                            _number(row[f"r_{pct}_sim_latent"]),
@@ -640,8 +677,9 @@ def main(argv=None):
     write_table(rows, args.out)
 
     # ---- the poster-figure ladder: nested subsets defined from the ancestor side only --------
-    print("\nnested subsets: the largest 0% / 5% / 10% of |ANCESTOR effect| removed, "
-          "evolved side free")
+    print("\nnested subsets: the largest "
+          + " / ".join(f"{100 * frac:g}%" for frac in TAIL_EXCLUSIONS)
+          + " of |ANCESTOR effect| removed, evolved side free")
     print("cut = the |s| threshold at or above which ancestor genes were dropped")
     print("sim = the fitted adaptive walk read at its own peak; latent, then rank-matched noisy")
     print("rows: 14 green/red technical controls (one per library)")
@@ -652,8 +690,8 @@ def main(argv=None):
 
     header = (f"{'dataset':<15}{'transition':<20}{'kind':<9}{'n_fix':>6}"
               f"{'n_100':>7}{'r_100':>8}{'null':>8}{'sim':>8}{'simN':>8}{'r_100_w':>9}"
-              f"{'n_95':>7}{'cut_95':>8}{'r_95':>8}{'null':>8}{'sim':>8}{'simN':>8}"
-              f"{'n_90':>7}{'cut_90':>8}{'r_90':>8}{'null':>8}{'sim':>8}{'simN':>8}")
+              + "".join(f"{f'n_{pct}':>7}{f'cut_{pct}':>8}{f'r_{pct}':>8}"
+                        f"{'null':>8}{'sim':>8}{'simN':>8}" for pct in CUT_PCTS))
     print(header)
     print("-" * len(header))
     for row in rows:
@@ -662,7 +700,7 @@ def main(argv=None):
                 f"{row['n_100']:>7}{cell(row['r_100'])}{cell(row['r_100_null'])}"
                 f"{cell(row['r_100_sim_latent'])}{cell(row['r_100_sim_noisy'])}"
                 f"{cell(row['r_100_w'], 9)}")
-        for pct in (95, 90):
+        for pct in CUT_PCTS:
             line += (f"{row[f'n_{pct}']:>7}{cell(row[f'cut_{pct}'])}{cell(row[f'r_{pct}'])}"
                      f"{cell(row[f'r_{pct}_null'])}{cell(row[f'r_{pct}_sim_latent'])}"
                      f"{cell(row[f'r_{pct}_sim_noisy'])}")
@@ -672,7 +710,7 @@ def main(argv=None):
                      if r["kind"] == "evolved" and not np.isfinite(r["r_100_sim_latent"])]
     if without_walks:
         print("\nNo walk cache found for: " + ", ".join(without_walks))
-        print("  run  python code_figs/sim_walk_caches.py --select dataset=limdi")
+        print("  run  python data/sim/gen_data/sim_walk_caches.py --select dataset=limdi")
 
     short = [r for r in rows if r["n_100_w"] < r["n_100"]]
     if short:
@@ -687,7 +725,7 @@ def main(argv=None):
     evolved = [r for r in rows if r["n_fixed_mut"] > 0]
     print()
     for key, label in (("r_100", "r_100"), ("r_100_w", "r_100_w"),
-                       ("r_95", "r_95"), ("r_90", "r_90")):
+                       *((f"r_{pct}", f"r_{pct}") for pct in CUT_PCTS)):
         for tag, sub in (("all 12", evolved),
                          ("10 retained", [r for r in evolved if not r["excluded"]])):
             x = np.log10([r["n_fixed_mut"] for r in sub])
@@ -729,12 +767,12 @@ def main(argv=None):
     if simulated:
         print("\nmeasured against the simulated NOISY plateau (the like-for-like comparison):")
         hdr = (f"  {'transition':<20}" + "".join(
-            f"{f'r_{pct}':>9}{'sim':>9}{'diff':>9}" for pct in (100, 95, 90)))
+            f"{f'r_{pct}':>9}{'sim':>9}{'diff':>9}" for pct in (100, *CUT_PCTS)))
         print(hdr)
         print("  " + "-" * (len(hdr) - 2))
         for row in simulated:
             line = f"  {row['transition']:<20}"
-            for pct in (100, 95, 90):
+            for pct in (100, *CUT_PCTS):
                 measured, sim = row[f"r_{pct}"], row[f"r_{pct}_sim_noisy"]
                 line += f"{measured:>9.3f}{sim:>9.3f}{measured - sim:>+9.3f}"
             print(line + f"   {row['excluded']}")
@@ -752,9 +790,9 @@ def main(argv=None):
     print("                 read at each walk's own peak; _latent has no measurement error and")
     print("                 _noisy re-measures it with rank-matched published per-gene errors.")
     print("                 Evolved rows only, and only where a walk cache exists")
-    print("r_95 / r_90    = same, after removing the largest 5% / 10% of |ANCESTOR effect| only;")
-    print("                 the evolved side is never used to define the subset")
-    print("cut_95/cut_90  = the |s| threshold at or above which ancestor genes were dropped;")
+    print("r_95/r_90/r_89 = same, after removing the largest 5% / 10% / 11.2% (p*, Table S5) of")
+    print("                 |ANCESTOR effect| only; the evolved side is never used to define the subset")
+    print("cut_95/90/89   = the |s| threshold at or above which ancestor genes were dropped;")
     print("                 a PERCENTILE, but within the evolved rows it barely moves")
     print("kind           = control (one library against itself) or evolved")
     print("own_r90        = that clone's OWN green/red control at 50K -- the reproducibility of")

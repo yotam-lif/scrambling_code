@@ -7,7 +7,10 @@
    font-family="Arial, Helvetica, sans-serif"
    sodipodi:docname="fig4_prediction_pipeline_schematic.svg"
    id="svg120"
-   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   inkscape:export-filename="../fig4_prediction_pipeline_schematic.pdf"
+   inkscape:export-xdpi="600"
+   inkscape:export-ydpi="600"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -22,15 +25,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="2.0615746"
-     inkscape:cx="11.156521"
-     inkscape:cy="353.12813"
-     inkscape:window-width="2540"
-     inkscape:window-height="1259"
-     inkscape:window-x="2566"
-     inkscape:window-y="30"
+     inkscape:zoom="1.521835"
+     inkscape:cx="78.523624"
+     inkscape:cy="442.88638"
+     inkscape:window-width="1512"
+     inkscape:window-height="851"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
      inkscape:window-maximized="0"
-     inkscape:current-layer="empirical-error-labels" />
+     inkscape:current-layer="partitions" />
   <title
      id="title1">Predicting evolved correlations from an ancestral DFE</title>
   <desc
@@ -753,20 +756,20 @@
          text-anchor="start"
          font-weight="normal"
          id="evolved-backgrounds-label"
-         style="text-align:start;text-anchor:start;white-space:pre;inline-size:186.127;display:inline"
+         style="font-size:14.3663px;text-align:start;text-anchor:start;white-space:pre;inline-size:186.127;display:inline"
          transform="translate(7.3163037)"
          xml:space="preserve"><tspan
            x="226"
            y="211"
-           id="tspan16"><tspan
-             style="font-weight:bold;font-family:Sans;-inkscape-font-specification:Sans"
-             id="tspan4">Simulated
+           id="tspan23"><tspan
+             style="font-weight:bold;-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+             id="tspan16">Simulated
 </tspan></tspan><tspan
            x="226"
-           y="226.14421"
-           id="tspan21"><tspan
-             style="font-weight:bold;font-family:Sans;-inkscape-font-specification:Sans"
-             id="tspan19">evolved
+           y="228.95787"
+           id="tspan25"><tspan
+             style="font-weight:bold;-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+             id="tspan24">evolved
 </tspan></tspan></text>
       <g
          id="walk-4-9"
@@ -859,14 +862,14 @@
          text-anchor="start"
          font-weight="normal"
          id="evolved-backgrounds-label-0"
-         style="text-align:start;text-anchor:start;white-space:pre;inline-size:186.127;display:inline"
+         style="font-size:14.3663px;text-align:start;text-anchor:start;white-space:pre;inline-size:186.127;display:inline"
          transform="translate(-83.608974,-30.13703)"
          xml:space="preserve"><tspan
            x="226"
            y="211"
-           id="tspan23"><tspan
-             style="font-weight:bold;font-family:Sans;-inkscape-font-specification:Sans"
-             id="tspan22">FGM params.
+           id="tspan27"><tspan
+             style="font-weight:bold;-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
+             id="tspan26">FGM params.
 </tspan></tspan></text>
     </g>
     <text
@@ -904,9 +907,9 @@
        xml:space="preserve"><tspan
          x="175"
          y="354"
-         id="tspan25"><tspan
+         id="tspan29"><tspan
            style="font-style:italic"
-           id="tspan24">Partition mutations by ancestral effect</tspan></tspan></text>
+           id="tspan28">Partition mutations by ancestral effect</tspan></tspan></text>
     <g
        transform="translate(-7,-77.11916)"
        id="g54">
@@ -1280,7 +1283,7 @@
        font-weight="bold"
        id="all-mutations-title"><tspan
          x="106"
-         id="tspan87">Total</tspan></text>
+         id="tspan87">All</tspan></text>
     <text
        x="252"
        y="381"
@@ -1303,9 +1306,9 @@
        xml:space="preserve"><tspan
          x="106"
          y="488"
-         id="tspan27">Ancestral effect (<tspan
+         id="tspan31">Ancestral effect (<tspan
    style="font-style:italic"
-   id="tspan26">s</tspan>)</tspan></text>
+   id="tspan30">s</tspan>)</tspan></text>
     <text
        x="252"
        y="488"
@@ -1318,7 +1321,7 @@
        xml:space="preserve"><tspan
          x="252"
          y="488"
-         id="tspan28">Ancestral effect (s)</tspan></text>
+         id="tspan32">Ancestral effect (s)</tspan></text>
     <text
        x="-433"
        y="34.354393"
@@ -1346,9 +1349,9 @@
        xml:space="preserve"><tspan
          x="175"
          y="354"
-         id="tspan30"><tspan
+         id="tspan44"><tspan
            style="font-style:italic"
-           id="tspan29">Add measurement noise to simulated effects</tspan></tspan></text>
+           id="tspan33">Add measurement noise to simulated effects</tspan></tspan></text>
   </g>
   <g
      id="measurement-error"
@@ -1554,19 +1557,19 @@
        text-anchor="middle"
        font-size="12.0042px"
        fill="#60666d"
-       style="white-space:pre;inline-size:134.047"
+       style="white-space:pre;inline-size:134.047;display:inline"
        transform="translate(-1.9748605,-6.2067043)"
        xml:space="preserve"><tspan
          x="264.22595"
          y="558.44806"
-         id="tspan31">Add to simulations via<tspan
+         id="tspan45">Add to simulations via<tspan
    y="558.44806"
-   id="tspan32"> </tspan></tspan><tspan
+   id="tspan46"> </tspan></tspan><tspan
          x="264.22595"
          y="573.45328"
-         id="tspan33">rank-matching<tspan
+         id="tspan47">rank-matching<tspan
    y="573.45328"
-   id="tspan44"> </tspan></tspan></text>
+   id="tspan48"> </tspan></tspan></text>
     <g
        id="simulated-noise-formula"
        aria-label="Simulated effects with rank-matched noise, for mutations 1 through i through N"
@@ -1725,7 +1728,7 @@
        xml:space="preserve"
        transform="matrix(1.286169,0,0,1.286169,0,-27)"
        id="text2"
-       style="fill:#202020;text-orientation:auto;stroke-width:0.37795276;stroke:#000000;-inkscape-font-specification:Sans;font-family:Sans;font-size:16px;stroke-dasharray:0.03779528, 0.03779528;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2)" />
+       style="font-size:16px;font-family:Sans;-inkscape-font-specification:Sans;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);display:inline;fill:#202020;stroke:#000000;stroke-width:0.377953;stroke-dasharray:0.0377953, 0.0377953" />
   </g>
   <g
      id="conclusion"

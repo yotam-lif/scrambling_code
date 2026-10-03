@@ -53,7 +53,7 @@ maximised on the same sample and are directly comparable.
 Fits are cached in data/fig3_fgm_fits.json; pass --refit to recompute them.  The file keeps
 its name because TableS4_fgm_params.py, cmn/cmn_walksim.py and code_tmp/poster_fig5_couce_noise.py
 all read it by that path.  It still holds the unplotted REL607 (LB) and couce_2K fits;
-the 2K -> 15K walk starts from the latter.
+the six REL607 lineages' walks start from the former and the 2K -> 15K walk from the latter.
 
 
 ROW 2 -- the simulated and measured autocorrelations
@@ -74,12 +74,12 @@ a dot and the curve it sits on cannot come to mean different things.
 Curves are smoothed for display, both endpoints pinned to their raw values; the filter and
 the argument that it is cosmetic are in ``cmn/cmn_walkpanel.py``, which draws the panels.
 
-Solid curves are the latent correlation -- the model's own effects, with no measurement
-error anywhere.  Dashed curves add rank-matched measurement noise: each simulated mutation
-is assigned the published error of the empirical gene at its own effect rank, drawn fresh at
-every step for the endpoint and once per replicate for the ancestor.  The band is the
-16-84% interval over walk x noise replicates.  Filled stars are the measured
-correlations.
+Only the noisy simulation is drawn, as a solid curve labelled "Simulations": rank-matched
+measurement noise is added, each simulated mutation being assigned the published error of the
+empirical gene at its own effect rank, drawn fresh at every step for the endpoint and once per
+replicate for the ancestor.  The latent (noise-free) correlation is still in the caches and is
+drawn in figS8, but not here.  The band is the 16-84% interval over walk x noise replicates.
+Filled stars are the measured correlations.
 
 Where the markers sit
 ---------------------
@@ -88,8 +88,8 @@ the same genotype assayed twice, so nothing has fixed between the two measuremen
 only thing separating them is the assay itself.  It is the ceiling the panel's curves start
 from -- the simulation asserts r = 1 at t = 0, and the control says what the measurement can
 actually deliver there.  It is the ``REL606 green -> red`` pair of TableS1, recomputed here on
-the same |s|-ranked ladder as every other marker, because p* is not one of that table's
-columns; at the table's own cuts the two agree to every printed digit.
+the same |s|-ranked ladder as every other marker; it agrees with that table's columns,
+r_89 (the p* cut) included, to every printed digit.
 
 Panel E has no such row to draw.  The Couce release publishes no replicate of a timepoint;
 its only same-background pair is ``fitted1`` against ``fitted2``, two fits of the SAME five
@@ -111,14 +111,15 @@ Panel D instead puts its dots at the right-hand edge, labelled with the substitu
 count they really correspond to, so that their position is not read as a claim about how many
 mutations fixed.  Ara-1 is a point-mutator carrying of order 1100 mutations by 50K, almost
 all of them hitchhikers that SSWM would never fix.  That number is not a step count.
-Fifteen steps is inside the range over which the simulated walks reach their plateau, so
+Twenty steps is inside the range over which the simulated walks reach their plateau, so
 the dots are plateau references placed where the curves have levelled off.
 
 The panels stop at different times.  The Couce cache holds a walk at its peak once it runs
 out of beneficial mutations, so all 500 walks contribute at every step.  The Limdi caches
-write NaN instead, and those walks peak after a median of about 19 steps, so beyond about 15
-the median is taken over a shrinking and increasingly atypical set of survivors and starts to
-rattle.  Panel D therefore stops at 15, where most of the 500 walks are still going.
+write NaN instead, so once walks start to peak the median is taken over a shrinking and
+increasingly atypical set of survivors and starts to rattle.  The Ara-1 walks peak after a
+median of about 18 steps, so panel D's last few steps, out to 20, already run over fewer than
+all 500 walks.
 
 Both datasets now ascertain their probe libraries the same way -- inside the measured effect
 window of the matched empirical library.  That is not cosmetic: a Pearson r over the whole
@@ -127,7 +128,7 @@ could never have reported moves r100 hard and the cut subsets barely at all (0.1
 r100 against 0.0002 on r90).  See ``cmn/cmn_walksim.py``.
 
 Reads cached walks from data/sim/FGM_HT; it does not re-run them.  Regenerate with
-``python code_figs/sim_walk_caches.py``.
+``python data/sim/gen_data/sim_walk_caches.py``.
 
 Run from anywhere:  python code_figs/fig4_autocorrelation.py
 Output:             figs_paper/fig4_autocorrelation.pdf
@@ -636,17 +637,18 @@ PANELS = (
         "title": "ARA-1 (LB)",
         # The pooled half-max edge of -dr/dp over the ten retained Limdi lineages.
         "fractions": (0.00, limdi_half_max_cut()),
-        # These walks peak after a median of about 19 steps; past 15 the median runs out of
-        # surviving walks and becomes noise.
-        "display_steps": 15,
+        # These walks peak after a median of about 18 steps, so by 20 the median runs over a
+        # shrinking set of survivors; the frame is 20 by choice, and the console reports how
+        # many walks are still going there.
+        "display_steps": 20,
         # The first autocorrelation panel carries both keys: the shared style key in the
         # corner and its own colour key beside it.
         "legend": "both",
         # A plateau reference, not a substitution count -- see the module docstring.  The
         # note says so on the face of the figure, since the marker's position would
-        # otherwise read as a claim that Ara-1 fixed 15 mutations.
+        # otherwise read as a claim that Ara-1 fixed 20 mutations.
         "markers": ({"time": 0, "control": "REL606"},
-                    {"time": 15, "pair": ("limdi", "REL606", "Ara-1"),
+                    {"time": 20, "pair": ("limdi", "REL606", "Ara-1"),
                      "note": "Measured at $t = 1100$ $\\rightarrow$"}),
     },
     {
@@ -656,6 +658,8 @@ PANELS = (
         "fractions": (0.00, 0.02),
         # Terminated walks are held at their peak, so all 500 contribute throughout.
         "display_steps": 35,
+        # Ticks every 5 steps, matching D, rather than finish_axis's default of 10 past 25.
+        "tick_spacing": 5,
         # Its cut differs from D's, so it carries its own colour key.
         "legend": "cuts",
         # The fixed-mutation count the 0K -> 15K cache was built around, plus the
@@ -911,7 +915,7 @@ def build_autocorr_row(axes):
             panel["display_steps"], fractions)
         ladders = [(marker["time"], marker_ladder(marker, fractions), marker.get("note"))
                    for marker in panel["markers"]]
-        floor = min(floor, cmn_walkpanel.draw(axis, curves, ladders))
+        floor = min(floor, cmn_walkpanel.draw(axis, curves, ladders, latent=False))
         last_time = int(curves["times"][-1])
         # A fixed [0, 1] frame: r = 1 is the value every curve starts at and r = 0 is no
         # correlation left, so the row is read against the two ends of the scale rather than
@@ -919,7 +923,8 @@ def build_autocorr_row(axes):
         # row, so it is named and ticked once, on D.
         cmn_walkpanel.finish_axis(
             axis, last_time, title=panel["title"],
-            ylabel="Pearson autocorrelation" if index == 0 else None)
+            ylabel="Pearson autocorrelation" if index == 0 else None,
+            tick_spacing=panel.get("tick_spacing"))
         if index != 0:
             # finish_axis calls set_ticks_position("left"), which undoes the shared axis's
             # label suppression, so the labels have to be switched off again afterwards.
@@ -946,11 +951,7 @@ def build_autocorr_row(axes):
             # Re-adding the style key as an artist keeps the second ``legend`` call on the
             # same axes from replacing it.  The colour key beside it cannot be placed yet --
             # see ``place_side_legends``.
-            style = cmn_walkpanel.style_legend(axis)
-            for label, text in zip(
-                    ("Simulations", "Simulations (added noise)", "Measured"),
-                    style.get_texts()):
-                text.set_text(label)
+            style = cmn_walkpanel.style_legend(axis, latent=False)
             axis.add_artist(style)
             side_by_side.append((axis, style, fractions))
         else:

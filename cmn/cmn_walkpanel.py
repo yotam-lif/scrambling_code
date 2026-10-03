@@ -141,12 +141,16 @@ def style_axis(axis) -> None:
     axis.tick_params(axis="both", which="minor", length=5, width=1.6)
 
 
-def draw(axis, panel_curves, ladders=(), *, colors=None, band_alpha=0.12) -> float:
+def draw(axis, panel_curves, ladders=(), *, colors=None, band_alpha=0.12,
+         latent=True) -> float:
     """Draw one panel's bands, curves and measured stars; return the lowest value drawn.
 
     ``ladders`` are ``(time, {cut key: r}, note)`` triples.  A vertical rule marks each, so a
     star's position on the step axis is legible as the claim it is -- and where that position
     is a plateau reference rather than a step count, the note says so on the face of the panel.
+
+    With ``latent=False`` only the noisy re-measurement is drawn, and drawn solid: with no
+    latent curve beside it there is nothing for the dash to distinguish it from.
     """
     times, keys = panel_curves["times"], panel_curves["keys"]
     colors = colors or colors_for(len(keys))
@@ -154,12 +158,16 @@ def draw(axis, panel_curves, ladders=(), *, colors=None, band_alpha=0.12) -> flo
         axis.fill_between(times, panel_curves["lower"][:, column],
                           panel_curves["upper"][:, column],
                           color=color, alpha=band_alpha, linewidth=0)
-        axis.plot(times, panel_curves["latent"][:, column], color=color, linewidth=2.7)
-        axis.plot(times, panel_curves["observed"][:, column], color=color, linewidth=2.5,
-                  linestyle=(0, (4.0, 2.4)))
+        if latent:
+            axis.plot(times, panel_curves["latent"][:, column], color=color, linewidth=2.7)
+            axis.plot(times, panel_curves["observed"][:, column], color=color,
+                      linewidth=2.5, linestyle=(0, (4.0, 2.4)))
+        else:
+            axis.plot(times, panel_curves["observed"][:, column], color=color, linewidth=2.7)
 
-    floor = min(float(np.nanmin(panel_curves["lower"])),
-                float(np.nanmin(panel_curves["latent"])))
+    floor = float(np.nanmin(panel_curves["lower"]))
+    if latent:
+        floor = min(floor, float(np.nanmin(panel_curves["latent"])))
     last_time = int(times[-1])
     for time, ladder, note in ladders:
         if time > last_time:
@@ -185,7 +193,7 @@ def draw(axis, panel_curves, ladders=(), *, colors=None, band_alpha=0.12) -> flo
 
 
 def finish_axis(axis, last_time: int, *, xlabel="Fixed background mutations",
-                ylabel=None, title=None, limits=(0.0, 1.0)) -> None:
+                ylabel=None, title=None, limits=(0.0, 1.0), tick_spacing=None) -> None:
     """Frame, ticks and the grid every panel carries, applied after ``draw``.
 
     A light rule at every major tick of both axes, so a plateau height and the step it is
@@ -193,6 +201,9 @@ def finish_axis(axis, last_time: int, *, xlabel="Fixed background mutations",
     behind everything: ``set_axisbelow`` drops the whole axis layer below the artists, which
     is what the filled bands need, and the per-line zorder puts it behind anything given a
     zorder of its own below that.
+
+    ``tick_spacing`` fixes the step-axis tick interval; by default it is 5 up to 25 steps
+    and 10 beyond.
     """
     if title:
         axis.set_title(title, pad=10)
@@ -202,7 +213,7 @@ def finish_axis(axis, last_time: int, *, xlabel="Fixed background mutations",
         axis.set_ylabel(ylabel)
     axis.set_xlim(0, last_time)
     axis.set_ylim(*limits)
-    spacing = 5 if last_time <= 25 else 10
+    spacing = tick_spacing or (5 if last_time <= 25 else 10)
     axis.xaxis.set_major_locator(FixedLocator(list(range(0, last_time + 1, spacing))))
     style_axis(axis)
     axis.set_axisbelow(True)
@@ -229,16 +240,25 @@ def cut_legend(axis, fractions, colors=None, labels=None, **placement):
         loc="lower left", frameon=False, handlelength=2.0, labelspacing=0.35, **placement)
 
 
-def style_legend(axis, **placement):
-    """Style key: latent against noisy against measured.  Identical in every panel."""
-    return axis.legend(
-        [Line2D([], [], color="#555555", linewidth=2.7),
-         Line2D([], [], color="#555555", linewidth=2.5, linestyle=(0, (4.0, 2.4))),
-         Line2D([], [], marker="*", linestyle="none",
-                markersize=np.sqrt(MEASURED_MARKER_AREA),
-                markerfacecolor="#777777", markeredgecolor="white")],
-        ["Latent", "Noisy", "Measured"],
-        loc="lower left", frameon=False, handlelength=2.4, labelspacing=0.35, **placement)
+def style_legend(axis, latent=True, **placement):
+    """Style key: latent against noisy against measured.  Identical in every panel.
+
+    ``latent=False`` matches ``draw(..., latent=False)``: one solid simulated curve.
+    """
+    star = Line2D([], [], marker="*", linestyle="none",
+                  markersize=np.sqrt(MEASURED_MARKER_AREA),
+                  markerfacecolor="#777777", markeredgecolor="white")
+    if latent:
+        handles = [Line2D([], [], color="#555555", linewidth=2.7),
+                   Line2D([], [], color="#555555", linewidth=2.5,
+                          linestyle=(0, (4.0, 2.4))),
+                   star]
+        labels = ["Latent", "Noisy", "Measured"]
+    else:
+        handles = [Line2D([], [], color="#555555", linewidth=2.7), star]
+        labels = ["Simulations", "Measured"]
+    return axis.legend(handles, labels, loc="lower left", frameon=False,
+                       handlelength=2.4, labelspacing=0.35, **placement)
 
 
 def place_beside(axis, anchor_legend, fractions, colors=None, gap=0.045, labels=None):

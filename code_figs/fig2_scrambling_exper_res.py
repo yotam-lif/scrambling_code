@@ -392,8 +392,8 @@ def create_fate_bars(ax, dfe_anc, dfe_evo, labels):
         source_name = "anc." if src_label == early else "evo."
         target_name = "evo." if dst_label == late else "anc."
         ax.text(0, y + height / 2 + 0.08,
-                f"Insertions beneficial in {source_name} background\n"
-                f"when measured in {target_name} background",
+                f"Insertion effects measured in {target_name} background, \n"
+                f"conditioned on being beneficial in {source_name} background",
                 ha="left", va="bottom", fontsize=12, fontstyle="italic",
                 color="black", linespacing=1.15)
 
