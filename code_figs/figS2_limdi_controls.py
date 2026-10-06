@@ -1,6 +1,6 @@
-r"""Figure S2: isogenic Limdi controls -- four replicates of fig1 D.
+r"""Figure S2: isogenic Limdi controls -- four replicates of fig2 D.
 
-Fig1 D shows one paired-effect scatter of a Limdi library measured twice, green- against
+Fig2 D shows one paired-effect scatter of a Limdi library measured twice, green- against
 red-reference, in a single background with zero evolution between the two numbers.  Whatever
 decorrelation it shows is therefore assay noise, not epistasis, and it is what calibrates the
 evolved panels beside it.  This figure repeats that control in four independent backgrounds --
@@ -9,10 +9,11 @@ off a single library.
 
     A  REL606      B  ARA+2      C  ARA-3      D  ARA-6
 
-Panels are drawn by the same code as fig1 row 2 (``cmn/cmn_scatter.py``): the raw cloud split
-into the near-neutral bulk and the excluded large-effect points, the identity line, Pearson r
-over every pair and again after dropping the largest 10% of |first measurement|, and a hexbin
-inset on the dense core.  The exclusion is defined only from the x measurement and never from
+Panels are drawn by the same code as fig2 row 2 (``cmn/cmn_scatter.py``): a hexagonal map of
+the fraction of mutants per bin on a per-panel log scale, the identity line, an outlined
+near-neutral bulk, and Pearson r over every pair (r_All) and again after dropping the largest
+p* of |first measurement| (r_Bulk) -- the pooled Limdi half-max edge from Table S5, the same cut
+as fig2 D-E, so each control is cut at the same fraction as the transitions it calibrates.  The exclusion is defined only from the x measurement and never from
 y, so the retained subset is not conditioned on the outcome whose correlation is reported, and
 ranking on |s| keeps it symmetric about zero.
 
@@ -21,8 +22,10 @@ see the block comment in ``cmn/cmn_exper.py`` for why the labelled CSV must not 
 two channels of one library cover exactly the same genes -- the missing-value sentinel marks a
 gene absent from both at once, never from just one -- so no intersection is needed here.
 
-Nothing is clipped: each panel is on the envelope of its own data, with x and y sharing that
-envelope so the identity line is the panel diagonal.
+As in fig2, every panel's axes start at ``SCATTER_FLOOR`` (-0.6) and run up to the top of its
+own data envelope, with x and y sharing those limits so the identity line is the panel
+diagonal.  Points below the floor are hidden only; they still count toward the densities and
+the Pearson r.
 
 Run from anywhere:  python code_figs/figS2_limdi_controls.py
 Output:             figs_paper/figS2_limdi_controls.pdf
@@ -38,18 +41,21 @@ _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 from cmn import cmn_exper, cmn_scatter  # noqa: E402
-from cmn.cmn_scatter import envelope_limits  # noqa: E402
+from cmn.cmn_scatter import (  # noqa: E402
+    SCATTER_FLOOR, envelope_limits, limdi_half_max_cut,
+)
 
 cmn_scatter.apply_style()
 
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 
-# (library, panel title).  REL606 is the Ara- founder; the other three are 50K clones.
+# (library, panel title), titled like fig2 D.  REL606 is the Ara- founder; the other three
+# are 50K clones.
 CONTROLS = (
-    ("REL606", "REL606 (LB)"),
-    ("Ara+2",  "ARA+2 (LB), 50K"),
-    ("Ara-3",  "ARA-3 (LB), 50K"),
-    ("Ara-6",  "ARA-6 (LB), 50K"),
+    ("REL606", "Isogenic control (REL606, LB)"),
+    ("Ara+2",  "Isogenic control (ARA+2 50K, LB)"),
+    ("Ara-3",  "Isogenic control (ARA-3 50K, LB)"),
+    ("Ara-6",  "Isogenic control (ARA-6 50K, LB)"),
 )
 
 
@@ -70,12 +76,13 @@ def main():
             "name": f"{pop} green vs red", "x": x, "y": y, "title": title,
             "xlabel": r"Fitness effect $(s)$, measurement 1",
             "ylabel": r"Fitness effect $(s)$, measurement 2",
-            "limits": envelope_limits(x, y),
+            "limits": (SCATTER_FLOOR, envelope_limits(x, y)[1]),
         })
 
     fig, axes = plt.subplots(2, 2, figsize=(13.5, 13.5))
     fig.subplots_adjust(wspace=0.32, hspace=0.34)
-    ladders = cmn_scatter.draw_panel_grid(axes, panels)
+    ladders = cmn_scatter.draw_panel_grid(axes, panels,
+                                          exclusions=(0.0, limdi_half_max_cut()))
 
     os.makedirs(OUT_DIR, exist_ok=True)
     out_path = os.path.join(OUT_DIR, "figS2_limdi_controls.pdf")

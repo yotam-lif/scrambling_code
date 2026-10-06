@@ -21,36 +21,43 @@ or lucky.  Nothing is drawn twice: the three Figure 4 transitions are left out h
 Every ROW is one FGM fit, which is why the DM25 interval gets a row to itself rather than a
 fifth cell in an LB row.  All four clones in an LB row descend from the same ancestor, so they
 are simulated on the same landscape and differ only in their observation layer -- the matched
-gene set and the published per-gene errors of that particular clone.  Where the four latent
-curves in a row agree, the spread between the four DASHED curves is measurement noise and
-nothing else.
+gene set and the published per-gene errors of that particular clone, so the spread between
+the four curves in a row is measurement noise and nothing else.
 
-LEGENDS.  As in Figure 4, and for the same reason: the keys live inside a panel rather than in
-a cell of their own.  The first panel of each row carries both -- the style key (latent against
-noisy against measured, identical everywhere) and, set down beside it once the figure has been
-laid out, that row's colour key.  The colour key cannot be shared across rows, since the LB
-rows cut the largest 10% of |s| and the DM25 row cuts 2%.
+TITLES.  Figure 4's: the registry label, ``ARA-3``, ``ARA+2 2K->15K``, minus the medium tag the
+block header already carries.
 
-WHAT EACH PANEL DRAWS.  Identical to Figure 4's bottom row, through the same
-``cmn_walkpanel.draw``: solid is the latent correlation, dashed the same walks re-measured
-with rank-matched published errors, the band their 16-84% interval, and the stars are measured.
+LEGEND.  One boxed key for the whole sheet, in the empty cells of the DM25 row: simulations /
+measured, then r_All / r_Bulk as fig2 and Figure 4 name the subsets.  Figure 4 keeps its keys
+inside a panel, but at four panels to a row there is no corner of a panel the curves leave
+free.  One key serves every row because the subsets are named, not
+numbered: r_Bulk is the p* cut in LB and the 2% cut in DM25, in the same colour either way,
+and the caption gives both fractions.
+
+WHAT EACH PANEL DRAWS.  Figure 4's bottom row, through the same ``cmn_walkpanel.draw``: the
+solid curve is the simulated walks re-measured with rank-matched published errors, the band
+their 16-84% interval, and the stars are measured.  As in Figure 4, the latent (noise-free)
+correlation is not drawn; it is still in the caches.
 
 WHERE THE STARS SIT.  The t = 0 star is the ISOGENIC control -- one library against its own
-two channels, nothing fixed in between -- read out of TableS1 rather than recomputed, so this
-figure and that table cannot drift.  It is the ceiling the panel's curves start from.  The
+two channels, nothing fixed in between -- recomputed on the panel's own |s|-ranked ladder, as
+Figure 4 does; it is TableS1's ``<ancestor> green -> red`` row, and agrees with that table's
+r_89 column.  It is the ceiling the panel's curves start from.  The
 Couce release publishes no replicate of a timepoint, so the DM25 panel has no t = 0 star; see
 the FIT-VARIANT ROWS block in TableS2 for why its fitted1/fitted2 pair is not one.
 
 The right-hand star is placed differently in the two blocks, and the difference is the point.
 An LTEE clone at 50K carries between 70 and 2600 mutations, almost all of them hitchhikers no
-SSWM walk would fix, so the LB rows put their measured star at the right-hand EDGE, labelled
-with the real count: it is a plateau reference, not a claim about how many mutations fixed.
+SSWM walk would fix, so the LB rows put their measured star at the right-hand EDGE (t = 20, as
+in Figure 4), labelled with the real count: it is a plateau reference, not a claim about how
+many mutations fixed.
 The 2K -> 15K interval is short enough to sit inside the walk, so its star goes at the
 substitution count itself.
 
-SUBSETS.  Two per panel, following cmn_scatter: the whole library, and the library minus its
-largest-|s| ancestral fraction -- 10% in LB, where effects run out to |s| = 0.65, and 2% in
-DM25, where a 10% cut would reach inside the bulk.
+SUBSETS.  Two per panel, as in Figure 4: the whole library (r_All), and the library minus its
+largest-|s| ancestral fraction (r_Bulk) -- in LB the pooled Limdi half-max edge p* from Table S5
+(also fig2 D-E and figs S1-S2); in DM25 2%, since the Couce effects are compact enough that a
+10% cut would reach inside the bulk.
 
 Reads the caches written by ``code_figs/sim_walk_caches.py``; it does not re-run them.
 
@@ -58,7 +65,6 @@ Run from anywhere:  python code_figs/figS8_lineage_autocorr.py
 Output:             figs_paper/figS8_lineage_autocorr.pdf
 """
 
-import csv
 import os
 import sys
 
@@ -66,30 +72,31 @@ import cmasher  # noqa: F401  (registers the cmr.* colormaps with matplotlib)
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.lines import Line2D
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from cmn import cmn_walkpanel, cmn_walksim  # noqa: E402
+from cmn import cmn_exper, cmn_walkpanel, cmn_walksim  # noqa: E402
+from cmn.cmn_scatter import R_LABELS, limdi_half_max_cut  # noqa: E402
 
+# Figure 4's typography.
 plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.size'] = 15
-mpl.rcParams['axes.labelsize'] = 15
-mpl.rcParams['axes.titlesize'] = 15
-mpl.rcParams['xtick.labelsize'] = 14
-mpl.rcParams['ytick.labelsize'] = 14
+plt.rcParams['font.size'] = 16
+mpl.rcParams['axes.labelsize'] = 16
+mpl.rcParams['axes.titlesize'] = 16
+mpl.rcParams['xtick.labelsize'] = 16
+mpl.rcParams['ytick.labelsize'] = 16
+mpl.rcParams['legend.fontsize'] = 16
 
-LIMDI_TABLE = os.path.join(_REPO_ROOT, "data", "exper", "TableS1_limdi_autocorr.csv")
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 
-# Per-medium display rules.  The cut fraction is cmn_scatter's, so every panel here matches
-# its own scatter panel in figs S1-S4.  ``steps`` stops the LB panels where the walks are
-# still numerous enough for a median to mean something -- they peak after about 19 steps and
-# write NaN afterwards -- while the DM25 walks are held at their peak and all contribute.
+# Per-medium display rules, Figure 4's: the pooled p* in LB and 2% in DM25.  ``steps`` is
+# Figure 4's 20 for LB -- the walks peak after a median of about 18 steps and write NaN
+# afterwards, so the last few steps already run over fewer than all 500, which the console
+# reports -- while the DM25 walks are held at their peak and all contribute.
 DISPLAY = {
-    "LB":   {"fractions": (0.00, 0.10), "steps": 15},
+    "LB":   {"fractions": (0.00, limdi_half_max_cut()), "steps": 20},
     # 25 rather than Figure 4's 30: the only DM25 interval left here is 2K -> 15K, whose
     # substitution count is 22, and a frame wider than the marker it carries is empty space.
     "DM25": {"fractions": (0.00, 0.02), "steps": 25},
@@ -121,29 +128,27 @@ DM25_ROW = 2
 # gap below the LB block comes out a little wider, by exactly what that x label takes.
 ROW_GAP = 0.62
 OUTER_GAP = 0.44
+# The sheet's one key has a row's worth of empty cells to itself, so it is set larger than the
+# panel text.
+KEY_FONTSIZE = 22
 
 
 def control_ladder(transition, fractions):
-    """The isogenic t = 0 ceiling for one ancestor, read out of TableS1.
+    """The isogenic t = 0 ceiling for one ancestor: its green -> red channel pair.
 
-    The table already applies exactly the ranked-|s| rule the curves are simulated under, on
-    the green/red channel pairing; recomputing it here would duplicate that pairing logic for
-    no gain and let the figure drift away from the table.
+    Recomputed on the same |s|-ranked ladder as every other marker, as Figure 4 does.  It is
+    TableS1's ``<ancestor> green -> red`` row and agrees with that table's columns.
     """
-    wanted = f"{transition.ancestor} green -> red"
-    with open(LIMDI_TABLE, encoding="utf-8", newline="") as handle:
-        rows = [row for row in csv.DictReader(handle) if row["transition"] == wanted]
-    if len(rows) != 1:
-        raise SystemExit(f"{os.path.basename(LIMDI_TABLE)} holds {len(rows)} rows for "
-                         f"{wanted!r}; expected exactly one")
+    green, red = cmn_exper.limdi_channel_series(transition.ancestor)
+    green, red = green.to_numpy(float), red.to_numpy(float)
+    finite = np.isfinite(green) & np.isfinite(red)
+    green, red = green[finite], red[finite]
+    order = np.argsort(np.abs(green), kind="stable")
     ladder = {}
     for excluded in fractions:
-        key = cmn_walkpanel.cut_key(excluded)
-        column = f"r_{key[1:]}"
-        if not rows[0].get(column):
-            raise SystemExit(f"{os.path.basename(LIMDI_TABLE)} row {wanted!r} has no "
-                             f"{column} column")
-        ladder[key] = float(rows[0][column])
+        kept = order[: green.size - int(np.floor(excluded * green.size))]
+        ladder[cmn_walkpanel.cut_key(excluded)] = float(
+            np.corrcoef(green[kept], red[kept])[0, 1])
     return ladder
 
 
@@ -174,6 +179,21 @@ def panel_title(transition):
         raise SystemExit(f"{transition.key}: label {transition.label!r} does not end in "
                          f"{suffix!r}, so the medium tag cannot be stripped")
     return transition.label[: -len(suffix)]
+
+
+def legend_entries(axis, fractions):
+    """The style key's and the colour key's handles and labels, for one figure-level key.
+
+    Built by ``cmn_walkpanel``'s own legend functions and then removed again, so the sheet's key
+    cannot drift from the one Figure 4 draws.
+    """
+    handles, labels = [], []
+    for probe in (cmn_walkpanel.style_legend(axis, latent=False),
+                  cmn_walkpanel.cut_legend(axis, fractions, labels=R_LABELS)):
+        handles += probe.legend_handles
+        labels += [text.get_text() for text in probe.get_texts()]
+        probe.remove()
+    return handles, labels
 
 
 def panel_grid():
@@ -218,7 +238,7 @@ def build(path):
     for cell in sorted(grid):
         axes[cell] = shared = figure.add_subplot(cells[cell], sharey=shared)
 
-    floor, side_by_side = 1.0, []
+    floor = 1.0
     for (row, column), transition in sorted(grid.items()):
         axis = axes[(row, column)]
         rules = DISPLAY[transition.medium]
@@ -228,7 +248,7 @@ def build(path):
             cmn_walksim.find_cache(transition), rules["steps"], fractions)
         last_time = int(curves["times"][-1])
         ladders = markers_for(transition, profile, fractions, last_time)
-        floor = min(floor, cmn_walkpanel.draw(axis, curves, ladders))
+        floor = min(floor, cmn_walkpanel.draw(axis, curves, ladders, latent=False))
         # Only the lower row of the LB block names the x axis; the top row keeps its tick
         # labels but would otherwise repeat the name straight into the block header below it.
         cmn_walkpanel.finish_axis(
@@ -236,9 +256,9 @@ def build(path):
             xlabel="" if row == 0 else "Fixed background mutations",
             ylabel="Pearson autocorrelation" if column == 0 else None,
             limits=Y_LIMITS)
-        # The substitution count belongs in the corner, not on the star: at t = 15 the star is
+        # The substitution count belongs in the corner, not on the star: at t = 20 the star is
         # a plateau reference, and writing the count beside it would read as a claim that this
-        # many mutations fixed in fifteen steps.
+        # many mutations fixed in twenty steps.
         # Under the title rather than in the lower corner: the lower left of each row's first
         # panel is where the keys go, and the r100 curves plateau below 0.9, so the top strip
         # is the one place on every LB panel that nothing else is using.
@@ -249,15 +269,6 @@ def build(path):
         # finish_axis restores the shared axis's tick labels; switch them off again.
         axis.tick_params(axis="y", labelleft=(column == 0))
         axis.tick_params(axis="x", labelbottom=True)
-        # Figure 4's arrangement: the row's first panel carries the style key, with that row's
-        # colour key beside it.  Re-adding the style key as an artist keeps the second
-        # ``legend`` call on the same axes from replacing it; the colour key cannot be placed
-        # until the figure has been laid out once -- see ``cmn_walkpanel.place_beside``.
-        if column == 0:
-            style = cmn_walkpanel.style_legend(axis)
-            axis.add_artist(style)
-            side_by_side.append((axis, style, fractions))
-
         measured = ladders[-1][1]
         simulated = curves["observed"][ladders[-1][0]]
         print(f"{transition.key:22s} {transition.medium:5s} "
@@ -276,9 +287,15 @@ def build(path):
         axis.text(-0.28, 1.20, text, transform=axis.transAxes,
                   ha="left", va="bottom", fontsize=18, fontweight="heavy")
 
-    figure.canvas.draw()
-    for axis, style, fractions in side_by_side:
-        cmn_walkpanel.place_beside(axis, style, fractions)
+    # One boxed key for the sheet, centred in the empty cells of the DM25 row.
+    empty = [cells[(DM25_ROW, column)].get_position(figure) for column in range(1, COLUMNS)]
+    centre = ((empty[0].x0 + empty[-1].x1) / 2, (empty[0].y0 + empty[0].y1) / 2)
+    key = figure.legend(*legend_entries(axes[(0, 0)], DISPLAY["LB"]["fractions"]),
+                        loc="center", bbox_to_anchor=centre, ncol=2, frameon=True,
+                        fontsize=KEY_FONTSIZE, markerscale=1.3, handlelength=3.0,
+                        columnspacing=3.0, labelspacing=0.8, borderpad=1.1,
+                        fancybox=False)
+    key.get_frame().set(edgecolor="#555555", linewidth=1.0)
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
     figure.savefig(path, format="pdf", bbox_inches="tight")

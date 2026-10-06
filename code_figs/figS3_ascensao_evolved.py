@@ -1,4 +1,4 @@
-r"""Figure S3: ancestor-to-evolved Ascensao scatters -- fig1 E in a second dataset.
+r"""Figure S3: ancestor-to-evolved Ascensao scatters -- fig2 E in a second dataset.
 
 Each panel pairs a knockout's effect in the REL606 ancestor against its effect in one of the
 two diversified Ara-2 ecotypes, both measured in the same condition, so the only difference
@@ -7,24 +7,24 @@ between the two axes is 6.5K generations of evolution:
     A  L (SLR)     B  S (SLR)
     C  S (MNO)     D  L (GHI)
 
-``S`` and ``L`` are the two ecotypes that diversified from the Ara-2 ancestor REL606.  The title
-names the evolved side only, since the ancestor is REL606 in every panel and the axis labels
-already say which side is which; fig S4 uses the same ``genotype (experiment)`` format for its
-controls, where both axes are the one strain.  Each ecotype appears twice, so the loss of
+``S`` and ``L`` are the two ecotypes that diversified from the Ara-2 ancestor REL606 (``R``).
+Titles read ``ARA-2 (<experiment>), R -> <ecotype>``, in fig2's ``<population> (<condition>),
+<from> -> <to>`` format; fig S4 titles its controls like fig2 D, ``Isogenic control (<genotype>,
+<experiment>)``.  Each ecotype appears twice, so the loss of
 correlation is not a property of one lineage or one medium.  A and B are the two of them in the
 SAME experiment, off the same ancestor measurement, which is why they lead and why they come out
 on identical limits: everything separating those two panels is which ecotype the genes were
 re-measured in.  Two of the four have their own control drawn in fig S4 -- S in MNO and L in GHI
--- so for those the comparison against zero evolution is panel-for-panel rather than by analogy.  Read against fig S4, whose panels are single strains
-fit twice in the same experiment with no evolution in between and which uses the same title
-format, the drop from r ~ 0.90-0.95 there to what these panels show is epistasis rather than
+-- so for those the comparison against zero evolution is panel-for-panel rather than by analogy.
+Read against fig S4, whose panels are single strains fit twice in the same experiment with no
+evolution in between, the drop from r ~ 0.90-0.95 there to what these panels show is epistasis rather than
 assay noise.  The experiment code in each title is the whole condition label -- the five
 monoculture regimes, GHI on acetate and MNO on DM27.8 at 1:10 among them, are documented in
 ``cmn/cmn_exper.py`` under ``ASENCAO_MONO``, and repeating the medium in the title would only
 crowd it.
 
-Panels are drawn by the same code as fig1 row 2 (``cmn/cmn_scatter.py``).  The partition drops the largest 2% of
-|ancestral effect| rather than fig1 E's 10%: the Ascensao DFEs are an order of magnitude more
+Panels are drawn by the same code as fig2 row 2 (``cmn/cmn_scatter.py``).  The partition drops the largest 2% of
+|ancestral effect| rather than fig2 E's pooled p*: the Ascensao DFEs are an order of magnitude more
 compact than Limdi's -- their 5th percentile already sits inside the bulk -- so anything deeper
 would reach past the large-effect points.  The exclusion is defined only from the x (ancestral) measurement and never from y.
 
@@ -66,8 +66,10 @@ ECOTYPE_LABEL = {"REL606": "R"}
 # I/H = GHI.  A and B are the two ecotypes in the SAME experiment, which is why they lead.
 TRANSITIONS = (("R", "L"), ("R", "S"), ("O", "M"), ("I", "H"))
 
-# The Ascensao core is an order of magnitude tighter than Limdi's, so the inset zooms harder.
-ASENCAO_INSET_LIMITS = (-0.03, 0.03)
+# Bulk-label leaders, (rise, run) in points; see ``cmn_scatter.annotate_bulk``.  A-C have their
+# bulk topping out just above y = 0, where the shared downward leader runs the label into the
+# Pearson block, so theirs go up.  D's rectangle is tall enough that the default clears it.
+BULK_LEADERS = {("R", "L"): (22, 25), ("R", "S"): (22, 25), ("O", "M"): (22, 25)}
 
 
 def transition_pair(ancestor_letter, evolved_letter):
@@ -93,17 +95,18 @@ def main():
         x, y = transition_pair(ancestor_letter, evolved_letter)
         panels.append({
             "name": f"{ancestor} -> {evolved} ({folder})", "x": x, "y": y,
-            "title": f"{evolved} ({folder})",
+            "title": (f"ARA-2 ({folder}), {ancestor}", evolved),
             "xlabel": r"Ancestral effect $(s)$",
             "ylabel": r"Evolved effect $(s)$",
             "limits": envelope_limits(x, y),
+            "leader": BULK_LEADERS.get((ancestor_letter, evolved_letter),
+                                       cmn_scatter.BULK_LEADER),
         })
 
     fig, axes = plt.subplots(2, 2, figsize=(13.5, 13.5))
     fig.subplots_adjust(wspace=0.32, hspace=0.34)
     ladders = cmn_scatter.draw_panel_grid(
-        axes, panels, exclusions=SHALLOW_MAGNITUDE_EXCLUSIONS,
-        inset_limits=ASENCAO_INSET_LIMITS)
+        axes, panels, exclusions=SHALLOW_MAGNITUDE_EXCLUSIONS)
 
     os.makedirs(OUT_DIR, exist_ok=True)
     out_path = os.path.join(OUT_DIR, "figS3_ascensao_evolved.pdf")

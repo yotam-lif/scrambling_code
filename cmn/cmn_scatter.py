@@ -5,16 +5,19 @@ measurements of the same knockouts on two backgrounds (or on the same background
 a control).  Every instance shows
 
     * a full-panel hexagonal density map, with density expressed as the fraction of the
-      panel's mutants in each occupied hexagon,
-    * a cyan rectangle around the near-neutral bulk and its percentage below the rectangle,
+      panel's mutants in each occupied hexagon (:func:`draw_density_hexagons`),
+    * a blue rectangle around the near-neutral bulk, its percentage hung off the upper-left
+      corner on a leader (:func:`annotate_bulk`),
     * a dashed identity line and dotted zero axes,
-    * Pearson r over every pair and again over the pairs whose x effect is smallest in
-      ABSOLUTE value -- one partition per panel, dropping the largest 10% or 2% of |x|
-      depending on how far that dataset's effects run, and
+    * Pearson r over every pair (r_All) and again over the pairs whose x effect is smallest in
+      ABSOLUTE value (r_Bulk), hanging just below the y = 0 guide -- one partition per panel,
+      dropping the pooled Limdi half-max edge p* (:func:`limdi_half_max_cut`) in the Limdi
+      panels and a few percent in the more compact Couce and Ascensao ones, and
     * a panel-specific logarithmic density key, so singleton and peak bins use the same
-      endpoint colours in every panel.
+      endpoint colours in every panel (:func:`add_density_key`).
 
-so it lives here rather than being copied per figure.
+so it lives here rather than being copied per figure.  :func:`finish_density_panel` applies
+everything after :func:`scatter_panel`, and :func:`draw_panel_grid` does both for a grid.
 
 Excluding on |x| rather than on x alone is what makes the second r a statement about the
 near-neutral bulk.  Pearson r is dominated by whatever sits farthest from the origin, and in
@@ -25,13 +28,17 @@ the deleterious half of that leverage.
 
 The exclusion is defined only from the x (ancestor / first-measurement) side and never from
 y, so the retained subset is not conditioned on the outcome whose correlation is being
-reported.  Nothing is clipped: every panel's limits are the envelope of its own data, and x
-and y share them so the identity line is the diagonal -- see :func:`envelope_limits`.
+reported.  x and y share one set of limits so the identity line is the diagonal -- see
+:func:`envelope_limits`; the Limdi and Couce panels floor them at ``SCATTER_FLOOR``, hiding the
+few points below it without dropping them from any statistic.
 
 Nothing here is rasterized.  Matplotlib renders rasterized artists at ``figure.dpi`` (100),
 which leaves these clouds visibly soft next to the vector text and axes; drawing all ~16k
 markers as vector costs about 0.15 MB per figure.
 """
+
+import csv
+import os
 
 import cmasher  # noqa: F401  (registers the cmr.* colormaps with matplotlib)
 import matplotlib as mpl
@@ -40,6 +47,8 @@ import numpy as np
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 from matplotlib.patches import Rectangle
 from scipy.stats import pearsonr
+
+from cmn import cmn_plots
 
 # ───────────────────────────────────── Style ─────────────────────────────────────
 IDENTITY_COLOR = (0.18, 0.18, 0.18)
@@ -76,7 +85,7 @@ DENSITY_CMAP = mpl.colors.LinearSegmentedColormap.from_list(
     "moderate_density",
     (_tint(RETAINED_COLOR, INSET_LIGHT_TINT), RETAINED_COLOR))
 
-HEX_GRIDSIZE = 75
+HEX_GRIDSIZE = 75          # fine enough to retain isolated occupied bins
 HEX_DENSITY_CMAP = mpl.colors.LinearSegmentedColormap.from_list(
     "purple_hex_density", ("#C5B6DF", EXCLUDED_COLOR, "#21103F"))
 
@@ -106,6 +115,23 @@ MAGNITUDE_EXCLUSIONS = (0.00, 0.10)
 SHALLOW_MAGNITUDE_EXCLUSIONS = (0.00, 0.02)
 
 INSET_LIMITS = (-0.05, 0.05)
+
+# Limdi panels cut at the pooled half-max edge p* of -dr/dp over the ten retained lineages,
+# read from Table S5 by :func:`limdi_half_max_cut`, rather than at a round 10%.
+HALF_MAX_TABLE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data",
+                              "exper", "TableS5_limdi_half_max.csv")
+R_LABELS = ("All", "Bulk")
+
+# Lower limit of both axes in every Limdi and Couce panel; points below it are not drawn but
+# still count toward the densities and the Pearson r.
+SCATTER_FLOOR = -0.6
+# Bulk-percentage leader, in points: a 45-degree segment off the rectangle's upper-left
+# corner, then a horizontal run to the label.  (rise, run); a negative rise heads down.
+BULK_LEADER = (-22, 18)
+# The Pearson block hangs just below the y = 0 guide, by this many points.
+PEARSON_BELOW_ZERO = 6
+# Where the density key sits, in axes fraction.
+DENSITY_KEY_RECT = (0.59, 0.08, 0.36, 0.03)
 
 PEARSON_FONTSIZE = 17
 
@@ -316,46 +342,80 @@ def share_density_norm(densities):
 
 
 def draw_density_hexagons(ax, x, y, gridsize=HEX_GRIDSIZE):
-    """Replace the raw point layers with full-panel mutant-density hexagons."""
+    """Replace the raw point layers with the fraction of the panel's mutants per hexagon.
+
+    Only points inside the axis limits are binned, but the fractions are of every finite
+    pair, so hiding the points below the floor does not inflate the rest.  Singleton bins are
+    kept.  The colour norm is left to :func:`add_density_key`, which sets it per panel.
+    """
     for collection in list(ax.collections):
         collection.remove()
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    finite = np.isfinite(x) & np.isfinite(y)
     lo, hi = ax.get_xlim()
-    hexagons = ax.hexbin(
-        x, y, gridsize=gridsize, extent=(lo, hi, lo, hi), mincnt=1,
-        cmap=HEX_DENSITY_CMAP, linewidths=0.15, edgecolors="face", zorder=3)
+    shown = finite & (x >= lo) & (y >= lo) & (x <= hi) & (y <= hi)
+    hexagons = ax.hexbin(x[shown], y[shown], gridsize=gridsize, extent=(lo, hi, lo, hi),
+                         mincnt=1, cmap=HEX_DENSITY_CMAP, linewidths=0.15,
+                         edgecolors="face", zorder=3)
     counts = hexagons.get_array()
-    hexagons.set_array(counts / counts.sum())
+    hexagons.set_array(counts / finite.sum())
+    return hexagons
+
+
+def annotate_bulk(ax, x, y, results, leader=BULK_LEADER, color=RETAINED_COLOR):
+    """Outline every retained point and label its percentage off the upper-left corner.
+
+    The label hangs from the corner on an angled-then-horizontal leader, the same shape as
+    the out-of-bar labels of the fate bars, running left and, per ``leader = (rise, run)`` in
+    points, down (rise < 0) or up (rise > 0).
+    """
+    x, y = np.asarray(x), np.asarray(y)
+    bulk = results[-1]
+    retained = np.argsort(np.abs(x), kind="stable")[:bulk["kept"]]
+    # Pad the data bounds slightly so the outline clears the occupied hexagons.
+    x_pad = 0.008 * np.ptp(ax.get_xlim())
+    y_pad = 0.008 * np.ptp(ax.get_ylim())
+    left, right = np.min(x[retained]) - x_pad, np.max(x[retained]) + x_pad
+    bottom, top = np.min(y[retained]) - y_pad, np.max(y[retained]) + y_pad
+    ax.add_patch(Rectangle((left, bottom), right - left, top - bottom,
+                           fill=False, edgecolor=color, linewidth=1.1, zorder=9))
+    percentage = 100 * bulk["kept"] / results[0]["kept"]
+    rise, run = leader
+    ax.annotate(f"{percentage:.1f}% of data", xy=(left, top),
+                xytext=(-run - abs(rise), rise),
+                textcoords="offset points", ha="right", va="center",
+                fontsize=14, color=color, zorder=9, annotation_clip=False,
+                bbox=dict(boxstyle="square,pad=0.15", facecolor="white",
+                          edgecolor="none", alpha=0.88),
+                arrowprops=dict(arrowstyle="-", color=color, linewidth=0.9,
+                                shrinkA=3, shrinkB=0, relpos=(1, 0.5),
+                                connectionstyle=f"angle,angleA=0,angleB={45 if rise < 0 else -45}",
+                                capstyle="round", joinstyle="round"))
+
+
+def hang_pearson_below_zero(ax, gap=PEARSON_BELOW_ZERO):
+    """Move the panel's Pearson block to hang ``gap`` points below the y = 0 guide."""
+    for artist in ax.artists:
+        if isinstance(artist, AnchoredOffsetbox):
+            # x in axes fraction, y in data, then nudged down in points.
+            below_zero = (mpl.transforms.blended_transform_factory(ax.transAxes, ax.transData)
+                          + mpl.transforms.ScaledTranslation(
+                              0, -gap / 72, ax.figure.dpi_scale_trans))
+            artist.loc = AnchoredOffsetbox.codes["upper left"]
+            artist.set_bbox_to_anchor((0.02, 0.0), transform=below_zero)
+
+
+def add_density_key(ax, hexagons, rect=DENSITY_KEY_RECT):
+    """Put ``hexagons`` on its own log norm and add a horizontal density key inside ``ax``.
+
+    The norm runs from the panel's singleton bin to its most populated one, so those two share
+    endpoint colours in every panel whatever its size.
+    """
     density_min = float(hexagons.get_array().min())
     density_max = float(hexagons.get_array().max())
     if np.isclose(density_min, density_max):
         density_max = density_min * 10.0
     hexagons.set_norm(mpl.colors.LogNorm(vmin=density_min, vmax=density_max))
-    return hexagons
-
-
-def annotate_bulk(ax, x, y, results):
-    """Outline all retained bulk points and label their share below the rectangle."""
-    x, y = np.asarray(x), np.asarray(y)
-    bulk = results[-1]
-    retained = np.argsort(np.abs(x), kind="stable")[:bulk["kept"]]
-    x_pad = 0.008 * np.ptp(ax.get_xlim())
-    y_pad = 0.008 * np.ptp(ax.get_ylim())
-    left, right = np.min(x[retained]) - x_pad, np.max(x[retained]) + x_pad
-    bottom, top = np.min(y[retained]) - y_pad, np.max(y[retained]) + y_pad
-    ax.add_patch(Rectangle(
-        (left, bottom), right - left, top - bottom, fill=False,
-        edgecolor=RETAINED_COLOR, linewidth=1.1, zorder=9))
-    percentage = 100 * bulk["kept"] / results[0]["kept"]
-    ax.annotate(
-        f"{percentage:.1f}% of data", xy=((left + right) / 2, bottom),
-        xytext=(0, -5), textcoords="offset points", ha="center", va="top",
-        fontsize=12, color=RETAINED_COLOR, zorder=9)
-
-
-def add_density_key(ax, hexagons, rect=(0.61, 0.08, 0.33, 0.025)):
-    """Add a compact horizontal logarithmic density key inside ``ax``."""
-    density_min = float(hexagons.get_array().min())
-    density_max = float(hexagons.get_array().max())
     first_order = int(np.ceil(np.log10(density_min)))
     ticks = [10.0 ** order for order in range(first_order, 1)
              if 10.0 ** order <= density_max]
@@ -364,9 +424,34 @@ def add_density_key(ax, hexagons, rect=(0.61, 0.08, 0.33, 0.025)):
         hexagons, cax=key_ax, orientation="horizontal", ticks=ticks,
         format=mpl.ticker.LogFormatterMathtext())
     key.ax.minorticks_off()
-    key.ax.tick_params(labelsize=9, length=2, pad=2)
-    key.ax.set_title("Mutant density", fontsize=11, pad=5)
+    key.ax.tick_params(labelsize=13, length=3, pad=2)
+    key.ax.set_title("Density", fontsize=15, pad=6)
     return key
+
+
+def finish_density_panel(ax, x, y, results, leader=BULK_LEADER, key_rect=DENSITY_KEY_RECT):
+    """Turn a :func:`scatter_panel` into the paper's density panel.
+
+    Hexagons in place of the raw points, the Pearson block below y = 0, the outlined bulk
+    with its leader label, and the panel's own density key.
+    """
+    hexagons = draw_density_hexagons(ax, x, y)
+    hang_pearson_below_zero(ax)
+    annotate_bulk(ax, x, y, results, leader=leader)
+    add_density_key(ax, hexagons, key_rect)
+    return hexagons
+
+
+def limdi_half_max_cut(lineage="pooled"):
+    """The half-max edge p* of a Table S5 row, as a fraction.
+
+    Run ``code_figs/TableS5_limdi_half_max.py`` first.
+    """
+    with open(HALF_MAX_TABLE, newline="") as fh:
+        for row in csv.DictReader(fh):
+            if row["lineage"] == lineage:
+                return float(row["p_star"]) / 100
+    raise KeyError(f"{lineage} not in {HALF_MAX_TABLE}")
 
 
 def style_scatter_axes(ax):
@@ -389,29 +474,31 @@ def panel_label(ax, label):
             fontweight='heavy', va='top', ha='left')
 
 
-def draw_panel_grid(axes, panels, exclusions=MAGNITUDE_EXCLUSIONS,
-                    inset_limits=INSET_LIMITS, marker_size=8.0):
+def draw_panel_grid(axes, panels, exclusions=MAGNITUDE_EXCLUSIONS, marker_size=8.0):
     """Fill a grid with paired-effect density panels labelled A/B/C/....
 
     ``panels`` is a sequence of dicts with ``name`` (for the printed correlation ladder),
-    ``x``, ``y``, ``title``, ``xlabel``, ``ylabel``, ``limits`` and an optional
-    ``overrides`` dict forwarded to :func:`scatter_panel`.  Returns ``[(name, results)]``
-    in panel order.
+    ``x``, ``y``, ``title``, ``xlabel``, ``ylabel``, ``limits``, an optional ``leader`` for
+    the bulk label (see :func:`annotate_bulk`) and an optional ``overrides`` dict forwarded to
+    :func:`scatter_panel`.  ``title`` is either a plain string or a ``(before, after)`` pair,
+    drawn as ``before -> after`` by :func:`cmn.cmn_plots.arrow_title`.  Returns
+    ``[(name, results)]`` in panel order.
     """
     ladders = []
     for ax, label, panel in zip(np.ravel(axes), "ABCDEFGH", panels):
-        kwargs = {"exclusions": exclusions, "inset_limits": inset_limits,
-                  "marker_size": marker_size, "r_labels": ("All", "Bulk"),
-                  "show_inset": False}
+        kwargs = {"exclusions": exclusions, "marker_size": marker_size,
+                  "r_labels": R_LABELS, "show_inset": False}
         kwargs.update(panel.get("overrides", {}))
-        correlations, density = scatter_panel(
-            ax, panel["x"], panel["y"], panel["title"], panel["xlabel"], panel["ylabel"],
-            panel["limits"], **kwargs)
+        title = panel["title"]
+        correlations, _ = scatter_panel(
+            ax, panel["x"], panel["y"], "" if isinstance(title, tuple) else title,
+            panel["xlabel"], panel["ylabel"], panel["limits"], **kwargs)
+        if isinstance(title, tuple):
+            cmn_plots.arrow_title(ax, *title)
         panel_label(ax, label)
         style_scatter_axes(ax)
-        density = draw_density_hexagons(ax, panel["x"], panel["y"])
-        annotate_bulk(ax, panel["x"], panel["y"], correlations)
-        add_density_key(ax, density, panel.get("density_key_rect",
-                                               (0.61, 0.08, 0.33, 0.025)))
+        finish_density_panel(ax, panel["x"], panel["y"], correlations,
+                             leader=panel.get("leader", BULK_LEADER),
+                             key_rect=panel.get("density_key_rect", DENSITY_KEY_RECT))
         ladders.append((panel["name"], correlations))
     return ladders

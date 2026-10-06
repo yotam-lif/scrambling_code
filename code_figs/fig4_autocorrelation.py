@@ -77,8 +77,8 @@ the argument that it is cosmetic are in ``cmn/cmn_walkpanel.py``, which draws th
 Only the noisy simulation is drawn, as a solid curve labelled "Simulations": rank-matched
 measurement noise is added, each simulated mutation being assigned the published error of the
 empirical gene at its own effect rank, drawn fresh at every step for the endpoint and once per
-replicate for the ancestor.  The latent (noise-free) correlation is still in the caches and is
-drawn in figS8, but not here.  The band is the 16-84% interval over walk x noise replicates.
+replicate for the ancestor.  The latent (noise-free) correlation is still in the caches but is
+not drawn, here or in figS8.  The band is the 16-84% interval over walk x noise replicates.
 Filled stars are the measured correlations.
 
 Where the markers sit

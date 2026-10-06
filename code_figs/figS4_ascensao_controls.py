@@ -1,6 +1,6 @@
-r"""Figure S4: within-experiment Ascensao controls -- fig1 D in a second dataset.
+r"""Figure S4: within-experiment Ascensao controls -- fig2 D in a second dataset.
 
-Fig1 D is an isogenic control built from the Limdi assay's two reference channels.  The
+Fig2 D is an isogenic control built from the Limdi assay's two reference channels.  The
 Ascensao release supports the same control by a different route: each strain in each
 experiment was fit twice, once per biological replicate, and replicate 1 against replicate 2
 is one genotype, one library and one condition with nothing between the two numbers but assay
@@ -18,8 +18,8 @@ in dilution factor and transfer interval, GHI on acetate and MNO on DM27.8 at 1:
 documented in ``cmn/cmn_exper.py`` under ``ASENCAO_MONO``, and repeating the medium in the title
 would only crowd it.
 
-Panels are drawn by the same code as fig1 row 2 (``cmn/cmn_scatter.py``).  The partition drops the largest 2% of
-|ancestral effect| rather than fig1 D's 10%: the Ascensao DFEs are an order of magnitude more
+Panels are drawn by the same code as fig2 row 2 (``cmn/cmn_scatter.py``).  The partition drops the largest 2% of
+|ancestral effect| rather than fig2 D's pooled p*: the Ascensao DFEs are an order of magnitude more
 compact than Limdi's -- their 5th percentile already sits inside the bulk -- so anything deeper
 would reach past the large-effect points.  The exclusion is defined only from the replicate-1 measurement and never from
 replicate 2.
@@ -55,8 +55,10 @@ ECOTYPE_LABEL = {"REL606": "R"}
 # Ascensao monoculture strain letters, in panel order: R in GHI and MNO, L in GHI, S in MNO.
 CONTROLS = ("I", "O", "H", "M")
 
-# The Ascensao core is an order of magnitude tighter than Limdi's, so the inset zooms harder.
-ASENCAO_INSET_LIMITS = (-0.03, 0.03)
+# Bulk-label leaders, (rise, run) in points; see ``cmn_scatter.annotate_bulk``.  R in MNO has
+# its bulk topping out just above y = 0, so the shared downward leader would set the label on
+# the Pearson block; it goes up instead.
+BULK_LEADERS = {"O": (12, 12)}
 
 
 def replicate_pair(letter):
@@ -83,17 +85,17 @@ def main():
         ecotype, folder = mono_label(letter)
         panels.append({
             "name": f"{ecotype} {folder} rep1 vs rep2", "x": x, "y": y,
-            "title": f"{ecotype} ({folder})",
+            "title": f"Isogenic control ({ecotype}, {folder})",
             "xlabel": r"Fitness effect $(s)$, replicate 1",
             "ylabel": r"Fitness effect $(s)$, replicate 2",
             "limits": envelope_limits(x, y),
+            "leader": BULK_LEADERS.get(letter, cmn_scatter.BULK_LEADER),
         })
 
     fig, axes = plt.subplots(2, 2, figsize=(13.5, 13.5))
     fig.subplots_adjust(wspace=0.32, hspace=0.34)
     ladders = cmn_scatter.draw_panel_grid(
-        axes, panels, exclusions=SHALLOW_MAGNITUDE_EXCLUSIONS,
-        inset_limits=ASENCAO_INSET_LIMITS)
+        axes, panels, exclusions=SHALLOW_MAGNITUDE_EXCLUSIONS)
 
     os.makedirs(OUT_DIR, exist_ok=True)
     out_path = os.path.join(OUT_DIR, "figS4_ascensao_controls.pdf")
