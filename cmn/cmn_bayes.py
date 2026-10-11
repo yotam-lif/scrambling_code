@@ -29,7 +29,7 @@ Data products written to data/sim/cache/ (read by the figures, never recomputed 
   floor_effects_cache.pkl    sorted deleterious effects per (model, param, N);
                              slow to build (p=3 is multi-GB) -- built once.
   floor_alpha_by_param.json  {model: {param: [med, lo, hi]}} floor exponent alpha
-                             -> fig4_peak_dfes.py inset
+                             (no current reader; its fig4_peak_dfes.py inset was removed)
   floor_theta_by_param.json  {model: {param: [med, lo, hi]}} pseudogap exponent theta
                              -> figS6_peak_dfe_bayes.py panel A
   fgm_radius_by_n.json       FGM endpoint radius r ~ m^{-gamma} per n

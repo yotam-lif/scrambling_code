@@ -60,10 +60,7 @@ the shared gene identity across the Limdi matrices; see the block comment in
 Nothing is cut from any statistic.  Row 1 shows the full measured range.  Row 2 runs from
 ``SCATTER_FLOOR`` up to the top of each panel's own data envelope, with x and y sharing those
 limits so the identity line is the panel diagonal; F borrows E's, so the two evolved panels
-read on one scale.  Points below the floor are hidden only.  The Limdi
-counterpart of row 1, which needs a nonlethal cut and window-clipped histograms because
-its deleterious tail is real where Couce's is not, lives in
-``code_tmp/fig1_limdi_clones.py``.
+read on one scale.  Points below the floor are hidden only.
 
 Run from anywhere:  python code_figs/fig2_scrambling_exper_res.py
 Output:             figs_paper/fig2_scrambling_exper_res.pdf

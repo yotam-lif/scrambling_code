@@ -239,7 +239,8 @@ fraction; r is not comparable across ranges.
     see the note on the removed Couce rows above.
 
 TAIL DECORRELATION.  The complementary question -- does the conserved tail *also* scramble? --
-has its own table, code_tmp/Table_tail_autocorr.py, because it must be conditioned differently:
+was a separate table (code_tmp/Table_tail_autocorr.py, since removed; it is in git history),
+because it must be conditioned differently:
 on the ANCESTOR tail only (genes with ancestral s < -0.3), with the evolved effect left free.
 Conditioning on both sides would discard the initially-essential knockouts that became
 dispensable after evolution, which are precisely the tail's strongest decorrelation.  Done that
@@ -756,7 +757,8 @@ def main(argv=None):
         print(f"  {pop:<10}{own[pop]['r_90']:>9.3f}{own[anc]['r_90']:>9.3f}"
               f"{row['r_90']:>9.3f}{ratio:>8.3f}   {row['excluded']}")
 
-    # TAIL DECORRELATION lives in its own table, code_tmp/Table_tail_autocorr.py.  It must
+    # TAIL DECORRELATION was a separate table (code_tmp/Table_tail_autocorr.py, now in git
+    # history only).  It must
     # condition on the ANCESTOR tail only (evolved side free), not on both sides: requiring the
     # gene to stay deleterious at 50K discards the initially-essential knockouts that became
     # dispensable, which are the tail's strongest decorrelation.

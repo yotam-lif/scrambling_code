@@ -51,8 +51,7 @@ Both fits use every retained effect -- no tail trimming -- so the two logliks ar
 maximised on the same sample and are directly comparable.
 
 Fits are cached in data/fig3_fgm_fits.json; pass --refit to recompute them.  The file keeps
-its name because TableS4_fgm_params.py, cmn/cmn_walksim.py and code_tmp/poster_fig5_couce_noise.py
-all read it by that path.  It still holds the unplotted REL607 (LB) and couce_2K fits;
+its name because TableS4_fgm_params.py and cmn/cmn_walksim.py both read it by that path.  It still holds the unplotted REL607 (LB) and couce_2K fits;
 the six REL607 lineages' walks start from the former and the 2K -> 15K walk from the latter.
 
 
@@ -205,9 +204,8 @@ PLOT_DX = 1.0e-4
 DFE_Y_LIMITS = (1.0e-2, 1.0e2)   # shared by both DFE panels
 MAX_INTEGER_EVALUATIONS = 10  # ceiling on the integer-n profile search
 
-# The fit cache keeps its old name: TableS4_fgm_params.py, cmn/cmn_walksim.py and
-# code_tmp/poster_fig5_couce_noise.py all read it by this path, and renaming it would silently
-# strand them on a stale copy.
+# The fit cache keeps its old name: TableS4_fgm_params.py and cmn/cmn_walksim.py both read it
+# by this path, and renaming it would silently strand them on a stale copy.
 FIT_JSON = os.path.join(_REPO_ROOT, "data", "fig3_fgm_fits.json")
 # Caches are located through the registry rather than by filename: the stems carry the
 # matched-gene and replicate counts, and no figure should have to track either.
