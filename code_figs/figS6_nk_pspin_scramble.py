@@ -13,10 +13,11 @@ connectivity-rescaled step, and overlays a reference line -t/tau_s.
   D  NK, t_0 = 75%,  x = t*K/N.
 
 The connectivity is K for NK and p-1 for the p-spin (the number of other spins coupled to a given
-site in one interaction). For the p-spin the reference line is the theory, tau_s = N/2(p-1)
-(t_0=0) resp. N/2p (t_0=75%), so a clean collapse onto -x confirms it. For the NK model the
-reference slope is fitted: a through-origin least-squares slope per K over the plotted window,
-averaged over K, giving tau_s = c N/K with c = 1/slope.
+site in one interaction). In every panel the reference slope is fitted: a through-origin
+least-squares slope a per series (K or p) over the plotted window, averaged over series, giving
+tau_s = c N/K (NK) resp. c N/2(p-1), c N/2p (p-spin) with c = 1/a. The expected values are
+c = 3/4 (t_0=0) and 1 (t_0=75%) for NK, and c = 1 for the p-spin. The coefficient c is written at
+the top right of each panel and along its line.
 
 Measure
 -------
@@ -145,7 +146,7 @@ NK_XORDER = {0.0: -1, 0.75: -1}
 # The tau_s coefficient written along each reference line: where it sits, as a fraction of the
 # x-window, and how far (points) above the line.
 LINE_LABEL_XFRAC = 0.3
-LINE_LABEL_OFFSET = 12
+LINE_LABEL_OFFSET = 16
 # The NK legend entries carry both K and N, so they are set tighter to stay clear of the curves.
 NK_LEGEND_KW = {"fontsize": 13, "handlelength": 1.2, "labelspacing": 0.25, "borderaxespad": 0.2}
 # Forced 10^n y-axis multiplier per panel, so every panel carries an explicit x10^-n on the
@@ -475,19 +476,28 @@ def _mean_slope(series, xmax):
     return float(np.mean(slopes)), slopes
 
 
+def _fit_and_log(name, keys, series, xmax):
+    """Series-averaged slope a (see _mean_slope), printed per series. log rho = -t/tau_s = -a x,
+    so tau_s = (1/a) times the panel's rescaling unit (N/K, N/2(p-1) or N/2p)."""
+    a, slopes = _mean_slope(series, xmax)
+    print(f"  {name}: per-series slopes "
+          + ", ".join(f"{key}: {s:.3f}" for key, s in zip(keys, slopes))
+          + f"  -> mean {a:.3f}, tau_s coefficient {1.0 / a:.3f}")
+    return a
+
+
 def _pspin_series(curves, frac):
-    """(series, xmax, xlabel, tau_expr) for the p-spin panel at anchor fraction ``frac``.
+    """(series, xmax, xlabel, tau_unit) for the p-spin panel at anchor fraction ``frac``.
 
     The collapse variable folds in the expected p-spin decorrelation rate, which differs by regime:
       * early (t_0=0):    x = 2(p-1) t / N   (unflipped-subset rate near the start)
       * late  (t_0=0.75): x = 2 p     t / N   (rate near the optimum)
-    so a clean collapse onto -x confirms the expected rate.
+    so a collapse onto a fitted -a x with a ~ 1 confirms the expected rate.
     """
     early = (frac == 0.0)
     factor = (lambda pp: 2 * (pp - 1)) if early else (lambda pp: 2 * pp)
     xlabel = r"$2(p-1)\,t/N$" if early else r"$2p\,t/N$"
-    # Fixed theory reference line (slope -1 in these rescaled units); no fitting for p-spin.
-    tau_expr = r"$\tau_s = N/2(p-1)$" if early else r"$\tau_s = N/2p$"
+    tau_unit = r"N/2(p-1)" if early else r"N/2p"
 
     series = []
     for p in sorted(PSPIN):
@@ -495,7 +505,7 @@ def _pspin_series(curves, frac):
         t, y = _trim_anchor(curves["pspin"][p]["anchors"], ANCHOR_IDX[frac])
         label = rf"$p={p}$" if n == 500 else rf"$p={p}$ ($N={n}$)"
         series.append((label, t * factor(p) / n, y, P_COLORS[p]))
-    return series, PSPIN_XMAX, xlabel, tau_expr
+    return series, PSPIN_XMAX, xlabel, tau_unit
 
 
 def main(refresh=False):
@@ -507,27 +517,27 @@ def main(refresh=False):
     for ax, label in zip(axes.flat, ("A", "B", "C", "D")):
         apply_axis_style(ax, label)
 
-    # Top row: p-spin. Bottom row: NK.
+    # Top row: p-spin. Bottom row: NK. Both draw the series-averaged fitted line; the tau_s
+    # coefficient 1/a is written at the top right and along the line.
     for col, frac in enumerate(PANEL_FRACS):
-        # Top row: p-spin, no fitting -- draw the theory line (slope -1 in rescaled units).
-        ps_series, ps_xmax, ps_xlabel, ps_tau = _pspin_series(curves, frac)
-        plot_panel(axes[0, col], ps_series, 1.0,
-                   title=rf"$t_0={100 * frac:g}\%$",
-                   xlabel=ps_xlabel, tau_text=ps_tau, line_text=r"$1$",
+        title = rf"$t_0={100 * frac:g}\%$"
+
+        ps_series, ps_xmax, ps_xlabel, ps_unit = _pspin_series(curves, frac)
+        a = _fit_and_log(f"p-spin t_0={100 * frac:g}%", [f"p={p}" for p in sorted(PSPIN)],
+                         ps_series, ps_xmax)
+        plot_panel(axes[0, col], ps_series, a, title=title,
+                   xlabel=ps_xlabel, tau_text=rf"$\tau_s = {1.0 / a:.2f}\,{ps_unit}$",
+                   line_text=rf"slope $= {1.0 / a:.2f}$",
                    xmax=ps_xmax, show_ylabel=(col == 0), xorder=PSPIN_XORDER,
                    yorder=PSPIN_YORDER[frac])
 
-        # Bottom row: NK, fitted timescale. log rho = -t/tau_s = -a x with x = tK/N, so the
-        # K-averaged slope a gives tau_s = (1/a) N/K.
         nk_series, nk_xmax = _nk_series(curves, frac)
-        a, slopes = _mean_slope(nk_series, nk_xmax)
-        print(f"  NK t_0={100 * frac:g}%: per-K slopes "
-              + ", ".join(f"K={k}: {s:.3f}" for k, s in zip(K_VALUES, slopes))
-              + f"  -> mean {a:.3f}, tau_s = {1.0 / a:.3f} N/K")
-        plot_panel(axes[1, col], nk_series, a,
-                   title=rf"$t_0={100 * frac:g}\%$",
+        a = _fit_and_log(f"NK t_0={100 * frac:g}%", [f"K={k}" for k in K_VALUES],
+                         nk_series, nk_xmax)
+        plot_panel(axes[1, col], nk_series, a, title=title,
                    xlabel=r"$t\,K/N$", tau_text=rf"$\tau_s = {1.0 / a:.2f}\,N/K$",
-                   line_text=rf"${1.0 / a:.2f}$", xmax=nk_xmax, show_ylabel=(col == 0), xorder=NK_XORDER[frac],
+                   line_text=rf"slope $= {1.0 / a:.2f}$",
+                   xmax=nk_xmax, show_ylabel=(col == 0), xorder=NK_XORDER[frac],
                    yorder=NK_YORDER[frac], series_legend_kw=NK_LEGEND_KW)
 
     fig.savefig(OUT_PATH, format="pdf", bbox_inches="tight")
