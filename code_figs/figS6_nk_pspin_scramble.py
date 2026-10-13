@@ -1,19 +1,22 @@
 import seaborn as sns
 
 r"""Collapse of the subset DFE-autocorrelation across interaction strength, at two anchor points,
-for the NK model (top row) and the pure p-spin model (bottom row).
+for the pure p-spin model (top row) and the NK model (bottom row).
 
 A 2x2 figure. Each panel plots the log subset-autocorrelation log rho of the DFE against a
-connectivity-rescaled step, and overlays the fixed reference line -t/tau_s.
+connectivity-rescaled step, and overlays a reference line -t/tau_s.
 
-  A  NK, anchored at the start of the walk (t_0 = 0%),  x = t*K/N,  K in {4, 8, 16, 32, 64}, N=500.
-  B  NK, anchored near the optimum   (t_0 = 75%),       x = t*K/N.
-  C  p-spin, t_0 = 0%,   x = 2(p-1)*t/N,  p in {2, 3, 4} (N=500 for p=2,3; N=300 for p=4).
-  D  p-spin, t_0 = 75%,  x = 2p*t/N.
+  A  p-spin, anchored at the start of the walk (t_0 = 0%),  x = 2(p-1)*t/N,  p in {2, 3, 4}
+     (N=500 for p=2,3; N=300 for p=4).
+  B  p-spin, anchored near the optimum (t_0 = 75%),          x = 2p*t/N.
+  C  NK, t_0 = 0%,   x = t*K/N,  K in {4, 8} at N=2000, {16, 32} at N=1000, 64 at N=500.
+  D  NK, t_0 = 75%,  x = t*K/N.
 
 The connectivity is K for NK and p-1 for the p-spin (the number of other spins coupled to a given
-site in one interaction). A clean collapse onto -x means the decorrelation timescale is tau_s = 3N/4K (t_0=0) resp. N/K
-(t_0=75%) for the NK model, and N/2(p-1) (t_0=0) resp. N/2p (t_0=75%) for the p-spin.
+site in one interaction). For the p-spin the reference line is the theory, tau_s = N/2(p-1)
+(t_0=0) resp. N/2p (t_0=75%), so a clean collapse onto -x confirms it. For the NK model the
+reference slope is fitted: a through-origin least-squares slope per K over the plotted window,
+averaged over K, giving tau_s = c N/K with c = 1/slope.
 
 Measure
 -------
@@ -27,8 +30,8 @@ are the only choice that keeps the t_0 = 0% anchor meaningful.
 
 Data and cache
 --------------
-Built from the stored adaptive walks: data/sim/NK/N_500_K_*_repeats_10.pkl (which carry the DFE at
-every step, so the NK walks are read, not replayed) and the pure p-spin runs (which carry J and
+Built from the stored adaptive walks: data/sim/NK/N_{N}_K_{K}_repeats_*.pkl (which carry the DFE
+at every step, so the NK walks are read, not replayed) and the pure p-spin runs (which carry J and
 the flip sequence, so each walk is replayed through cmn_pspin's incremental updates) --
 data/sim/PSPIN/N500_P{2,3}_pure_repeats10.pkl, plus data/sim/PSPIN/N300_P4_pure_repeats5/ for p=4, one
 pickle per replicate because a single N=300 p=4 landscape is ~9 GB and must be streamed alone. The aggregated per-anchor curves are cached in data/sim/cache/figS6_nk_pspin_cache.pkl;
@@ -43,6 +46,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.transforms as mtransforms
 from matplotlib.ticker import ScalarFormatter
 
 # Repo root on path so we can drive the native p-spin DFE updates.
@@ -98,10 +102,12 @@ mpl.rcParams.update({
 })
 
 # ───────────────────────────────────── Configuration ─────────────────────────────────────
-# NK: N=500, several K; connectivity = K. The stored walks carry their own DFE history.
-NK_N = 500
-K_VALUES = [4, 8, 16, 32, 64]
-NK_FILES = {k: f"../data/sim/NK/N_{NK_N}_K_{k}_repeats_10.pkl" for k in K_VALUES}
+# NK: several K, each at its own N; connectivity = K. The stored walks carry their own DFE history.
+NK_N = {4: 2000, 8: 2000, 16: 1000, 32: 1000, 64: 500}     # K -> N of the stored run
+K_VALUES = sorted(NK_N)
+# The N=2000 runs hold 100 walks per file; only the first N_REPEATS are read.
+NK_FILES = {k: f"../data/sim/NK/N_{NK_N[k]}_K_{k}_repeats_{100 if NK_N[k] == 2000 else 10}.pkl"
+            for k in K_VALUES}
 K_COLORS = dict(zip(K_VALUES, sns.color_palette("viridis", len(K_VALUES))))
 
 # Pure p-spin: connectivity = p-1. The stored walks are replayed through cmn_pspin.
@@ -129,16 +135,19 @@ PEARSON_MIN_REPS = 3
 # Anchors shown, and their index into ANCHOR_FRACS.
 PANEL_FRACS = [0.0, 0.75]
 ANCHOR_IDX = {f: i for i, f in enumerate(ANCHOR_FRACS)}
-# Fixed x-window for both p-spin (bottom-row) panels, and the forced x-axis 10^n multiplier.
+# Fixed x-window for both p-spin (top-row) panels, and the forced x-axis 10^n multiplier.
 PSPIN_XMAX = 0.16
 PSPIN_XORDER = -1
-# Same explicit control for the NK (top-row) panels, per anchor fraction (their ranges differ).
+# Same explicit control for the NK (bottom-row) panels, per anchor fraction (their ranges differ).
+# The NK reference slope is fitted over this same window.
 NK_XMAX = {0.0: 0.4, 0.75: 0.4}
 NK_XORDER = {0.0: -1, 0.75: -1}
-# Fixed (not fitted) NK decorrelation timescale per anchor: tau_s = NK_TAU_CONST * N/K, so the
-# reference line has slope -1/NK_TAU_CONST in x = tK/N units.
-NK_TAU_CONST = {0.0: 3.0 / 4.0, 0.75: 1.0}
-NK_TAU_LABEL = {0.0: r"$\tau_s = 3N/4K$", 0.75: r"$\tau_s = N/K$"}
+# The tau_s coefficient written along each reference line: where it sits, as a fraction of the
+# x-window, and how far (points) above the line.
+LINE_LABEL_XFRAC = 0.3
+LINE_LABEL_OFFSET = 12
+# The NK legend entries carry both K and N, so they are set tighter to stay clear of the curves.
+NK_LEGEND_KW = {"fontsize": 13, "handlelength": 1.2, "labelspacing": 0.25, "borderaxespad": 0.2}
 # Forced 10^n y-axis multiplier per panel, so every panel carries an explicit x10^-n on the
 # y-axis: the NK panels span ~[-0.6,0] and the p-spin t_0=75% panel ~[-0.3,0] (order -1), while
 # the p-spin t_0=0 panel only reaches ~-0.2 and reads better as x10^-2.
@@ -357,7 +366,7 @@ def load_curves(refresh=False):
     dirty = False
     for k in K_VALUES:
         curves["nk"][k], built = _cached(
-            cache, f"nk_anchors_N{NK_N}_K{k}_{tag}",
+            cache, f"nk_anchors_N{NK_N[k]}_K{k}_{tag}",
             lambda k=k: _anchor_curves(_nk_walks(k, N_REPEATS)), refresh, N_REPEATS)
         dirty |= built
     for p, n in sorted(PSPIN.items()):
@@ -387,9 +396,11 @@ def _trim_anchor(anchors, anchor_idx):
     return t, a["mean_logv"][:last + 1]
 
 
-def plot_panel(ax, series, a, title, xlabel, tau_text, xmax, show_ylabel=True, xorder=None,
-               yorder=None):
-    """One panel: log rho vs the rescaled step, plus the -a x reference line."""
+def plot_panel(ax, series, a, title, xlabel, tau_text, line_text, xmax, show_ylabel=True,
+               xorder=None, yorder=None, series_legend_kw=None):
+    """One panel: log rho vs the rescaled step, plus the -a x reference line labelled along
+    itself with line_text. series_legend_kw overrides the series legend's styling (e.g. a smaller
+    font for long labels)."""
     series_handles = []
     for label, tau, y, color in series:
         m = np.isfinite(y) & (tau <= xmax)
@@ -398,7 +409,17 @@ def plot_panel(ax, series, a, title, xlabel, tau_text, xmax, show_ylabel=True, x
         series_handles.append(h)
 
     xs = np.linspace(0.0, xmax, 40)
-    (fit_h,) = ax.plot(xs, -a * xs, color="black", lw=2.0, ls="--", label=r"$-t/\tau_s$")
+    ax.plot(xs, -a * xs, color="black", lw=2.0, ls="--")
+    # Write the tau_s coefficient along the reference line, lifted LINE_LABEL_OFFSET points off it
+    # onto the empty upper-right side. The rotation is the line's angle in data coordinates;
+    # transform_rotates_text maps it to screen at draw time, so it tracks the final limits.
+    x_lab = LINE_LABEL_XFRAC * xmax
+    lifted = mtransforms.offset_copy(ax.transData, fig=ax.figure, y=LINE_LABEL_OFFSET,
+                                     units="points")
+    ax.text(x_lab, -a * x_lab, line_text, transform=lifted,
+            rotation=np.degrees(np.arctan2(-a, 1.0)), transform_rotates_text=True,
+            rotation_mode="anchor", ha="center", va="bottom",
+            fontsize=mpl.rcParams["legend.fontsize"])
 
     ax.set_xlim(0, xmax)
     # rho(t_0) = 1 by construction, so the curves start at log rho = 0: pin the top of the view
@@ -424,14 +445,10 @@ def plot_panel(ax, series, a, title, xlabel, tau_text, xmax, show_ylabel=True, x
     ax.set_title(title)
 
     # Series (K / p) legend, single column, lower left.
-    series_leg = ax.legend(handles=series_handles, frameon=False, loc="lower left", ncol=1)
-    ax.add_artist(series_leg)
-    # Fit legend: a single "-t/tau_s" line (so the dashed handle sits level with it) at the top
-    # right, with the explicit tau_s written as text just beneath the legend box.
-    fit_leg = ax.legend(handles=[fit_h], frameon=False, loc="upper right")
-    ax.figure.canvas.draw()
-    bb = fit_leg.get_window_extent().transformed(ax.transAxes.inverted())
-    ax.text(bb.x1, bb.y0 - 0.005, tau_text, transform=ax.transAxes,
+    ax.legend(handles=series_handles, frameon=False, loc="lower left", ncol=1,
+              **(series_legend_kw or {}))
+    # The explicit tau_s, alone at the top right.
+    ax.text(0.98, 0.95, tau_text, transform=ax.transAxes,
             ha="right", va="top", fontsize=mpl.rcParams["legend.fontsize"])
 
 
@@ -441,9 +458,21 @@ def _nk_series(curves, frac):
     """(series, xmax) for the NK panel at anchor fraction ``frac``. x = t*K/N."""
     series = []
     for k in K_VALUES:
+        n = NK_N[k]
         t, y = _trim_anchor(curves["nk"][k]["anchors"], ANCHOR_IDX[frac])
-        series.append((rf"$K={k}$", t * k / NK_N, y, K_COLORS[k]))
+        series.append((rf"$K={k},\ N={n}$", t * k / n, y, K_COLORS[k]))
     return series, NK_XMAX[frac]
+
+
+def _mean_slope(series, xmax):
+    """Average over series of the through-origin least-squares slope a in log rho = -a x,
+    each fitted on its plotted points (x <= xmax). log rho(0) = 0 by construction, so the line
+    is pinned at the origin."""
+    slopes = []
+    for _, x, y, _ in series:
+        m = np.isfinite(y) & (x <= xmax)
+        slopes.append(-np.sum(x[m] * y[m]) / np.sum(x[m] ** 2))
+    return float(np.mean(slopes)), slopes
 
 
 def _pspin_series(curves, frac):
@@ -478,25 +507,28 @@ def main(refresh=False):
     for ax, label in zip(axes.flat, ("A", "B", "C", "D")):
         apply_axis_style(ax, label)
 
-    # Top row: NK. Bottom row: p-spin.
+    # Top row: p-spin. Bottom row: NK.
     for col, frac in enumerate(PANEL_FRACS):
-        nk_series, nk_xmax = _nk_series(curves, frac)
-        # NK: fixed (not fitted) timescale tau_s = NK_TAU_CONST * N/K, i.e. log rho = -t/tau_s =
-        # -a x with a = 1/NK_TAU_CONST and x = tK/N.
-        a = 1.0 / NK_TAU_CONST[frac]
-        plot_panel(axes[0, col], nk_series, a,
-                   title=rf"$t_0={100 * frac:g}\%$",
-                   xlabel=r"$t\,K/N$", tau_text=NK_TAU_LABEL[frac],
-                   xmax=nk_xmax, show_ylabel=(col == 0), xorder=NK_XORDER[frac],
-                   yorder=NK_YORDER[frac])
-
-        # Bottom row: p-spin, no fitting -- draw the theory line (slope -1 in rescaled units).
+        # Top row: p-spin, no fitting -- draw the theory line (slope -1 in rescaled units).
         ps_series, ps_xmax, ps_xlabel, ps_tau = _pspin_series(curves, frac)
-        plot_panel(axes[1, col], ps_series, 1.0,
+        plot_panel(axes[0, col], ps_series, 1.0,
                    title=rf"$t_0={100 * frac:g}\%$",
-                   xlabel=ps_xlabel, tau_text=ps_tau,
+                   xlabel=ps_xlabel, tau_text=ps_tau, line_text=r"$1$",
                    xmax=ps_xmax, show_ylabel=(col == 0), xorder=PSPIN_XORDER,
                    yorder=PSPIN_YORDER[frac])
+
+        # Bottom row: NK, fitted timescale. log rho = -t/tau_s = -a x with x = tK/N, so the
+        # K-averaged slope a gives tau_s = (1/a) N/K.
+        nk_series, nk_xmax = _nk_series(curves, frac)
+        a, slopes = _mean_slope(nk_series, nk_xmax)
+        print(f"  NK t_0={100 * frac:g}%: per-K slopes "
+              + ", ".join(f"K={k}: {s:.3f}" for k, s in zip(K_VALUES, slopes))
+              + f"  -> mean {a:.3f}, tau_s = {1.0 / a:.3f} N/K")
+        plot_panel(axes[1, col], nk_series, a,
+                   title=rf"$t_0={100 * frac:g}\%$",
+                   xlabel=r"$t\,K/N$", tau_text=rf"$\tau_s = {1.0 / a:.2f}\,N/K$",
+                   line_text=rf"${1.0 / a:.2f}$", xmax=nk_xmax, show_ylabel=(col == 0), xorder=NK_XORDER[frac],
+                   yorder=NK_YORDER[frac], series_legend_kw=NK_LEGEND_KW)
 
     fig.savefig(OUT_PATH, format="pdf", bbox_inches="tight")
     print(f"Saved figure to {OUT_PATH}")
