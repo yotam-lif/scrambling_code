@@ -7,14 +7,14 @@ A 2x2 figure. Each panel plots the log subset-autocorrelation log rho of the DFE
 connectivity-rescaled step, and overlays a reference line -t/tau_s.
 
   A  p-spin, anchored at the start of the walk (t_0 = 0%),  x = 2(p-1)*t/N,  p in {2, 3, 4}
-     (N=500 for p=2,3; N=300 for p=4).
+     (N=2000 and N=1000 for p=2, N=500 for p=3, N=300 for p=4).
   B  p-spin, anchored near the optimum (t_0 = 75%),          x = 2p*t/N.
   C  NK, t_0 = 0%,   x = t*K/N,  K in {4, 8} at N=2000, {16, 32} at N=1000, 64 at N=500.
   D  NK, t_0 = 75%,  x = t*K/N.
 
 The connectivity is K for NK and p-1 for the p-spin (the number of other spins coupled to a given
 site in one interaction). In every panel the reference slope is fitted: a through-origin
-least-squares slope a per series (K or p) over the plotted window, averaged over series, giving
+least-squares slope a per series (K, or p at a given N) over the plotted window, averaged over series, giving
 tau_s = c N/K (NK) resp. c N/2(p-1), c N/2p (p-spin) with c = 1/a. The expected values are
 c = 3/4 (t_0=0) and 1 (t_0=75%) for NK, and c = 1 for the p-spin. The coefficient c is written at
 the top right of each panel and along its line.
@@ -34,8 +34,8 @@ Data and cache
 Built from the stored adaptive walks: data/sim/NK/N_{N}_K_{K}_repeats_*.pkl (which carry the DFE
 at every step, so the NK walks are read, not replayed) and the pure p-spin runs (which carry J and
 the flip sequence, so each walk is replayed through cmn_pspin's incremental updates) --
-data/sim/PSPIN/N500_P{2,3}_pure_repeats10.pkl, plus data/sim/PSPIN/N300_P4_pure_repeats5/ for p=4, one
-pickle per replicate because a single N=300 p=4 landscape is ~9 GB and must be streamed alone. The aggregated per-anchor curves are cached in data/sim/cache/figS6_nk_pspin_cache.pkl;
+data/sim/PSPIN/N{2000,1000}_P2_pure_repeats10.pkl and N500_P3_pure_repeats10.pkl, plus
+data/sim/PSPIN/N300_P4_pure_repeats5/ for p=4, one pickle per replicate because a single N=300 p=4 landscape is ~9 GB and must be streamed alone. The aggregated per-anchor curves are cached in data/sim/cache/figS6_nk_pspin_cache.pkl;
 delete it or pass --refresh to rebuild.
 """
 
@@ -111,14 +111,16 @@ NK_FILES = {k: f"../data/sim/NK/N_{NK_N[k]}_K_{k}_repeats_{100 if NK_N[k] == 200
             for k in K_VALUES}
 K_COLORS = dict(zip(K_VALUES, sns.color_palette("viridis", len(K_VALUES))))
 
-# Pure p-spin: connectivity = p-1. The stored walks are replayed through cmn_pspin.
-PSPIN = {2: 500, 3: 500, 4: 300}     # p -> N of the stored run
+# Pure p-spin: connectivity = p-1. Each series is one stored (p, N) run; p=2 is shown at two
+# sizes. The stored walks are replayed through cmn_pspin.
+PSPIN_RUNS = [(2, 2000), (2, 1000), (3, 500), (4, 300)]
 # A path is either a single pickle holding a list of walks, or a directory holding one pickle per
 # replicate (p=4, whose ~9 GB landscapes have to be loaded and freed one at a time).
-PSPIN_FILES = {2: "../data/sim/PSPIN/N500_P2_pure_repeats10.pkl",
-               3: "../data/sim/PSPIN/N500_P3_pure_repeats10.pkl",
-               4: "../data/sim/PSPIN/N300_P4_pure_repeats5"}
-P_COLORS = dict(zip(sorted(PSPIN), sns.color_palette("CMRmap", len(PSPIN) + 1)))
+PSPIN_FILES = {(2, 2000): "../data/sim/PSPIN/N2000_P2_pure_repeats10.pkl",
+               (2, 1000): "../data/sim/PSPIN/N1000_P2_pure_repeats10.pkl",
+               (3, 500): "../data/sim/PSPIN/N500_P3_pure_repeats10.pkl",
+               (4, 300): "../data/sim/PSPIN/N300_P4_pure_repeats5"}
+P_COLORS = dict(zip(PSPIN_RUNS, sns.color_palette("CMRmap", len(PSPIN_RUNS) + 1)))
 
 # Aggregated per-anchor curves, keyed by model, size, connectivity, replicates and anchor set.
 CACHE_PATH = "../data/sim/cache/figS6_nk_pspin_cache.pkl"
@@ -145,10 +147,10 @@ NK_XMAX = {0.0: 0.4, 0.75: 0.4}
 NK_XORDER = {0.0: -1, 0.75: -1}
 # The tau_s coefficient written along each reference line: where it sits, as a fraction of the
 # x-window, and how far (points) above the line.
-LINE_LABEL_XFRAC = 0.3
-LINE_LABEL_OFFSET = 16
-# The NK legend entries carry both K and N, so they are set tighter to stay clear of the curves.
-NK_LEGEND_KW = {"fontsize": 13, "handlelength": 1.2, "labelspacing": 0.25, "borderaxespad": 0.2}
+LINE_LABEL_XFRAC = 0.5
+LINE_LABEL_OFFSET = 24
+# The legend entries carry both K (or p) and N, so they are set tighter to stay clear of the curves.
+SERIES_LEGEND_KW = {"fontsize": 13, "handlelength": 1.2, "labelspacing": 0.25, "borderaxespad": 0.2}
 # Forced 10^n y-axis multiplier per panel, so every panel carries an explicit x10^-n on the
 # y-axis: the NK panels span ~[-0.6,0] and the p-spin t_0=75% panel ~[-0.3,0] (order -1), while
 # the p-spin t_0=0 panel only reaches ~-0.2 and reads better as x10^-2.
@@ -313,13 +315,14 @@ def _pspin_entries(path, n_repeats):
         del data
 
 
-def _pspin_walks(p, n_repeats):
-    """(sig_hist, dfe_hist) per stored pure p-spin walk, replayed through cmn_pspin.
+def _pspin_walks(run, n_repeats):
+    """(sig_hist, dfe_hist) per stored pure p-spin walk of ``run`` = (p, N), replayed through
+    cmn_pspin.
 
     Only J and the flip sequence are stored, so each walk is stepped through the native
     incremental updates, which carry the full DFE along with the configuration.
     """
-    for entry in _pspin_entries(PSPIN_FILES[p], n_repeats):
+    for entry in _pspin_entries(PSPIN_FILES[run], n_repeats):
         sigma0 = np.asarray(entry.get("init_sigma", entry.get("init_alpha")), dtype=np.int8)
         J = entry["J"]
         flip_seq = np.asarray(entry["flip_seq"], dtype=int)
@@ -353,7 +356,7 @@ def _cached(cache, key, build, refresh, want):
 
 
 def load_curves(refresh=False):
-    """{"nk": {K: result}, "pspin": {p: result}}, computed on a cache miss and written back."""
+    """{"nk": {K: result}, "pspin": {(p, N): result}}, computed on a cache miss and written back."""
     cache = {}
     if os.path.exists(CACHE_PATH) and not refresh:
         try:
@@ -370,11 +373,11 @@ def load_curves(refresh=False):
             cache, f"nk_anchors_N{NK_N[k]}_K{k}_{tag}",
             lambda k=k: _anchor_curves(_nk_walks(k, N_REPEATS)), refresh, N_REPEATS)
         dirty |= built
-    for p, n in sorted(PSPIN.items()):
+    for p, n in PSPIN_RUNS:
         reps = PSPIN_REPEATS[p]
-        curves["pspin"][p], built = _cached(
+        curves["pspin"][(p, n)], built = _cached(
             cache, f"pspin_anchors_p{p}_N{n}_{tag}",
-            lambda p=p, reps=reps: _anchor_curves(_pspin_walks(p, reps)), refresh, reps)
+            lambda run=(p, n), reps=reps: _anchor_curves(_pspin_walks(run, reps)), refresh, reps)
         dirty |= built
 
     if dirty:
@@ -410,7 +413,8 @@ def plot_panel(ax, series, a, title, xlabel, tau_text, line_text, xmax, show_yla
         series_handles.append(h)
 
     xs = np.linspace(0.0, xmax, 40)
-    ax.plot(xs, -a * xs, color="black", lw=2.0, ls="--")
+    # Drawn after, and pinned above, every series.
+    ax.plot(xs, -a * xs, color="black", lw=2.0, ls="--", zorder=4)
     # Write the tau_s coefficient along the reference line, lifted LINE_LABEL_OFFSET points off it
     # onto the empty upper-right side. The rotation is the line's angle in data coordinates;
     # transform_rotates_text maps it to screen at draw time, so it tracks the final limits.
@@ -496,15 +500,13 @@ def _pspin_series(curves, frac):
     """
     early = (frac == 0.0)
     factor = (lambda pp: 2 * (pp - 1)) if early else (lambda pp: 2 * pp)
-    xlabel = r"$2(p-1)\,t/N$" if early else r"$2p\,t/N$"
+    xlabel = r"$t \times 2(p-1)/N$" if early else r"$t \times 2p/N$"
     tau_unit = r"N/2(p-1)" if early else r"N/2p"
 
     series = []
-    for p in sorted(PSPIN):
-        n = PSPIN[p]
-        t, y = _trim_anchor(curves["pspin"][p]["anchors"], ANCHOR_IDX[frac])
-        label = rf"$p={p}$" if n == 500 else rf"$p={p}$ ($N={n}$)"
-        series.append((label, t * factor(p) / n, y, P_COLORS[p]))
+    for p, n in PSPIN_RUNS:
+        t, y = _trim_anchor(curves["pspin"][(p, n)]["anchors"], ANCHOR_IDX[frac])
+        series.append((rf"$p={p},\ N={n}$", t * factor(p) / n, y, P_COLORS[(p, n)]))
     return series, PSPIN_XMAX, xlabel, tau_unit
 
 
@@ -523,22 +525,22 @@ def main(refresh=False):
         title = rf"$t_0={100 * frac:g}\%$"
 
         ps_series, ps_xmax, ps_xlabel, ps_unit = _pspin_series(curves, frac)
-        a = _fit_and_log(f"p-spin t_0={100 * frac:g}%", [f"p={p}" for p in sorted(PSPIN)],
+        a = _fit_and_log(f"p-spin t_0={100 * frac:g}%", [f"p={p},N={n}" for p, n in PSPIN_RUNS],
                          ps_series, ps_xmax)
         plot_panel(axes[0, col], ps_series, a, title=title,
-                   xlabel=ps_xlabel, tau_text=rf"$\tau_s = {1.0 / a:.2f}\,{ps_unit}$",
+                   xlabel=ps_xlabel, tau_text=rf"$\tau_s = {1.0 / a:.2f} \times {ps_unit}$",
                    line_text=rf"slope $= {1.0 / a:.2f}$",
                    xmax=ps_xmax, show_ylabel=(col == 0), xorder=PSPIN_XORDER,
-                   yorder=PSPIN_YORDER[frac])
+                   yorder=PSPIN_YORDER[frac], series_legend_kw=SERIES_LEGEND_KW)
 
         nk_series, nk_xmax = _nk_series(curves, frac)
         a = _fit_and_log(f"NK t_0={100 * frac:g}%", [f"K={k}" for k in K_VALUES],
                          nk_series, nk_xmax)
         plot_panel(axes[1, col], nk_series, a, title=title,
-                   xlabel=r"$t\,K/N$", tau_text=rf"$\tau_s = {1.0 / a:.2f}\,N/K$",
+                   xlabel=r"$t \times K/N$", tau_text=rf"$\tau_s = {1.0 / a:.2f} \times N/K$",
                    line_text=rf"slope $= {1.0 / a:.2f}$",
                    xmax=nk_xmax, show_ylabel=(col == 0), xorder=NK_XORDER[frac],
-                   yorder=NK_YORDER[frac], series_legend_kw=NK_LEGEND_KW)
+                   yorder=NK_YORDER[frac], series_legend_kw=SERIES_LEGEND_KW)
 
     fig.savefig(OUT_PATH, format="pdf", bbox_inches="tight")
     print(f"Saved figure to {OUT_PATH}")
