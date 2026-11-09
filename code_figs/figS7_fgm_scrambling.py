@@ -95,7 +95,7 @@ def pearson_theory_radial(t, r0_tilde, n):
     only rescales the delta_par term, so radial motion alone cannot scramble the DFE
     completely: rho bottoms out at sqrt(n/2) / sqrt(n/2 + R~0^2) at the optimum.
 
-    Panel D simulates exactly this: FisherFrozenAxis holds the direction fixed and
+    Panel E simulates exactly this: FisherFrozenAxis holds the direction fixed and
     lets only the radius move, so the walk is this law's own simulation rather than
     an approximation to it.
     """
@@ -314,7 +314,7 @@ def accumulated_phase(radius, n):
     This is the exponent of the angular autocorrelation law: rotational diffusion
     on the sphere of radius R~ runs at rate (n-1)/(2 R~^2), so a *shrinking*
     radius has no single rate and no single timescale -- only the accumulated
-    phase. Panel E's tau_as is the special case of a radius held fixed.
+    phase. Panel D's tau_as is the special case of a radius held fixed.
     """
     finite = radius[np.isfinite(radius)]
     if finite.size == 0:
@@ -396,7 +396,9 @@ def plot_angular_law_panel(ax):
 
     ax.set_yscale("log")
     ax.set_xlabel("Accumulated phase")
-    ax.set_ylabel(r"$\langle \hat{r}(0) \cdot \hat{r}(t) \rangle$")
+    # \hat{\boldsymbol{r}}, not \boldsymbol{\hat{r}}: mathtext drops the bold when
+    # it wraps an accent.
+    ax.set_ylabel(r"$\langle \hat{\boldsymbol{r}}(0) \cdot \hat{\boldsymbol{r}}(t) \rangle$")
     ax.set_xlim(0, PHASE_EDGES[-1])
     ax.set_ylim(0.06, 1.15)
     ax.legend(handles=[theory_line], frameon=False, loc="lower left")
@@ -446,8 +448,8 @@ def strip_floor(traces, tail_frac=0.2):
 
     Either constraint leaves a piece of the DFE untouched, so raw rho relaxes to a
     floor rather than to zero and the raw e-fold time inherits that offset. At
-    fixed radius (panel E) the isotropic -||delta||^2/2 term carries no direction
-    and never decorrelates; on a frozen axis (panel D) it is the other way round,
+    fixed radius (panel D) the isotropic -||delta||^2/2 term carries no direction
+    and never decorrelates; on a frozen axis (panel E) it is the other way round,
     the descent only rescales the R delta_par term and stops at a local optimum
     besides, which is the larger effect of the two -- the floor is 0.94 at n = 32,
     R~(0) = 8. Dividing it out is what makes the two panels one measurement.
@@ -467,15 +469,15 @@ def strip_floor(traces, tail_frac=0.2):
 
 def plot_1e_collapse_panel(ax, cache, n_values, tau_of, admissible, ylabel,
                            legend_loc="lower right", n_boot=150, floor=False,
-                           legend=True):
-    r"""The time at which the DFE autocorrelation has decayed by one e-fold,
-    log rho = -1, in units of the timescale of the constraint that the walk runs
-    under -- one curve per n, swept over the starting radius R~(0).
+                           legend=True, legend_ncol=1):
+    r"""The time tau^sim at which the simulated DFE autocorrelation has decayed by
+    one e-fold, log rho = -1, in units of the timescale of the constraint that the
+    walk runs under -- one curve per n, swept over the starting radius R~(0).
 
     tau_of(R~(0), n) supplies that timescale: the radial collapse time
     tau_rs = sqrt(2/pi) R~(0) for the frozen-axis walk, the rotational time
     tau_as = 2 R~(0)^2 / (n - 1) for the constant-radius walk. If the constrained
-    motion is what scrambles the DFE, every curve lands on t_{1/e}/tau = 1 (the
+    motion is what scrambles the DFE, every curve lands on tau^sim/tau = 1 (the
     dashed line) once R~(0) is large enough for the finite-n corrections, which
     are of order n/R~(0)^2, to die out. admissible(R~(0), n) drops the cells where
     the constraint itself, rather than the geometry, sets the answer. Error bars
@@ -526,11 +528,11 @@ def plot_1e_collapse_panel(ax, cache, n_values, tau_of, admissible, ylabel,
     # One n key for the bottom row, in panel D; the colours mean the same thing in
     # all three.
     if legend:
-        ax.legend(handles=n_handles, frameon=False, loc=legend_loc)
+        ax.legend(handles=n_handles, frameon=False, loc=legend_loc, ncol=legend_ncol)
 
 
 def plot_radial_collapse_panel(ax, n_values):
-    """Panel D: the frozen-axis descent, against the radial collapse time
+    """Panel E: the frozen-axis descent, against the radial collapse time
     tau_rs = sqrt(2/pi) R~(0). Read on the part of rho that decays: shrinking the
     radius only rescales the R delta_par term of the effect and leaves the
     isotropic -||delta||^2/2 term alone, so radial motion by itself cannot
@@ -569,9 +571,9 @@ def plot_radial_collapse_panel(ax, n_values):
         # timescale it runs on at all.
         tau_of=lambda r0, n: r0 / SQRT_HALF_PI,
         admissible=lambda r0, n: r0 > (n - 1.0) / np.sqrt(2.0 * np.pi),
-        ylabel=r"$t_{1/e} \,/\, \tau_{rs}$",
-        legend_loc="upper right",
+        ylabel=r"$\tau_{rs}^{\text{sim}} \,/\, \tau_{rs}$",
         floor=True,
+        legend=False,
     )
     ax.set_xlim(7, 300)
     ax.set_ylim(0.9, 1.7)
@@ -579,7 +581,7 @@ def plot_radial_collapse_panel(ax, n_values):
 
 
 def plot_angular_collapse_panel(ax, n_values):
-    """Panel E: the constant-radius walk, against the rotational time
+    """Panel D: the constant-radius walk, against the rotational time
     tau_as = 2 R~(0)^2 / (n - 1). Read on the part of rho that decays: at fixed
     radius the walk can only turn the DFE, never shrink it, so rho settles onto a
     floor of order n / R~(0)^2 and the raw e-fold time carries that offset."""
@@ -591,9 +593,12 @@ def plot_angular_collapse_panel(ax, n_values):
         # raw rho, which only does so when R~(0)^2 > (e-1) n / 2.
         tau_of=lambda r0, n: 2.0 * r0 ** 2 / (n - 1.0),
         admissible=lambda r0, n: True,
-        ylabel=r"$t_{1/e} \,/\, \tau_{as}$",
+        ylabel=r"$\tau_{as}^{\text{sim}} \,/\, \tau_{as}$",
+        # The curves fill 0.9-1.15, so the n key goes in two columns in the empty
+        # band beneath them.
+        legend_loc="lower center",
+        legend_ncol=2,
         floor=True,
-        legend=False,
     )
     ax.set_xlim(7, 56)
     ax.set_ylim(0.8, 1.2)
@@ -620,7 +625,7 @@ def plot_combined_collapse_panel(ax, n_values):
     step where its radius reaches the anchor, so one set of walks supplies every
     column of the sweep.
 
-    Unlike panel D, no cell is excluded. The point of adding the rates is that the
+    Unlike panel E, no cell is excluded. The point of adding the rates is that the
     result should hold on *both* sides of the crossover radius R~_c, where neither
     pure law does: over this grid t_1e/tau_as ranges from 0.04 to 0.75 and
     t_1e/tau_rs from 0.24 to 0.97, while the ratio plotted here stays between 0.80
@@ -635,12 +640,12 @@ def plot_combined_collapse_panel(ax, n_values):
         tau_of=lambda r0, n: 1.0 / ((n - 1.0) / (2.0 * r0 ** 2)
                                     + SQRT_HALF_PI / r0),
         admissible=lambda r0, n: True,
-        ylabel=r"$t_{1/e} \,/\, \tau_{s}$",
+        ylabel=r"$\tau_{s}^{\text{sim}} \,/\, \tau_{s}$",
         floor=True,
         legend=False,
     )
     # The sweep spans more than a decade, so the default log formatter labels the
-    # round decades and nothing else -- the same axis panel D gets.
+    # round decades and nothing else -- the same axis panel E gets.
     ax.set_xlim(3.5, 115)
     ax.set_ylim(0.7, 1.2)
     ax.set_yticks(np.arange(0.7, 1.2001, 0.1))
@@ -658,7 +663,7 @@ def run_experiment(n_values):
     # walk: A that the radius is sharp enough for a mean-field law to exist at
     # all, B the radial law it follows, C the angular law it follows. The bottom
     # one is the timescale each of those hands the DFE autocorrelation: D the
-    # radial one alone (frozen axis), E the angular one alone (fixed radius),
+    # angular one alone (fixed radius), E the radial one alone (frozen axis),
     # F the two together on the unconstrained walk.
     # ------------------------------
     fig, axes = plt.subplots(2, 3, figsize=(18.0, 9.6))
@@ -674,10 +679,10 @@ def run_experiment(n_values):
     plot_angular_law_panel(axes[0, 2])
 
     apply_axis_style(axes[1, 0], "D")
-    plot_radial_collapse_panel(axes[1, 0], n_values)
+    plot_angular_collapse_panel(axes[1, 0], n_values)
 
     apply_axis_style(axes[1, 1], "E")
-    plot_angular_collapse_panel(axes[1, 1], n_values)
+    plot_radial_collapse_panel(axes[1, 1], n_values)
 
     apply_axis_style(axes[1, 2], "F")
     plot_combined_collapse_panel(axes[1, 2], n_values)
@@ -696,9 +701,9 @@ if __name__ == "__main__":
                     "follows the far-field radial law (B), while the orientation "
                     "follows the angular law in accumulated phase (C). Panels D-F "
                     "measure the time at which the DFE autocorrelation has decayed "
-                    "by one e-fold, in units of the radial collapse time "
-                    "tau_rs = sqrt(2/pi) R~(0) (frozen-axis descent), the rotational "
-                    "time tau_as = 2 R~(0)^2 / (n-1) (constant-radius walk), and "
+                    "by one e-fold, in units of the rotational time "
+                    "tau_as = 2 R~(0)^2 / (n-1) (constant-radius walk), the radial "
+                    "collapse time tau_rs = sqrt(2/pi) R~(0) (frozen-axis descent), and "
                     "their combination tau_s^-1 = tau_as^-1 + tau_rs^-1 (the "
                     "unconstrained walk, re-anchored). The sweeps are generated by "
                     "data/sim/gen_data/gen_dat_fgm_constrained.py and "

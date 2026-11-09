@@ -17,7 +17,7 @@ site in one interaction). In every panel the reference slope is fitted: a throug
 least-squares slope a per series (K, or p at a given N) over the plotted window, averaged over series, giving
 tau_s = c N/K (NK) resp. c N/2(p-1), c N/2p (p-spin) with c = 1/a. The expected values are
 c = 3/4 (t_0=0) and 1 (t_0=75%) for NK, and c = 1 for the p-spin. The coefficient c is written at
-the top right of each panel and along its line.
+the top right of each panel and in the legend entry of the dashed line ("Mean slope = c").
 
 Measure
 -------
@@ -47,7 +47,6 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.transforms as mtransforms
 from matplotlib.ticker import ScalarFormatter
 
 # Repo root on path so we can drive the native p-spin DFE updates.
@@ -145,10 +144,8 @@ PSPIN_XORDER = -1
 # The NK reference slope is fitted over this same window.
 NK_XMAX = {0.0: 0.4, 0.75: 0.4}
 NK_XORDER = {0.0: -1, 0.75: -1}
-# The tau_s coefficient written along each reference line: where it sits, as a fraction of the
-# x-window, and how far (points) above the line.
-LINE_LABEL_XFRAC = 0.5
-LINE_LABEL_OFFSET = 24
+# Height (axes fraction) of the top edge of the tau_s text at the top right of each panel.
+TAU_TEXT_Y = 0.88
 # The legend entries carry both K (or p) and N, so they are set tighter to stay clear of the curves.
 SERIES_LEGEND_KW = {"fontsize": 13, "handlelength": 1.2, "labelspacing": 0.25, "borderaxespad": 0.2}
 # Forced 10^n y-axis multiplier per panel, so every panel carries an explicit x10^-n on the
@@ -400,31 +397,22 @@ def _trim_anchor(anchors, anchor_idx):
     return t, a["mean_logv"][:last + 1]
 
 
-def plot_panel(ax, series, a, title, xlabel, tau_text, line_text, xmax, show_ylabel=True,
+def plot_panel(ax, series, a, title, xlabel, tau_text, line_label, xmax, show_ylabel=True,
                xorder=None, yorder=None, series_legend_kw=None):
-    """One panel: log rho vs the rescaled step, plus the -a x reference line labelled along
-    itself with line_text. series_legend_kw overrides the series legend's styling (e.g. a smaller
-    font for long labels)."""
-    series_handles = []
+    """One panel: log rho vs the rescaled step, plus the -a x reference line, which enters the
+    legend as line_label. series_legend_kw overrides the legend's styling (e.g. a smaller font
+    for long labels)."""
+    handles = []
     for label, tau, y, color in series:
         m = np.isfinite(y) & (tau <= xmax)
         (h,) = ax.plot(tau[m], y[m], color=color, lw=2.0, marker="o", markersize=4,
                        label=label)
-        series_handles.append(h)
+        handles.append(h)
 
     xs = np.linspace(0.0, xmax, 40)
-    # Drawn after, and pinned above, every series.
-    ax.plot(xs, -a * xs, color="black", lw=2.0, ls="--", zorder=4)
-    # Write the tau_s coefficient along the reference line, lifted LINE_LABEL_OFFSET points off it
-    # onto the empty upper-right side. The rotation is the line's angle in data coordinates;
-    # transform_rotates_text maps it to screen at draw time, so it tracks the final limits.
-    x_lab = LINE_LABEL_XFRAC * xmax
-    lifted = mtransforms.offset_copy(ax.transData, fig=ax.figure, y=LINE_LABEL_OFFSET,
-                                     units="points")
-    ax.text(x_lab, -a * x_lab, line_text, transform=lifted,
-            rotation=np.degrees(np.arctan2(-a, 1.0)), transform_rotates_text=True,
-            rotation_mode="anchor", ha="center", va="bottom",
-            fontsize=mpl.rcParams["legend.fontsize"])
+    # Drawn after, and pinned above, every series; listed last in the legend.
+    (h,) = ax.plot(xs, -a * xs, color="black", lw=2.0, ls="--", zorder=4, label=line_label)
+    handles.append(h)
 
     ax.set_xlim(0, xmax)
     # rho(t_0) = 1 by construction, so the curves start at log rho = 0: pin the top of the view
@@ -449,11 +437,11 @@ def plot_panel(ax, series, a, title, xlabel, tau_text, line_text, xmax, show_yla
         ax.set_ylabel(r"$\log\,\rho(t_0, t_0 + t)$")
     ax.set_title(title)
 
-    # Series (K / p) legend, single column, lower left.
-    ax.legend(handles=series_handles, frameon=False, loc="lower left", ncol=1,
+    # Series (K / p) plus mean-slope legend, single column, lower left.
+    ax.legend(handles=handles, frameon=False, loc="lower left", ncol=1,
               **(series_legend_kw or {}))
     # The explicit tau_s, alone at the top right.
-    ax.text(0.98, 0.95, tau_text, transform=ax.transAxes,
+    ax.text(0.98, TAU_TEXT_Y, tau_text, transform=ax.transAxes,
             ha="right", va="top", fontsize=mpl.rcParams["legend.fontsize"])
 
 
@@ -520,7 +508,7 @@ def main(refresh=False):
         apply_axis_style(ax, label)
 
     # Top row: p-spin. Bottom row: NK. Both draw the series-averaged fitted line; the tau_s
-    # coefficient 1/a is written at the top right and along the line.
+    # coefficient 1/a is written at the top right and in the line's legend entry.
     for col, frac in enumerate(PANEL_FRACS):
         title = rf"$t_0={100 * frac:g}\%$"
 
@@ -529,7 +517,7 @@ def main(refresh=False):
                          ps_series, ps_xmax)
         plot_panel(axes[0, col], ps_series, a, title=title,
                    xlabel=ps_xlabel, tau_text=rf"$\tau_s = {1.0 / a:.2f} \times {ps_unit}$",
-                   line_text=rf"slope $= {1.0 / a:.2f}$",
+                   line_label=f"Mean slope = {1.0 / a:.2f}",
                    xmax=ps_xmax, show_ylabel=(col == 0), xorder=PSPIN_XORDER,
                    yorder=PSPIN_YORDER[frac], series_legend_kw=SERIES_LEGEND_KW)
 
@@ -538,7 +526,7 @@ def main(refresh=False):
                          nk_series, nk_xmax)
         plot_panel(axes[1, col], nk_series, a, title=title,
                    xlabel=r"$t \times K/N$", tau_text=rf"$\tau_s = {1.0 / a:.2f} \times N/K$",
-                   line_text=rf"slope $= {1.0 / a:.2f}$",
+                   line_label=f"Mean slope = {1.0 / a:.2f}",
                    xmax=nk_xmax, show_ylabel=(col == 0), xorder=NK_XORDER[frac],
                    yorder=NK_YORDER[frac], series_legend_kw=SERIES_LEGEND_KW)
 
