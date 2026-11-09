@@ -77,7 +77,7 @@ from matplotlib.gridspec import GridSpec
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
-from cmn import cmn_exper, cmn_scatter  # noqa: E402
+from cmn import cmn_exper, cmn_pdf, cmn_scatter  # noqa: E402
 from cmn.cmn_plots import (  # noqa: E402  (row 1 is shared with fig S5)
     FATE_CLASSES, arrow_title, create_fate_bars, create_overlapping_dfes, style_dfe_axes,
     thresholded_histogram,
@@ -89,6 +89,7 @@ from cmn.cmn_scatter import (  # noqa: E402  (row 2 is shared with figs S1-S4)
 
 # ───────────────────────────────────── Style ─────────────────────────────────────
 cmn_scatter.apply_style()
+cmn_pdf.inline_pdf_colors()   # markers print in colour from Windows
 
 # ─────────────────────────────────── Parameters ──────────────────────────────────
 XLIM = 0.06                 # half-width of the plotted fitness-effect window

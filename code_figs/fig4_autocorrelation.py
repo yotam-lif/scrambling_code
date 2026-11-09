@@ -154,13 +154,14 @@ _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 from cmn import (  # noqa: E402
-    cmn_exper, cmn_fgm, cmn_walkpanel, cmn_walksim,
+    cmn_exper, cmn_fgm, cmn_pdf, cmn_walkpanel, cmn_walksim,
 )
 from cmn.cmn_cauchy_fgm import (  # noqa: E402
     cauchy_fgm_dfe_logpdf, cauchy_fgm_dfe_pdf, cauchy_fgm_survival,
 )
 
 # ───────────────────────────────────── Style ─────────────────────────────────────
+cmn_pdf.inline_pdf_colors()   # markers print in colour from Windows
 # Typography, spine weight and tick geometry are all kept identical to fig1 so the
 # figures read as one set.
 plt.rcParams['font.family'] = 'sans-serif'

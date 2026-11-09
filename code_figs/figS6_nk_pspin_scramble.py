@@ -53,7 +53,9 @@ from matplotlib.ticker import ScalarFormatter
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
-from cmn import cmn_pspin
+from cmn import cmn_pdf, cmn_pspin
+
+cmn_pdf.inline_pdf_colors()   # markers print in colour from Windows
 
 
 class _FixedOrderFormatter(ScalarFormatter):

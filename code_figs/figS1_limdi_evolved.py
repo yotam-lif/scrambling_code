@@ -44,12 +44,13 @@ import numpy as np
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
-from cmn import cmn_exper, cmn_scatter  # noqa: E402
+from cmn import cmn_exper, cmn_pdf, cmn_scatter  # noqa: E402
 from cmn.cmn_scatter import (  # noqa: E402
     SCATTER_FLOOR, envelope_limits, limdi_half_max_cut,
 )
 
 cmn_scatter.apply_style()
+cmn_pdf.inline_pdf_colors()   # markers print in colour from Windows
 
 OUT_DIR = os.path.join(_REPO_ROOT, "figs_paper")
 

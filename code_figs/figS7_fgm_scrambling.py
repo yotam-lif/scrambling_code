@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle
+import sys
 import warnings
 from pathlib import Path
 
@@ -10,9 +11,15 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
 
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+from cmn import cmn_pdf  # noqa: E402
+
 # ----------------------------------------------------------------
 # 1. VISUAL STYLE CONFIGURATION
 # ----------------------------------------------------------------
+cmn_pdf.inline_pdf_colors()   # markers print in colour from Windows
 plt.rcParams["font.family"] = "sans-serif"
 mpl.rcParams.update({
     "axes.labelsize": 16,
