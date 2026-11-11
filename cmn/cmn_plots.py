@@ -25,9 +25,9 @@ ANC_FILL = mpl.colors.to_rgba("#FAF9F6", alpha=0.6)
 # Fate classes, ordered from negative to positive effect, left to right.
 FATE_CLASSES = ("Deleterious", "Neutral", "Beneficial")
 # Both directions share one diverging set: dark red for deleterious, light grey for
-# neutral, dark navy for beneficial.  The navy is far darker than the scatter panels' light
-# bulk blue, and none of the three comes near the grey ANC_FILL or the magenta EVO_FILL.
-FATE_COLORS = ("#8C1C1C", "#BDBDBD", "#1F3F7A")
+# neutral, dark green for beneficial.  None of the three comes near the grey ANC_FILL or
+# the magenta EVO_FILL.
+FATE_COLORS = ("#8C1C1C", "#BDBDBD", "#1E6B34")
 # In-bar percentage colors: white on the dark ends, dark on the grey.
 FATE_TEXT_COLORS = ("white", "#222222", "white")
 

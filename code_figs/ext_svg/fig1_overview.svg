@@ -2645,7 +2645,7 @@
      id="namedview-vertical"
      pagecolor="#ffffff"
      inkscape:document-units="mm"
-     inkscape:current-layer="panel-c"
+     inkscape:current-layer="panel-b"
      inkscape:zoom="1.6046826"
      bordercolor="#000000"
      borderopacity="0.25"
@@ -2654,8 +2654,8 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
-     inkscape:cx="310.03015"
-     inkscape:cy="354.89884"
+     inkscape:cx="361.13061"
+     inkscape:cy="357.39155"
      inkscape:window-width="2560"
      inkscape:window-height="1382"
      inkscape:window-x="0"
@@ -4169,7 +4169,8 @@
          id="text44"><tspan
            x="645"
            dy="0"
-           id="tspan44">Ancestral genotype</tspan></text>
+           id="tspan44"
+           style="font-style:normal">Ancestral genotype</tspan></text>
       <g
          id="ancestor-gene-label"
          inkscape:label="Gene annotation">
@@ -4948,7 +4949,8 @@
          id="text82"><tspan
            x="645"
            dy="0"
-           id="tspan82">Evolved genotype</tspan></text>
+           id="tspan82"
+           style="font-style:normal">Evolved genotype</tspan></text>
     </g>
     <g
        id="evolved-library"
@@ -5557,10 +5559,12 @@
        y="87.055557"
        font-size="19px"
        fill="#333b43"
-       text-anchor="middle"><tspan
+       text-anchor="middle"
+       style="font-size:16.463px"><tspan
          x="645"
          dy="0"
-         id="tspan45">Ancestor</tspan></text>
+         id="tspan45"
+         style="font-style:normal;font-size:16.463px">Ancestor</tspan></text>
     <g
        id="ancestor-library-arrow"
        inkscape:label="Generate insertion library and assay fitness">
@@ -5602,9 +5606,9 @@
          xml:space="preserve"><tspan
            x="971.46832"
            y="62"
-           id="tspan8"><tspan
+           id="tspan3"><tspan
              style="font-style:italic;font-weight:bold"
-             id="tspan4">TnSeq</tspan></tspan></text>
+             id="tspan2">TnSeq</tspan></tspan></text>
       <text
          xml:space="preserve"
          transform="scale(1.7638889)"
@@ -5622,20 +5626,22 @@
          xml:space="preserve"><tspan
            x="971.46832"
            y="62"
-           id="tspan10"><tspan
+           id="tspan8"><tspan
              style="font-style:italic;font-weight:bold"
-             id="tspan9">TnSeq</tspan></tspan></text>
+             id="tspan4">TnSeq</tspan></tspan></text>
     </g>
     <text
        id="evolved-heading"
        x="645"
-       y="507.05554"
+       y="506.82541"
        font-size="19px"
        fill="#333b43"
-       text-anchor="middle"><tspan
+       text-anchor="middle"
+       style="font-size:16.463px"><tspan
          x="645"
          dy="0"
-         id="tspan85">Evolved</tspan></text>
+         id="tspan85"
+         style="font-style:normal;font-size:16.463px">Evolved</tspan></text>
     <g
        id="evolved-library-arrow"
        inkscape:label="Generate insertion library and assay fitness">
@@ -5681,14 +5687,14 @@
          font-size="22px"
          fill="#333b43"
          text-anchor="middle"
-         transform="rotate(-90)"
-         style="font-size:25.8704px;white-space:pre;inline-size:466.894;display:inline"
+         transform="rotate(-90,0.98414506,-0.98414506)"
+         style="font-size:28.2222px;white-space:pre;inline-size:466.894;display:inline"
          xml:space="preserve"><tspan
            x="-355.88892"
            y="627.05554"
-           id="tspan12"><tspan
-   style="font-weight:bold"
-   id="tspan11">Evolution </tspan>(LTEE)</tspan></text>
+           id="tspan10"><tspan
+             style="font-weight:bold"
+             id="tspan9">LTEE</tspan></tspan></text>
       <text
          id="background-fixation-caption"
          x="674"
@@ -5702,23 +5708,23 @@
          xml:space="preserve"><tspan
            x="674"
            y="344"
-           id="tspan16"><tspan
+           id="tspan12"><tspan
              style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
-             id="tspan13">Background </tspan></tspan><tspan
+             id="tspan11">Background </tspan></tspan><tspan
            x="674"
            y="365.25"
-           id="tspan19"><tspan
+           id="tspan49"><tspan
              style="-inkscape-font-specification:'Arial, Helvetica, sans-serif'"
-             id="tspan17">mutations</tspan><tspan
+             id="tspan47">mutations</tspan><tspan
              style="font-weight:bold"
-             id="tspan18"> fix </tspan></tspan><tspan
+             id="tspan48"> fix </tspan></tspan><tspan
            x="674"
            y="386.54129"
-           id="tspan22"><tspan
+           id="tspan52"><tspan
              style="font-weight:bold"
-             id="tspan20">naturally</tspan><tspan
+             id="tspan50">naturally</tspan><tspan
              style="font-weight:bold"
-             id="tspan21"> </tspan></tspan></text>
+             id="tspan51"> </tspan></tspan></text>
     </g>
     <g
        id="visual-key"
@@ -5806,7 +5812,8 @@
          font-style="italic"><tspan
            x="1045"
            dy="0"
-           id="tspan157">Fitness effect (s)</tspan></text>
+           id="tspan157"
+           style="font-style:normal">Fitness effect (s)</tspan></text>
       <use
          transform="translate(936,403) scale(1.05)"
          xlink:href="#transposon-cassette"
@@ -6220,7 +6227,7 @@
          x="401.37216"
          dy="0"
          id="tspan229"
-         style="font-size:21.1667px">Genotype space (schematic)</tspan></text>
+         style="font-style:normal;font-size:21.1667px">Genotype space (schematic)</tspan></text>
     <path
        d="M 815.88675,748.78718 V 1118.7872"
        stroke="#e0e5e9"
@@ -6254,13 +6261,13 @@
        xml:space="preserve"><tspan
          x="619.16919"
          y="917.30566"
-         id="tspan23">ARA+2
+         id="tspan53">ARA+2
 </tspan><tspan
          x="619.16919"
          y="937.30569"
-         id="tspan25"><tspan
+         id="tspan55"><tspan
            style="font-weight:normal"
-           id="tspan24">(Evolved, gen 50K)</tspan></tspan></text>
+           id="tspan54">(Evolved, gen 50K)</tspan></tspan></text>
     <circle
        cx="410.6391"
        cy="958"
@@ -6364,11 +6371,11 @@
          xml:space="preserve"><tspan
            x="1023"
            y="860"
-           id="tspan26">Genetic
+           id="tspan56">Genetic
 </tspan><tspan
            x="1023"
            y="880.00002"
-           id="tspan35">background</tspan></text>
+           id="tspan57">background</tspan></text>
       <text
          x="1015.4249"
          y="967.12665"
@@ -6381,19 +6388,19 @@
          xml:space="preserve"><tspan
            x="1015.4249"
            y="967.12665"
-           id="tspan37"><tspan
+           id="tspan59"><tspan
              style="font-style:italic"
-             id="tspan36">Insertion mutation changes the </tspan></tspan><tspan
+             id="tspan58">Insertion mutation changes the </tspan></tspan><tspan
            x="1015.4249"
            y="993.63646"
-           id="tspan39"><tspan
+           id="tspan61"><tspan
              style="font-style:italic"
-             id="tspan38">genotype (arrow), and thus the </tspan></tspan><tspan
+             id="tspan60">genotype (arrow), and so the </tspan></tspan><tspan
            x="1015.4249"
            y="1020.1462"
-           id="tspan41"><tspan
+           id="tspan63"><tspan
              style="font-style:italic"
-             id="tspan40">fitness (color).</tspan></tspan></text>
+             id="tspan62">fitness (color).</tspan></tspan></text>
       <path
          id="path215"
          d="m 570.40538,780.61502 h 53"
@@ -6462,7 +6469,8 @@
          text-anchor="middle"
          font-style="italic"><tspan
            x="941.55206"
-           id="tspan157-0">Insertion fitness effect (s)</tspan></text>
+           id="tspan157-0"
+           style="font-style:normal">Insertion fitness effect (s)</tspan></text>
       <text
          xml:space="preserve"
          transform="scale(1.7638889)"
@@ -6492,7 +6500,7 @@
        xml:space="preserve"><tspan
          x="111"
          y="750.45001"
-         id="tspan46">Insertion libraries sample the local fitness landscape</tspan></text>
+         id="tspan64">Insertion libraries sample the local fitness landscape</tspan></text>
     <text
        xml:space="preserve"
        transform="scale(1.7638889)"
